@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tipo de Cambio · Eco Go</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <style>
+    .tc-hero{
+      display:grid; grid-template-columns: 2.4fr 1fr; gap:18px; margin-top:14px;
+      align-items:stretch;
+    }
+    @media (max-width:1000px){ .tc-hero{ grid-template-columns:1fr } }
+
+    .tc-chart-card{
+      background:var(--color-surface); border:1px solid var(--color-border);
+      border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:18px 20px;
+    }
+    .tc-chart-card h3{font-size:1.05rem; color:var(--eg-teal-dark); margin:0 0 4px}
+    .tc-chart-card .sub{font-size:.78rem; color:var(--color-text-muted); margin-bottom:12px}
+    .tc-chart-box{position:relative; width:100%; height:420px}
+
+    .tc-side{
+      display:flex; flex-direction:column; gap:14px;
+    }
+    .tc-card{
+      background:linear-gradient(180deg, var(--eg-teal-dark) 0%, var(--eg-teal) 100%);
+      color:#fff; border-radius:var(--radius); padding:22px 20px;
+    }
+    .tc-card h3{
+      font-size:.78rem; text-transform:uppercase; letter-spacing:.12em;
+      color:rgba(255,255,255,0.75); font-weight:700; margin:0 0 16px;
+    }
+    .tc-kpi{ margin-bottom:14px }
+    .tc-kpi__label{
+      font-size:.66rem; text-transform:uppercase; letter-spacing:.08em;
+      color:rgba(255,255,255,0.7); font-weight:700; margin-bottom:4px;
+    }
+    .tc-kpi__value{ font-size:1.7rem; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums }
+    .tc-kpi__sub{ font-size:.72rem; color:rgba(255,255,255,0.7); margin-top:2px }
+
+    .tc-btn-big{
+      width:100%; padding:14px 18px; border-radius:10px; border:0;
+      background:#fff; color:var(--eg-teal-dark); font-family:inherit;
+      font-weight:700; font-size:.9rem; cursor:pointer;
+      box-shadow:0 4px 14px rgba(0,0,0,0.15);
+      transition:transform .15s, box-shadow .15s;
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      margin-top:auto;
+    }
+    .tc-btn-big:hover{ transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,0,0,0.25) }
+
+    /* Modal serie TCN */
+    .tc-modal-backdrop{
+      position:fixed; inset:0; background:rgba(15,30,31,0.6); backdrop-filter:blur(2px);
+      display:none; align-items:center; justify-content:center; z-index:100; padding:20px;
+    }
+    .tc-modal-backdrop.is-open{display:flex}
+    .tc-modal{
+      background:#fff; border-radius:var(--radius-lg); padding:22px 26px;
+      max-width:1100px; width:100%; max-height:92vh; overflow:auto;
+      box-shadow:0 24px 60px rgba(0,0,0,0.25);
+    }
+    .tc-modal__head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px}
+    .tc-modal__title{font-size:1.1rem; color:var(--eg-teal-dark); margin:0; font-weight:800}
+    .tc-modal__close{
+      background:transparent; border:1px solid var(--color-border); border-radius:6px;
+      padding:6px 12px; cursor:pointer; font-weight:600; font-size:.82rem;
+      color:var(--color-text-muted); font-family:inherit;
+    }
+    .tc-modal__close:hover{background:var(--eg-gray-100); color:var(--eg-teal-dark)}
+
+    /* ROFEX cuadro */
+    .rofex-card{
+      background:var(--color-surface); border:1px solid var(--color-border);
+      border-radius:var(--radius); padding:18px 20px;
+    }
+    .rofex-card__head{
+      display:flex; align-items:center; justify-content:space-between; gap:16px;
+      flex-wrap:wrap; margin-bottom:14px;
+    }
+    .rofex-card__head h3{margin:0; font-size:1.05rem; color:var(--eg-teal-dark)}
+    .rofex-card__head .sub{font-size:.75rem; color:var(--color-text-muted); margin-top:4px}
+    .rofex-picker{
+      display:flex; flex-wrap:wrap; gap:0; border:1px solid var(--color-border);
+      border-radius:8px; overflow:hidden;
+    }
+    .rofex-picker button{
+      background:#fff; border:0; border-right:1px solid var(--color-border);
+      padding:9px 18px; font-family:inherit; font-weight:600; font-size:.82rem;
+      color:var(--color-text-muted); cursor:pointer; transition:all .15s;
+    }
+    .rofex-picker button:last-child{border-right:0}
+    .rofex-picker button:hover{ background:var(--eg-gray-100); color:var(--eg-teal-dark) }
+    .rofex-picker button.is-active{ background:var(--eg-teal-dark); color:#fff }
+
+    .rofex-table-wrap{ border:1px solid var(--color-border); border-radius:var(--radius); overflow:hidden }
+    .rofex-scroll{ overflow-x:auto; max-height:600px }
+    .rofex-table{ width:100%; border-collapse:separate; border-spacing:0; min-width:1100px }
+    .rofex-table th, .rofex-table td{
+      padding:9px 12px; font-size:.82rem; white-space:nowrap;
+      border-bottom:1px solid #ECEFEF; border-right:1px solid #F6F8F8;
+    }
+    .rofex-table th{
+      background:var(--eg-teal-dark); color:#fff; font-weight:700;
+      text-transform:uppercase; letter-spacing:.06em; font-size:.7rem;
+      position:sticky; top:0; z-index:2;
+    }
+    .rofex-table thead th:first-child, .rofex-table tbody td:first-child{
+      position:sticky; left:0; z-index:1; background:var(--eg-teal-dark); color:#fff;
+      font-weight:700;
+    }
+    .rofex-table tbody td:first-child{
+      background:var(--eg-gray-100); color:var(--eg-teal-dark); z-index:1;
+    }
+    .rofex-table td.num{ text-align:right; font-variant-numeric:tabular-nums; font-family:ui-monospace,monospace }
+    .rofex-table tbody tr:hover td{ background:rgba(60,151,148,0.06) }
+    .rofex-table tbody tr:last-child td{ background:rgba(60,151,148,0.10); font-weight:700; color:var(--eg-teal-dark) }
+    .rofex-table tbody tr:last-child td:first-child{ background:var(--eg-teal); color:#fff }
+  </style>
+</head>
+<body data-depth="1" data-active-section="tipo-cambio">
+
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+
+    <main class="eg-main">
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title">Tipo de cambio</h1>
+          <p class="eg-page-header__subtitle">TCR con bandas · cotizaciones · futuros Rofex.</p>
+        </div>
+        <div class="eg-page-header__actions">
+          <span class="eg-tag" id="tcLastUpdate">—</span>
+        </div>
+      </section>
+
+      <div class="eg-tabs">
+        <div class="eg-tabs__title">Tipo de cambio</div>
+        <div class="eg-tabs__subtitle">TCR / bandas / futuros Rofex</div>
+        <div class="eg-tabs__nav" id="tcTabsNav">
+          <button class="eg-tabs__btn is-active" data-tab="tcr">TCR</button>
+          <button class="eg-tabs__btn" data-tab="rofex">Rofex</button>
+        </div>
+      </div>
+
+      <!-- ============ TAB 1: TCR (Gráfico def) ============ -->
+      <section class="eg-tab-panel" id="panel-tcr">
+
+        <div class="tc-hero">
+          <div class="tc-chart-card">
+            <h3>Tipo de cambio nominal · bandas y futuros</h3>
+            <div class="sub">Series del Gráfico Def · TCR bandas Eco Go</div>
+            <div class="tc-chart-box"><canvas id="chartTCRDef"></canvas></div>
+          </div>
+
+          <div class="tc-side">
+            <div class="tc-card" style="flex:1; display:flex; flex-direction:column;">
+              <h3>Última cotización</h3>
+              <div id="tcKpis"></div>
+              <button class="tc-btn-big" id="btnVerTCN">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+                Ver serie TCN (Oficial)
+              </button>
+              <button class="tc-btn-big" id="btnVerCCL" style="margin-top:8px; background:#FFF3E8; color:#C65C00;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+                Serie de CCL
+              </button>
+              <button class="tc-btn-big" id="btnVerBlue" style="margin-top:8px; background:#E8F0FB; color:#1A4F8A;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+                Serie de Blue
+              </button>
+              <button class="tc-btn-big" id="btnVerMEP" style="margin-top:8px; background:#F0EBF9; color:#5B3A99;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+                Serie de MEP
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ============ TAB 2: ROFEX ============ -->
+      <section class="eg-tab-panel" id="panel-rofex" hidden>
+
+        <div class="rofex-card">
+          <div class="rofex-card__head">
+            <div>
+              <h3 id="rofexTitle">Monitor Rofex</h3>
+              <div class="sub" id="rofexSub">Curva de futuros · valores por contrato</div>
+            </div>
+            <div class="rofex-picker" id="rofexPicker">
+              <button class="is-active" data-id="nominal">Nominal $/USD</button>
+              <button data-id="tna">TNA %</button>
+              <button data-id="varmens">Var. % mensual</button>
+              <button data-id="interes">Interés abierto</button>
+            </div>
+          </div>
+
+          <div class="rofex-table-wrap">
+            <div class="rofex-scroll"><table class="rofex-table" id="rofexTable"></table></div>
+          </div>
+        </div>
+
+      </section>
+
+      <footer class="eg-footer">
+        <span>Sección: Tipo de Cambio · Eco Go</span>
+        <a href="../index.html">← Volver al inicio</a>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Modal serie TCN Oficial -->
+  <div class="tc-modal-backdrop" id="tcnModal">
+    <div class="tc-modal">
+      <div class="tc-modal__head">
+        <h3 class="tc-modal__title">Serie histórica · TCN Mayorista (BCRA A3500)</h3>
+        <button class="tc-modal__close" id="tcnModalClose">✕ Cerrar</button>
+      </div>
+      <p style="margin:0 0 12px;font-size:.82rem;color:var(--color-text-muted)">
+        Fuente: BCRA Comunicación A3500 · serie diaria desde marzo 2002 (escala logarítmica).
+      </p>
+      <div class="tc-chart-box" style="height:460px"><canvas id="chartTCNonly"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Modal serie CCL -->
+  <div class="tc-modal-backdrop" id="cclModal">
+    <div class="tc-modal">
+      <div class="tc-modal__head">
+        <h3 class="tc-modal__title">Serie histórica · CCL (Contado con Liquidación)</h3>
+        <button class="tc-modal__close" id="cclModalClose">✕ Cerrar</button>
+      </div>
+      <p style="margin:0 0 12px;font-size:.82rem;color:var(--color-text-muted)">
+        Fuente: Copia de Blue · serie diaria desde 2020.
+      </p>
+      <div class="tc-chart-box" style="height:460px"><canvas id="chartCCLonly"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Modal serie Blue -->
+  <div class="tc-modal-backdrop" id="blueModal">
+    <div class="tc-modal">
+      <div class="tc-modal__head">
+        <h3 class="tc-modal__title">Serie histórica · Dólar Blue (Minorista)</h3>
+        <button class="tc-modal__close" id="blueModalClose">✕ Cerrar</button>
+      </div>
+      <p style="margin:0 0 12px;font-size:.82rem;color:var(--color-text-muted)">
+        Fuente: Copia de Blue · serie diaria desde 2000.
+      </p>
+      <div class="tc-chart-box" style="height:460px"><canvas id="chartBlueonly"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Modal serie MEP -->
+  <div class="tc-modal-backdrop" id="mepModal">
+    <div class="tc-modal">
+      <div class="tc-modal__head">
+        <h3 class="tc-modal__title">Serie histórica · Dólar MEP (Bolsa)</h3>
+        <button class="tc-modal__close" id="mepModalClose">✕ Cerrar</button>
+      </div>
+      <p style="margin:0 0 12px;font-size:.82rem;color:var(--color-text-muted)">
+        Fuente: Copia de Blue · serie diaria desde 2020.
+      </p>
+      <div class="tc-chart-box" style="height:460px"><canvas id="chartMEPonly"></canvas></div>
+    </div>
+  </div>
+
+  <script src="../assets/js/layout.js"></script>
+  <script src="../assets/data/tipo-cambio.js"></script>
+  <script src="../assets/js/tipo-cambio.js"></script>
+</body>
+</html>

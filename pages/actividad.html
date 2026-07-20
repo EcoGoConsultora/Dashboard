@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Actividad · Eco Go</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .act-section{margin-bottom:36px}
+    .act-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:20px 24px 24px;margin-bottom:20px}
+    .act-card__head{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+    .act-card__title{font-size:1rem;font-weight:700;color:var(--eg-teal-dark);margin:0 0 2px}
+    .act-card__sub{font-size:.76rem;color:var(--color-text-muted);margin:0}
+    .act-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+    .act-filter-btn{display:inline-flex;align-items:center;gap:5px;padding:3px 10px 3px 7px;border-radius:20px;border:1.5px solid transparent;font-size:.74rem;font-weight:600;cursor:pointer;transition:opacity .15s;background:transparent}
+    .act-filter-btn .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .act-filter-btn.active{opacity:1}
+    .act-filter-btn.inactive{opacity:.3}
+    .act-chart-box{position:relative}
+    .act-group-filter{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+    .act-group-btn{padding:4px 12px;border-radius:20px;border:1.5px solid;font-size:.74rem;font-weight:600;cursor:pointer;transition:all .15s;background:transparent}
+    .act-group-btn.active{color:#fff}
+    .act-group-btn.inactive{opacity:.4}
+    .act-note{font-size:.72rem;color:var(--color-text-muted);margin-top:8px}
+    /* tabla series */
+    .ser-table{border-collapse:collapse;font-size:.78rem;white-space:nowrap;width:100%}
+    .ser-table th{position:sticky;top:0;background:var(--color-surface);z-index:2;padding:7px 10px;border-bottom:2px solid var(--color-border);color:var(--eg-teal-dark);font-weight:700;text-align:right}
+    .ser-table th:first-child{text-align:left;position:sticky;left:0;z-index:3;background:var(--color-surface)}
+    .ser-table td{padding:5px 10px;border-bottom:1px solid var(--color-border);text-align:right;color:var(--color-text)}
+    .ser-table td:first-child{position:sticky;left:0;background:var(--color-surface);text-align:left;font-weight:600;color:var(--color-text-muted)}
+    .ser-table tr:hover td{background:rgba(60,151,148,.06)}
+    .ser-table tr:hover td:first-child{background:rgba(60,151,148,.06)}
+    .sc-hidden{display:none}
+    /* tabs */
+    .act-tabs{display:flex;gap:0;border-bottom:2px solid var(--color-border);margin-bottom:28px}
+    .act-tab{padding:10px 28px;font-size:.93rem;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--color-text-muted);border-bottom:3px solid transparent;margin-bottom:-2px;transition:color .15s,border-color .15s}
+    .act-tab.is-active{color:var(--eg-teal-dark);border-bottom-color:var(--eg-teal-dark)}
+    .act-tab-panel{display:none}
+    .act-tab-panel.is-active{display:block}
+    /* KPI cards */
+    .esae-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:28px}
+    .esae-kpi{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:18px 22px;display:flex;align-items:flex-start;gap:16px}
+    .esae-kpi__icon{width:42px;height:42px;border-radius:10px;background:rgba(60,151,148,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .esae-kpi__icon svg{color:var(--eg-teal-dark)}
+    .esae-kpi__label{font-size:.72rem;color:var(--color-text-muted);font-weight:600;margin:0 0 4px;text-transform:uppercase;letter-spacing:.04em}
+    .esae-kpi__value{font-size:1.7rem;font-weight:800;line-height:1;margin:0 0 4px}
+    .esae-kpi__value.positive{color:#2a9d5e}
+    .esae-kpi__value.negative{color:#d94032}
+    .esae-kpi__sub{font-size:.72rem;color:var(--color-text-muted);margin:0}
+    /* timeline */
+    .tl-bar{display:flex;align-items:center;gap:6px}
+    .tl-btn{padding:3px 11px;border-radius:16px;border:1.5px solid var(--color-border);font-size:.74rem;font-weight:700;cursor:pointer;background:transparent;color:var(--color-text-muted);transition:all .15s}
+    .tl-btn.is-active{background:var(--eg-teal-dark);border-color:var(--eg-teal-dark);color:#fff}
+    .tl-sep{width:1px;height:16px;background:var(--color-border);margin:0 4px}
+    .tl-slider-wrap{position:relative;height:36px;margin-top:8px;user-select:none;cursor:pointer}
+    .tl-track{position:absolute;top:50%;left:0;right:0;height:3px;background:var(--color-border);border-radius:2px;transform:translateY(-50%)}
+    .tl-fill{position:absolute;top:50%;height:3px;background:var(--eg-teal-dark);border-radius:2px;transform:translateY(-50%);pointer-events:none}
+    .tl-handle{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;background:#fff;border:2.5px solid var(--eg-teal-dark);transform:translate(-50%,-50%);cursor:ew-resize;z-index:2;transition:box-shadow .1s}
+    .tl-handle:hover,.tl-handle:active{box-shadow:0 0 0 5px rgba(60,151,148,.18)}
+    .tl-labels{display:flex;justify-content:space-between;font-size:.68rem;color:var(--color-text-muted);margin-top:1px}
+    /* EsAE selector */
+    .esae-selector{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+    .esae-sel-btn{padding:5px 16px;border-radius:20px;border:1.5px solid;font-size:.8rem;font-weight:700;cursor:pointer;background:transparent;transition:all .15s}
+    .esae-sel-btn.is-active{color:#fff}
+    .esae-sel-btn:not(.is-active){opacity:.55}
+  </style>
+</head>
+<body data-depth="1" data-active-section="actividad">
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+    <main class="eg-main">
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title">Actividad económica</h1>
+          <p class="eg-page-header__subtitle">EMAE · composición sectorial y evolución reciente.</p>
+        </div>
+        <div class="eg-page-header__actions">
+          <span class="eg-tag" id="emaeTag">—</span>
+        </div>
+      </section>
+
+      <!-- Hero EMAE: último dato -->
+      <div class="eg-summary-hero" id="emaeHero" style="--hero-cols:4"></div>
+      <div style="display:flex;justify-content:center;margin-bottom:14px;">
+        <button class="eg-btn eg-btn--primary" id="btnDlEmae" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;font-size:.88rem;font-weight:700;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Descargar serie EMAE completa
+        </button>
+      </div>
+
+      <!-- ══════════ PANEL EMAE ══════════ -->
+      <div id="panelEmae">
+
+        <!-- GRÁFICO 4 -->
+        <div class="act-section">
+          <div class="act-card">
+            <div class="act-card__head">
+              <div>
+                <p class="act-card__title">EMAE y composición de la oferta</p>
+                <p class="act-card__sub">Serie sin estacionalidad · nov-23 = 100</p>
+              </div>
+              <div class="tl-bar" id="g4TlBtns">
+                <button class="tl-btn" onclick="g4SetRange(6)">6M</button>
+                <button class="tl-btn" onclick="g4SetRange(12)">1A</button>
+                <button class="tl-btn" onclick="g4SetRange(24)">2A</button>
+                <span class="tl-sep"></span>
+                <button class="tl-btn is-active" onclick="g4SetRange(0)">Todo</button>
+              </div>
+            </div>
+            <div class="act-filters" id="g4Filters"></div>
+            <div class="act-chart-box" style="height:340px"><canvas id="chartG4"></canvas></div>
+            <div style="padding:0 4px;margin-top:10px">
+              <div class="tl-slider-wrap" id="g4SliderWrap">
+                <div class="tl-track"></div>
+                <div class="tl-fill" id="g4Fill"></div>
+                <div class="tl-handle" id="g4HandleL"></div>
+                <div class="tl-handle" id="g4HandleR"></div>
+              </div>
+              <div class="tl-labels" id="g4SliderLabels"></div>
+            </div>
+            <p class="act-note">Fuente: INDEC / EcoGo · Última observación: mar-26</p>
+          </div>
+        </div>
+
+        <!-- GRÁFICO 8 -->
+        <div class="act-section">
+          <div class="act-card">
+            <div class="act-card__head">
+              <div>
+                <p class="act-card__title">Composición del crecimiento y del empleo formal</p>
+                <p class="act-card__sub">Eje X: Var. % acum. desde nov-23 · Eje Y: Var. % acum. desde ene-25 · Tamaño: participación empleo formal</p>
+              </div>
+            </div>
+            <div class="act-group-filter" id="g8GroupFilter"></div>
+            <div class="act-chart-box" style="height:420px"><canvas id="chartG8"></canvas></div>
+            <p class="act-note">Fuente: INDEC / EcoGo · mar-26</p>
+          </div>
+        </div>
+
+        <!-- SERIES COMPLETAS -->
+        <div id="seriesSection" style="display:none">
+          <div class="act-card">
+            <div class="act-card__head">
+              <div>
+                <p class="act-card__title" id="seriesTitle">Series completas</p>
+                <p class="act-card__sub" id="seriesSub"></p>
+              </div>
+              <div id="ceseToggle" style="display:flex;gap:6px">
+                <button class="act-group-btn active" id="btnCE" style="border-color:#1B5F5E;color:#1B5F5E" onclick="setSeasonal('CE')">Con estacionalidad</button>
+                <button class="act-group-btn inactive" id="btnSE" style="border-color:#1B5F5E;color:#1B5F5E" onclick="setSeasonal('SE')">Sin estacionalidad</button>
+              </div>
+            </div>
+            <div class="act-filters" id="seriesFilters"></div>
+            <div id="seriesTableWrap" style="overflow-x:auto;overflow-y:auto;max-height:500px;border:1px solid var(--color-border);border-radius:8px"></div>
+            <p class="act-note">Fuente: INDEC / EcoGo · Base 2004 = 100</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:32px">
+          <button class="eg-btn" id="btnSector" onclick="showSeries('sector')">📊 Por sector de actividad</button>
+          <button class="eg-btn" id="btnOriginal" onclick="showSeries('original')">📈 Serie original</button>
+        </div>
+      </div>
+
+
+      <footer class="eg-footer">
+        <span>Actividad · Eco Go</span>
+        <a href="../index.html">← Volver al inicio</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../assets/js/layout.js"></script>
+  <script src="../assets/data/emae_series.js"></script>
+  <script>
+  (function(){
+    /* ─── data ─── */
+    var G4       = {"dates":["2023-02","2023-03","2023-04","2023-05","2023-06","2023-07","2023-08","2023-09","2023-10","2023-11","2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03"],"series":{"EMAE":[102.2323,102.838,100.5372,99.3768,99.7738,101.4732,102.3479,102.0687,101.0643,100,97.5587,98.065,98.2263,97.2574,96.1503,97.3205,98.082,100.553,100.9604,100.8902,101.6046,102.8065,103.2164,103.4396,104.5817,102.1566,103.7935,103.6544,103.339,103.2957,103.9482,104.6227,104.2124,104.1762,106.108,105.8652,103.0479,106.6344],"Agro":[99.0751,92.6197,64.452,53.4015,57.8101,82.2617,94.5485,97.5379,98.1663,100,96.9826,102.9154,102.4104,102.193,103.5984,104.1424,103.1655,104.887,103.9312,104.7491,104.0679,103.2858,101.9141,101.9066,106.6449,105.8617,107.6978,108.0389,108.8284,108.659,107.0268,109.2087,109.4348,113.0848,125.7518,122.6507,114.7769,121.2752],"Energía":[93.7122,95.1273,95.4756,97.1555,97.9345,96.9154,98.1187,98.5794,98.7494,100,100.8825,101.9265,104.1952,101.4196,103.8645,104.5127,101.6433,102.5081,104.5884,106.8451,107.256,108.0065,108.3671,110.4941,109.6274,107.326,108.7599,109.538,113.0236,116.1425,114.4591,115.4377,115.7639,115.611,118.6972,121.7607,120.6332,124.6688],"Industria":[104.6535,109.2663,108.1891,105.6025,104.1083,104.9483,103.8913,103.8191,101.7145,100,94.5182,93.9411,94.0927,90.0425,89.1776,89.8669,86.7012,96.8003,98.2902,97.251,98.4474,99.6853,100.003,98.2708,100.4475,94.0197,96.0423,96.0457,92.822,95.7352,94.9403,95.2655,95.2474,92.9098,94.6362,96.6505,92.8978,96.7263],"Construcción":[101.6646,103.1617,103.3456,100.1518,101.2859,99.5351,101.5939,101.6077,100.7065,100,95.3426,85.4129,84.2464,76.5827,76.7563,79.6109,80.3835,84.7639,84.6963,85.41,85.0051,86.8235,88.2567,87.3954,88.2239,85.0157,88.6052,85.3573,86.4767,85.6164,85.2698,86.7241,88.4997,86.267,87.7506,88.1873,87.4502,90.5308],"Comercio":[103.4279,106.2676,107.3167,104.6648,106.9794,104.4702,103.8638,104.6004,101.6292,100,96.2387,95.5261,97.5037,94.5169,88.3212,91.3036,91.5372,96.25,98.8843,98.6837,99.1821,101.9737,102.307,102.4888,103.8848,100.6274,100.4706,100.8804,99.1815,97.9882,98.3722,98.0378,99.6285,98.2074,99.1879,100.3646,98.0202,100.5329],"Transp. y com.":[100.7225,99.5548,99.511,98.2947,99.0885,100.7665,101.0559,101.1663,99.8772,100,99.8386,99.6702,99.3171,99.6037,99.7735,100.991,100.778,101.1541,99.7134,100.9272,101.2432,101.8047,102.6341,102.3923,103.6045,101.5449,102.2093,102.3895,101.9822,102.2921,103.0965,103.4589,104.0023,104.201,104.1409,105.1928,102.8405,105.8018],"Int. financiera":[104.837,107.0461,105.7904,103.7579,104.1791,104.5123,102.9581,102.6732,104.0621,100,95.4354,93.3603,92.4821,92.4182,93.9317,94.5542,95.0868,99.889,99.5978,101.8142,103.0054,107.9583,110.1394,115.5256,118.0642,117.677,119.7107,119.8434,120.93,121.6967,125.2799,140.1578,126.8983,124.5873,124.9887,125.065,125.4969,127.2549],"Act. empresariales":[99.143,100.0279,100.1653,99.7526,99.7565,99.6592,100.4203,100.2203,100.461,100,98.7478,98.4784,98.382,97.795,97.8161,99.0333,99.0867,98.9789,99.9854,99.6774,100.4634,101.7195,102.429,102.2216,103.0208,102.1506,103.6125,102.7041,103.3072,102.7826,102.888,104.0263,104.3661,102.8154,103.5792,102.7896,103.0509,104.1458],"Imp. netos de subs.":[101.1798,102.8536,103.4825,100.4494,101.3187,103.3476,103.6817,103.2319,102.1375,100,96.0391,94.6684,96.5074,96.2472,96.2488,98.6114,100.322,100.8892,100.896,102.205,103.396,106.1733,107.5997,107.0937,109.6527,104.9411,107.6844,108.3631,107.1613,109.14,111.385,111.0606,111.5064,111.3715,111.1367,110.1389,105.246,110.0927]}};
+    var G4C      = {"EMAE":"#1B5F5E","Agro":"#89C442","Energía":"#FE8B5F","Industria":"#DA4531","Construcción":"#E8A87C","Comercio":"#2890A4","Transp. y com.":"#3C9794","Int. financiera":"#7E5CCB","Act. empresariales":"#F5A623","Imp. netos de subs.":"#9B9B9B"};
+    var G8       = [{"label":"EMAE","x":6.634,"y":1.963,"size":100,"group":"EMAE","color":"#1B5F5E"},{"label":"Agro","x":21.275,"y":13.719,"size":5.115,"group":"Bienes","color":"#89C442"},{"label":"Pesca","x":131.456,"y":9.81,"size":0.234,"group":"Bienes","color":"#5D9E1F"},{"label":"Energía","x":24.669,"y":13.72,"size":1.436,"group":"Bienes","color":"#FE8B5F"},{"label":"Industria","x":-3.274,"y":-3.705,"size":18.49,"group":"Bienes","color":"#DA4531"},{"label":"Serv. Pub.","x":1.338,"y":-3.921,"size":1.223,"group":"Sector público","color":"#F5A623"},{"label":"Construcción","x":-9.469,"y":2.615,"size":6.07,"group":"Bienes","color":"#E8A87C"},{"label":"Comercio","x":0.533,"y":-3.227,"size":20.071,"group":"Servicios privados","color":"#2890A4"},{"label":"Hot. y rest.","x":14.259,"y":0.757,"size":4.483,"group":"Servicios privados","color":"#8FCCCA"},{"label":"Tran. y com.","x":5.802,"y":2.121,"size":8.252,"group":"Servicios privados","color":"#3C9794"},{"label":"Int. financiera","x":27.255,"y":7.785,"size":2.399,"group":"Servicios privados","color":"#7E5CCB"},{"label":"Act. empresariales","x":4.146,"y":1.092,"size":14.263,"group":"Servicios privados","color":"#5B45A0"},{"label":"Adm. pública","x":-3.357,"y":-1.508,"size":6.793,"group":"Sector público","color":"#F7C06A"},{"label":"Enseñanza","x":1.131,"y":0.371,"size":5.297,"group":"Sector público","color":"#D4902A"},{"label":"Serv. sociales","x":-0.169,"y":0.857,"size":5.873,"group":"Sector público","color":"#A06020"},{"label":"Otras act.","x":-2.446,"y":1.146,"size":0.001,"group":"Servicios privados","color":"#B0A0D8"},{"label":"Imp. netos de subs.","x":10.093,"y":0.401,"size":1.0,"group":"Otros","color":"#9B9B9B"}];
+    var SC_COLORS= ["#89C442","#5D9E1F","#FE8B5F","#DA4531","#E8A87C","#2890A4","#8FCCCA","#3C9794","#7E5CCB","#5B45A0","#B0A0D8","#F5A623","#F7C06A","#D4902A","#A06020","#9B9B9B"];
+
+    Chart.defaults.font.family = "'HK Grotesk', system-ui, sans-serif";
+    Chart.defaults.color = '#333333';
+    var scaleGrid = {grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#6E7679'}};
+
+    /* ══ Shared slider factory ══ */
+    function makeSlider(cfg) {
+      // cfg: { wrapId, fillId, handleLId, handleRId, labelsId, btnGroupId, allDates, onRange }
+      var wrap = document.getElementById(cfg.wrapId);
+      var fill = document.getElementById(cfg.fillId);
+      var hL   = document.getElementById(cfg.handleLId);
+      var hR   = document.getElementById(cfg.handleRId);
+      var lbls = document.getElementById(cfg.labelsId);
+      var total = cfg.allDates.length;
+      var idxL = 0, idxR = total - 1;
+
+      function update() {
+        var pL = idxL / (total-1) * 100, pR = idxR / (total-1) * 100;
+        hL.style.left = pL + '%'; hR.style.left = pR + '%';
+        fill.style.left = pL + '%'; fill.style.width = (pR-pL) + '%';
+        lbls.innerHTML = '<span>'+cfg.allDates[idxL]+'</span><span>'+cfg.allDates[idxR]+'</span>';
+        cfg.onRange(idxL, idxR);
+      }
+
+      function pxToIdx(px) {
+        var r = wrap.getBoundingClientRect();
+        return Math.round(Math.max(0, Math.min(1, (px-r.left)/r.width)) * (total-1));
+      }
+
+      function drag(isLeft) {
+        return function(e) {
+          e.preventDefault();
+          var mv = function(ev) {
+            var cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+            if (isLeft) idxL = Math.min(pxToIdx(cx), idxR-1);
+            else        idxR = Math.max(pxToIdx(cx), idxL+1);
+            if (cfg.btnGroupId) document.querySelectorAll('#'+cfg.btnGroupId+' .tl-btn').forEach(function(b){b.classList.remove('is-active');});
+            update();
+          };
+          var up = function() {
+            document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up);
+            document.removeEventListener('touchmove',mv); document.removeEventListener('touchend',up);
+          };
+          document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+          document.addEventListener('touchmove',mv,{passive:false}); document.addEventListener('touchend',up);
+        };
+      }
+      hL.addEventListener('mousedown', drag(true));  hL.addEventListener('touchstart', drag(true),  {passive:false});
+      hR.addEventListener('mousedown', drag(false)); hR.addEventListener('touchstart', drag(false), {passive:false});
+      wrap.addEventListener('click', function(e) {
+        if (e.target===hL||e.target===hR) return;
+        var idx = pxToIdx(e.clientX);
+        if (Math.abs(idx-idxL) <= Math.abs(idx-idxR)) idxL = Math.min(idx, idxR-1);
+        else idxR = Math.max(idx, idxL+1);
+        if (cfg.btnGroupId) document.querySelectorAll('#'+cfg.btnGroupId+' .tl-btn').forEach(function(b){b.classList.remove('is-active');});
+        update();
+      });
+
+      update();
+      return {
+        setRange: function(months, activeBtnIdx) {
+          idxL = months === 0 ? 0 : Math.max(0, total - months);
+          idxR = total - 1;
+          if (cfg.btnGroupId) {
+            var btns = document.querySelectorAll('#'+cfg.btnGroupId+' .tl-btn');
+            btns.forEach(function(b){b.classList.remove('is-active');});
+            if (btns[activeBtnIdx]) btns[activeBtnIdx].classList.add('is-active');
+          }
+          update();
+        }
+      };
+    }
+
+    /* ══ Gráfico 4 ══ */
+    var g4Datasets = Object.keys(G4.series).map(function(name){
+      var c=G4C[name]||'#888';
+      return {label:name,data:G4.series[name].slice(),borderColor:c,backgroundColor:c,
+              borderWidth:name==='EMAE'?2.5:1.8,pointRadius:0,pointHoverRadius:4,tension:0.25,hidden:false};
+    });
+    var chartG4 = new Chart(document.getElementById('chartG4'),{
+      type:'line', data:{labels:G4.dates.slice(),datasets:g4Datasets},
+      options:{responsive:true,maintainAspectRatio:false,animation:{duration:200},
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return ' '+c.dataset.label+': '+Number(c.raw).toFixed(1);}}}},
+        scales:{x:{ticks:{maxRotation:45,color:'#6E7679',font:{size:10}},grid:{color:'rgba(0,0,0,0.05)'}},
+                y:Object.assign({min:80,max:130,title:{display:true,text:'nov-23 = 100',color:'#6E7679',font:{size:11}}},scaleGrid)}}
+    });
+    var g4El=document.getElementById('g4Filters');
+    Object.keys(G4.series).forEach(function(name,i){
+      var c=G4C[name]||'#888', btn=document.createElement('button');
+      btn.className='act-filter-btn active'; btn.style.borderColor=c; btn.style.color=c;
+      btn.innerHTML='<span class="dot" style="background:'+c+'"></span>'+name;
+      btn.addEventListener('click',function(){ var ds=chartG4.data.datasets[i]; ds.hidden=!ds.hidden;
+        btn.classList.toggle('active',!ds.hidden); btn.classList.toggle('inactive',ds.hidden); chartG4.update(); });
+      g4El.appendChild(btn);
+    });
+    var g4Slider = makeSlider({
+      wrapId:'g4SliderWrap',fillId:'g4Fill',handleLId:'g4HandleL',handleRId:'g4HandleR',
+      labelsId:'g4SliderLabels',btnGroupId:'g4TlBtns',allDates:G4.dates,
+      onRange:function(l,r){
+        chartG4.data.labels=G4.dates.slice(l,r+1);
+        chartG4.data.datasets.forEach(function(ds,i){ ds.data=G4.series[Object.keys(G4.series)[i]].slice(l,r+1); });
+        chartG4.update('none');
+      }
+    });
+    window.g4SetRange = function(m){ g4Slider.setRange(m, {6:0,12:1,24:2,0:3}[m]); };
+
+    /* ══ Gráfico 8 ══ */
+    var GRUPOS=['EMAE','Bienes','Servicios privados','Sector público','Otros'];
+    var GC={EMAE:'#1B5F5E',Bienes:'#89C442','Servicios privados':'#2890A4','Sector público':'#F5A623',Otros:'#9B9B9B'};
+    var g8Vis={}; GRUPOS.forEach(function(g){g8Vis[g]=true;});
+    G8 = G8.filter(function(p){return p.label!=='Pesca';});
+    var maxSz=Math.max.apply(null,G8.filter(function(p){return p.label!=='EMAE';}).map(function(p){return p.size;}));
+    function bR(p){return p.label==='EMAE'?14:Math.max(4,Math.round(6+22*Math.sqrt(p.size/maxSz)));}
+    var g8Datasets=G8.map(function(pt){var isE=pt.label==='EMAE'; return {label:pt.label,_group:pt.group,_color:pt.color,data:[{x:pt.x,y:pt.y,r:bR(pt)}],backgroundColor:pt.color+(isE?'FF':'A0'),borderColor:pt.color,borderWidth:isE?2.5:1.5,hidden:false};});
+    var bubbleLbl={id:'bLbl',afterDatasetsDraw:function(chart){var ctx=chart.ctx; chart.data.datasets.forEach(function(ds,di){ if(ds.hidden||!ds.data.length) return; var meta=chart.getDatasetMeta(di); if(!meta.data.length) return; var el=meta.data[0],r=ds.data[0].r||8; ctx.save(); ctx.font='700 8px "HK Grotesk",system-ui,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.strokeText(ds.label,el.x,el.y-r-2); ctx.fillStyle=ds._color||'#333'; ctx.fillText(ds.label,el.x,el.y-r-2); ctx.restore(); });}};
+    var zeroLines={id:'zL',afterDraw:function(chart){ if(chart.canvas.id!=='chartG8') return; var ctx=chart.ctx,xs=chart.scales.x,ys=chart.scales.y,x0=xs.getPixelForValue(0),y0=ys.getPixelForValue(0); ctx.save(); ctx.strokeStyle='rgba(0,0,0,0.18)'; ctx.lineWidth=1; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(x0,chart.chartArea.top); ctx.lineTo(x0,chart.chartArea.bottom); ctx.stroke(); ctx.beginPath(); ctx.moveTo(chart.chartArea.left,y0); ctx.lineTo(chart.chartArea.right,y0); ctx.stroke(); ctx.restore();}};
+    Chart.register(zeroLines);
+    var chartG8=new Chart(document.getElementById('chartG8'),{type:'bubble',data:{datasets:g8Datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){ var pt=G8[c.datasetIndex]; return[' '+pt.label,' Desde nov-23: '+(pt.x>=0?'+':'')+pt.x.toFixed(1)+'%',' Desde ene-25: '+(pt.y>=0?'+':'')+pt.y.toFixed(1)+'%']; }}}},scales:{x:Object.assign({min:-10,max:30,title:{display:true,text:'Var. % acumulada desde nov-23',color:'#6E7679',font:{size:11}},ticks:{color:'#6E7679',callback:function(v){return v+'%';}}},{grid:{color:'rgba(0,0,0,0.05)'}}),y:Object.assign({min:-5,max:15,title:{display:true,text:'Var. % acumulada desde ene-25',color:'#6E7679',font:{size:11}},ticks:{color:'#6E7679',callback:function(v){return v+'%';}}},scaleGrid)}},plugins:[bubbleLbl]});
+    var g8FEl=document.getElementById('g8GroupFilter');
+    GRUPOS.forEach(function(g){ var c=GC[g],btn=document.createElement('button'); btn.className='act-group-btn active'; btn.style.borderColor=c; btn.style.color=c; btn.textContent=g; btn.addEventListener('click',function(){ g8Vis[g]=!g8Vis[g]; btn.classList.toggle('active',g8Vis[g]); btn.classList.toggle('inactive',!g8Vis[g]); chartG8.data.datasets.forEach(function(ds){if(ds._group===g) ds.hidden=!g8Vis[g];}); chartG8.update(); }); g8FEl.appendChild(btn); });
+
+    /* ══ Tablas EMAE ══ */
+    var currentMode='', currentSeasonal='CE', colVis=[];
+    function fmt(v){return (v==null)?'—':Number(v).toFixed(1);}
+    function buildSectorTable(seasonal){
+      var S=window.EMAE_SERIES, data=seasonal==='CE'?S.sector_ce:S.sector_se, lbls=S.sector_labels;
+      colVis=lbls.map(function(){return true;});
+      var h='<table class="ser-table"><thead><tr><th>Período</th>';
+      lbls.forEach(function(l,i){ h+='<th class="sc-'+i+'">'+l+'</th>'; }); h+='</tr></thead><tbody>';
+      data.slice().reverse().forEach(function(r){ if(!r.date) return; h+='<tr><td>'+r.date+'</td>'; r.vals.forEach(function(v,i){ h+='<td class="sc-'+i+'">'+fmt(v)+'</td>'; }); h+='</tr>'; });
+      h+='</tbody></table>'; document.getElementById('seriesTableWrap').innerHTML=h;
+      var fEl=document.getElementById('seriesFilters'); fEl.innerHTML='';
+      lbls.forEach(function(name,i){ var c=SC_COLORS[i]||'#888', btn=document.createElement('button');
+        btn.className='act-filter-btn active'; btn.style.borderColor=c; btn.style.color=c;
+        btn.innerHTML='<span class="dot" style="background:'+c+'"></span>'+name;
+        btn.addEventListener('click',function(){ colVis[i]=!colVis[i]; btn.classList.toggle('active',colVis[i]); btn.classList.toggle('inactive',!colVis[i]); document.querySelectorAll('.sc-'+i).forEach(function(td){td.classList.toggle('sc-hidden',!colVis[i]);}); });
+        fEl.appendChild(btn); });
+    }
+    function buildOriginalTable(){
+      var S=window.EMAE_SERIES;
+      var h='<table class="ser-table"><thead><tr><th>Período</th><th>Serie original</th><th>Desestacionalizada</th></tr></thead><tbody>';
+      S.original.slice().reverse().forEach(function(r){ h+='<tr><td>'+r.date+'</td><td>'+fmt(r.original)+'</td><td>'+fmt(r.desest)+'</td></tr>'; });
+      h+='</tbody></table>'; document.getElementById('seriesTableWrap').innerHTML=h; document.getElementById('seriesFilters').innerHTML='';
+    }
+    window.setSeasonal=function(mode){ currentSeasonal=mode;
+      document.getElementById('btnCE').classList.toggle('active',mode==='CE'); document.getElementById('btnCE').classList.toggle('inactive',mode!=='CE');
+      document.getElementById('btnSE').classList.toggle('active',mode==='SE'); document.getElementById('btnSE').classList.toggle('inactive',mode!=='SE');
+      buildSectorTable(mode); };
+    window.showSeries=function(mode){ var sec=document.getElementById('seriesSection'), btnS=document.getElementById('btnSector'), btnO=document.getElementById('btnOriginal'), cese=document.getElementById('ceseToggle');
+      if(currentMode===mode){ sec.style.display='none'; currentMode=''; btnS.classList.remove('is-active'); btnO.classList.remove('is-active'); return; }
+      currentMode=mode; sec.style.display=''; setTimeout(function(){sec.scrollIntoView({behavior:'smooth',block:'start'});},80);
+      if(mode==='sector'){ btnS.classList.add('is-active'); btnO.classList.remove('is-active'); cese.style.display=''; document.getElementById('seriesTitle').textContent='EMAE por sector de actividad'; document.getElementById('seriesSub').textContent='Número índice · Base 2004 = 100 · más reciente primero'; buildSectorTable(currentSeasonal); }
+      else { btnO.classList.add('is-active'); btnS.classList.remove('is-active'); cese.style.display='none'; document.getElementById('seriesTitle').textContent='EMAE · Serie original y desestacionalizada'; document.getElementById('seriesSub').textContent='Número índice · Base 2004 = 100 · solo datos publicados · más reciente primero'; buildOriginalTable(); } };
+
+
+    /* ── Botones de descarga ──────────────────────────── */
+    if (window.EcoGo) {
+      // EMAE G4 — serie original + desestacionalizada
+      EcoGo.dlBtn('#chartG4', 'emae_series.csv', function(){
+        var S = window.EMAE_SERIES || {};
+        var orig = S.original || [];
+        return {
+          headers: ['Fecha','EMAE Original (índice)','EMAE Desest. (índice)'],
+          rows: orig.map(function(r){ return [r.date, r.original, r.desest]; })
+        };
+      });
+
+    }
+
+  })();
+  </script>
+
+  <!-- Hero EMAE + botón descarga serie completa -->
+  <script>
+  (function(){
+    var S = window.EMAE_SERIES;
+    if (!S || !S.original || !S.original.length) return;
+    var orig = S.original;
+    var last = orig[orig.length - 1];
+    var prev12 = orig[orig.length - 13];
+    var prev1  = orig[orig.length - 2];
+    var ia  = prev12 ? ((last.original / prev12.original) - 1) * 100 : null;
+    var mm  = prev1  ? ((last.desest  / prev1.desest)  - 1) * 100 : null;
+
+    function fn(v, d) { d = d === undefined ? 1 : d; if (v === null || v === undefined || isNaN(v)) return '\u2014'; return Number(v).toLocaleString('es-AR', {minimumFractionDigits:d, maximumFractionDigits:d}); }
+    function fp(v, d) { d = d === undefined ? 1 : d; if (v === null || v === undefined || isNaN(v)) return '\u2014'; return (v > 0 ? '+' : '') + Number(v).toFixed(d).replace('.', ',') + ' %'; }
+
+    var tag = document.getElementById('emaeTag');
+    if (tag) tag.textContent = 'Último dato: ' + last.date;
+
+    var hero = document.getElementById('emaeHero');
+    if (hero) {
+      hero.innerHTML =
+        '<div class="eg-summary-hero__meta">' +
+          '<div class="eg-summary-hero__label">Último mes</div>' +
+          '<div class="eg-summary-hero__period">' + last.date + '</div>' +
+          '<div class="eg-summary-hero__sub">EMAE INDEC \u00b7 \u00cdndice Base 2004 = 100</div>' +
+        '</div>' +
+        '<div class="eg-summary-hero__stat">' +
+          '<div class="eg-summary-hero__stat-label">Serie original</div>' +
+          '<div class="eg-summary-hero__stat-value">' + fn(last.original) + '</div>' +
+          '<div class="eg-summary-hero__stat-sub">\u00edndice</div>' +
+        '</div>' +
+        '<div class="eg-summary-hero__stat">' +
+          '<div class="eg-summary-hero__stat-label">Var. i.a.</div>' +
+          '<div class="eg-summary-hero__stat-value">' + fp(ia) + '</div>' +
+          '<div class="eg-summary-hero__stat-sub">vs. mismo mes a\u00f1o anterior</div>' +
+        '</div>' +
+        '<div class="eg-summary-hero__stat">' +
+          '<div class="eg-summary-hero__stat-label">Desestacionalizado</div>' +
+          '<div class="eg-summary-hero__stat-value">' + fn(last.desest) + '</div>' +
+          '<div class="eg-summary-hero__stat-sub">\u00edndice</div>' +
+        '</div>' +
+        '<div class="eg-summary-hero__stat">' +
+          '<div class="eg-summary-hero__stat-label">Var. m/m desest.</div>' +
+          '<div class="eg-summary-hero__stat-value">' + fp(mm, 2) + '</div>' +
+          '<div class="eg-summary-hero__stat-sub">vs. mes anterior</div>' +
+        '</div>';
+    }
+
+    var btnDl = document.getElementById('btnDlEmae');
+    if (btnDl) {
+      btnDl.addEventListener('click', function(){
+        window.EcoGo.downloadCSV('emae_serie_completa.csv',
+          ['Fecha', 'EMAE Original (índice)', 'Desestacionalizado (índice)'],
+          orig.map(function(r){ return [r.date, r.original, r.desest]; })
+        );
+      });
+    }
+  })();
+  </script>
+</body>
+</html>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    

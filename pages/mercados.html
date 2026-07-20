@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mercados · Eco Go</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .mk-section{ margin-top:4px }
+    .mk-chart-card{
+      background:var(--color-surface); border:1px solid var(--color-border);
+      border-radius:var(--radius); box-shadow:var(--shadow-sm);
+      padding:18px 20px; margin-bottom:14px;
+    }
+    .mk-chart-card__head{
+      display:flex; align-items:flex-start; justify-content:space-between;
+      gap:12px; margin-bottom:10px;
+    }
+    .mk-chart-card__head-text h3{ font-size:1rem; color:var(--eg-teal-dark); margin:0 0 2px; }
+    .mk-chart-card__head-text .sub{ font-size:.76rem; color:var(--color-text-muted); }
+    .mk-chart-card > h3{ font-size:1rem; color:var(--eg-teal-dark); margin:0 0 2px; }
+    .mk-chart-card > .sub{ font-size:.76rem; color:var(--color-text-muted); margin-bottom:12px; }
+    .mk-chart-box{ position:relative; width:100%; height:320px }
+    .mk-trend-btn{
+      flex-shrink:0; display:inline-flex; align-items:center; gap:5px;
+      border:1px solid var(--color-border); border-radius:999px;
+      background:var(--color-surface); color:var(--color-text-muted);
+      font-family:inherit; font-size:.72rem; font-weight:600;
+      padding:5px 12px; cursor:pointer; transition:all .15s; white-space:nowrap;
+    }
+    .mk-trend-btn:hover{ border-color:var(--eg-teal); color:var(--eg-teal-dark); }
+    .mk-trend-btn.is-active{ background:var(--eg-teal-dark); color:#fff; border-color:var(--eg-teal-dark); }
+    .mk-trend-btn:disabled{ opacity:.4; cursor:not-allowed; }
+    .mk-table-wrap{ border:1px solid var(--color-border); border-radius:var(--radius); overflow:hidden; background:var(--color-surface); }
+    .mk-table-scroll{ overflow-x:auto }
+    .mk-table{ width:100%; border-collapse:collapse; min-width:600px; }
+    .mk-table th,.mk-table td{ padding:10px 14px; font-size:.83rem; border-bottom:1px solid #ECEFEF; white-space:nowrap; }
+    .mk-table thead th{ background:var(--eg-teal-dark); color:#fff; text-transform:uppercase; letter-spacing:.06em; font-size:.69rem; font-weight:700; text-align:left; }
+    .mk-table td.num,.mk-table th.num{ text-align:right; font-variant-numeric:tabular-nums; font-family:ui-monospace,monospace; }
+    .mk-table tbody tr:hover td{ background:var(--eg-gray-100) }
+    .mk-table td.pos{ color:#3A7D1A; font-weight:600 }
+    .mk-table td.neg{ color:#C0392B; font-weight:600 }
+    .mk-table td.neu{ color:var(--color-text-muted) }
+    .mk-table td.badge{ font-size:.65rem; text-transform:uppercase; letter-spacing:.08em; color:var(--eg-teal); font-weight:700; }
+    .mk-hero{ display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:12px; margin-bottom:18px; }
+    .mk-hero-card{ background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius); padding:14px 16px; box-shadow:var(--shadow-sm); }
+    .mk-hero-card__label{ font-size:.7rem; text-transform:uppercase; letter-spacing:.1em; color:var(--eg-teal); font-weight:700; margin-bottom:4px; }
+    .mk-hero-card__value{ font-size:1.5rem; font-weight:800; font-variant-numeric:tabular-nums; color:var(--color-text); line-height:1.1; }
+    .mk-hero-card__chgs{ display:flex; gap:10px; margin-top:6px; flex-wrap:wrap; }
+    .mk-hero-card__chg{ font-size:.72rem; font-weight:700; font-variant-numeric:tabular-nums; }
+    .mk-hero-card__chg-lbl{ font-size:.6rem; color:var(--color-text-muted); margin-right:2px; }
+    .mk-sub-head{ display:flex; align-items:center; gap:10px; margin:22px 0 10px; padding-bottom:7px; border-bottom:2px solid var(--eg-teal); }
+    .mk-sub-title{ font-size:.95rem; font-weight:800; color:var(--eg-teal-dark); margin:0; }
+    .mk-sub-badge{ font-size:.62rem; text-transform:uppercase; letter-spacing:.1em; background:var(--eg-teal); color:#fff; padding:2px 8px; border-radius:999px; font-weight:700; }
+    .mk-hd-charts{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+    @media(max-width:900px){ .mk-hd-charts{ grid-template-columns:1fr } }
+    .mk-loading{ padding:50px; text-align:center; color:var(--color-text-muted); font-size:.9rem; }
+    .mk-error{ background:#FEF2F2; border:1px solid #FCA5A5; border-radius:var(--radius); padding:16px 20px; color:#7F1D1D; font-size:.85rem; margin-top:12px; }
+    /* ── Selector histórico ── */
+    .mk-hist-nav{
+      display:flex; align-items:center; gap:5px; flex-wrap:wrap;
+      padding:7px 0 6px; margin-bottom:10px;
+      border-top:1px solid var(--color-border);
+    }
+    .mk-hist-nav-label{
+      font-size:.65rem; font-weight:700; color:var(--color-text-muted);
+      text-transform:uppercase; letter-spacing:.08em; margin-right:2px; flex-shrink:0;
+    }
+    .mk-hist-btn{
+      display:inline-flex; align-items:center;
+      border:1px solid var(--color-border); border-radius:999px;
+      background:var(--color-surface); color:var(--color-text-muted);
+      font-family:inherit; font-size:.69rem; font-weight:600;
+      padding:3px 11px; cursor:pointer; transition:all .15s; white-space:nowrap;
+    }
+    .mk-hist-btn:hover:not(:disabled){ border-color:var(--eg-teal); color:var(--eg-teal-dark); }
+    .mk-hist-btn.is-active{ background:var(--eg-teal); color:#fff; border-color:var(--eg-teal); }
+    .mk-hist-btn:disabled{ opacity:.3; cursor:not-allowed; }
+  </style>
+</head>
+<body data-depth="1" data-active-section="mercados">
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+    <main class="eg-main">
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title">Mercados</h1>
+          <p class="eg-page-header__subtitle">Tasa fija · renta variable · CER · dólar linked · hard-dollar.</p>
+        </div>
+        <div class="eg-page-header__actions"><span class="eg-tag" id="mkDate">—</span></div>
+      </section>
+      <div id="mkLoading" class="mk-loading">Cargando datos…</div>
+      <div id="mkError" class="mk-error" style="display:none"></div>
+      <div id="mkContent" style="display:none">
+        <div class="mk-hero" id="mkHero"></div>
+        <div class="eg-tabs">
+          <div class="eg-tabs__title">Instrumentos</div>
+          <div class="eg-tabs__subtitle">Seleccioná el segmento de mercado</div>
+          <div class="eg-tabs__nav" id="mkTabsNav">
+            <button class="eg-tabs__btn is-active" data-tab="tasa-fija">Tasa fija</button>
+            <button class="eg-tabs__btn" data-tab="renta-variable">Renta variable</button>
+            <button class="eg-tabs__btn" data-tab="cer">CER</button>
+            <button class="eg-tabs__btn" data-tab="dolar-linked">Dólar linked</button>
+            <button class="eg-tabs__btn" data-tab="hard-dollar">Hard-dollar</button>
+          </div>
+        </div>
+
+        <!-- TASA FIJA -->
+        <section class="eg-tab-panel" id="panel-tasa-fija">
+          <div class="mk-section">
+            <div class="mk-chart-card">
+              <div class="mk-chart-card__head">
+                <div class="mk-chart-card__head-text">
+                  <h3>Curva de tasa fija · TIR vs Duration</h3>
+                  <div class="sub">Instrumentos nominales · tamaño = volumen</div>
+                </div>
+                <button class="mk-trend-btn" id="trendBtnTasaFija">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 1 18"/></svg>
+                  Tendencia
+                </button>
+              </div>
+              <div class="mk-hist-nav">
+                <span class="mk-hist-nav-label">Ver:</span>
+                <button class="mk-hist-btn is-active">Hoy</button>
+                <button class="mk-hist-btn" disabled title="Sin datos históricos para Tasa Fija">-1D</button>
+                <button class="mk-hist-btn" disabled title="Sin datos históricos para Tasa Fija">-2D</button>
+                <button class="mk-hist-btn" disabled title="Sin datos históricos para Tasa Fija">-3D</button>
+                <button class="mk-hist-btn" disabled title="Sin datos históricos para Tasa Fija">-1S</button>
+              </div>
+              <div class="mk-chart-box"><canvas id="chartTasaFija"></canvas></div>
+            </div>
+            <div class="mk-table-wrap"><div class="mk-table-scroll">
+              <table class="mk-table"><thead><tr>
+                <th>Instrumento</th><th>Familia</th>
+                <th class="num">TIR %</th><th class="num">Duration</th>
+                <th>Vencimiento</th><th class="num">Volumen</th>
+              </tr></thead><tbody id="bodyTasaFija"></tbody></table>
+            </div></div>
+          </div>
+        </section>
+
+        <!-- RENTA VARIABLE -->
+        <section class="eg-tab-panel" id="panel-renta-variable" hidden>
+          <div class="mk-section">
+            <div class="mk-chart-card">
+              <h3>Panel accionario · variación 1D %</h3>
+              <div class="sub">Acciones ordenadas por retorno diario</div>
+              <div class="mk-chart-box" style="height:360px"><canvas id="chartEquities"></canvas></div>
+            </div>
+            <div class="mk-table-wrap"><div class="mk-table-scroll">
+              <table class="mk-table"><thead><tr>
+                <th>Ticker</th><th class="num">Precio</th><th>Unidad</th>
+                <th class="num">1D %</th><th class="num">1M %</th><th class="num">YTD %</th><th>Fecha</th>
+              </tr></thead><tbody id="bodyRentaVariable"></tbody></table>
+            </div></div>
+          </div>
+        </section>
+
+        <!-- CER -->
+        <section class="eg-tab-panel" id="panel-cer" hidden>
+          <div class="mk-section">
+            <div class="mk-chart-card">
+              <div class="mk-chart-card__head">
+                <div class="mk-chart-card__head-text">
+                  <h3>Curva CER · TIR real vs Duration</h3>
+                  <div class="sub">Instrumentos ajustados por CER · tamaño = volumen</div>
+                </div>
+                <button class="mk-trend-btn" id="trendBtnCer">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 1 18"/></svg>
+                  Tendencia
+                </button>
+              </div>
+              <div class="mk-hist-nav">
+                <span class="mk-hist-nav-label">Ver:</span>
+                <button class="mk-hist-btn is-active">Hoy</button>
+                <button class="mk-hist-btn" disabled title="Sin datos históricos para CER">-1D</button>
+                <button class="mk-hist-btn" disabled title="Sin datos históricos para CER">-2D</button>
+                <button class="mk-hist-btn" disabled title="Sin datos históricos para CER">-3D</button>
+                <button class="mk-hist-btn" disabled title="Sin datos históricos para CER">-1S</button>
+              </div>
+              <div class="mk-chart-box"><canvas id="chartCer"></canvas></div>
+            </div>
+            <div class="mk-table-wrap"><div class="mk-table-scroll">
+              <table class="mk-table"><thead><tr>
+                <th>Instrumento</th><th class="num">TIR real %</th><th class="num">Duration</th>
+                <th>Vencimiento</th><th class="num">Precio</th>
+                <th class="num">Precio técnico</th><th class="num">Paridad %</th><th class="num">Volumen</th>
+              </tr></thead><tbody id="bodyCer"></tbody></table>
+            </div></div>
+          </div>
+        </section>
+
+        <!-- DOLAR LINKED -->
+        <section class="eg-tab-panel" id="panel-dolar-linked" hidden>
+          <div class="mk-section">
+            <div class="mk-chart-card">
+              <div class="mk-chart-card__head">
+                <div class="mk-chart-card__head-text">
+                  <h3>Dólar linked · volumen operado por instrumento</h3>
+                  <div class="sub">Volumen negociado · comparación con días anteriores disponible</div>
+                </div>
+              </div>
+              <!-- nav inyectado por JS (necesita fechas reales del historial) -->
+              <div class="mk-chart-box" style="height:260px"><canvas id="chartDolarLinked"></canvas></div>
+            </div>
+            <div class="mk-table-wrap"><div class="mk-table-scroll">
+              <table class="mk-table"><thead><tr>
+                <th>Instrumento</th><th class="num">Precio</th>
+                <th class="num">Volumen</th><th class="num">Monto (M$)</th><th>Fecha</th>
+              </tr></thead><tbody id="bodyDolarLinked"></tbody></table>
+            </div></div>
+          </div>
+        </section>
+
+        <!-- HARD DOLLAR -->
+        <section class="eg-tab-panel" id="panel-hard-dollar" hidden>
+          <div class="mk-section">
+            <div class="mk-hd-charts">
+              <div class="mk-chart-card">
+                <div class="mk-chart-card__head">
+                  <div class="mk-chart-card__head-text">
+                    <h3>Curva A* · TIR vs Duration</h3>
+                    <div class="sub">Bonos soberanos ley argentina</div>
+                  </div>
+                  <button class="mk-trend-btn" id="trendBtnHdA">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 1 18"/></svg>
+                    Tendencia
+                  </button>
+                </div>
+                <div class="mk-hist-nav">
+                  <span class="mk-hist-nav-label">Ver:</span>
+                  <button class="mk-hist-btn is-active">Hoy</button>
+                  <button class="mk-hist-btn" disabled title="Sin datos históricos para Hard Dollar">-1D</button>
+                  <button class="mk-hist-btn" disabled title="Sin datos históricos para Hard Dollar">-2D</button>
+                  <button class="mk-hist-btn" disabled title="Sin datos históricos para Hard Dollar">-3D</button>
+                  <button class="mk-hist-btn" disabled title="Sin datos históricos para Hard Dollar">-1S</button>
+                </div>
+                <div class="mk-chart-box" style="height:280px"><canvas id="chartHdA"></canvas></div>
+              </div>
+              <div class="mk-chart-card">
+                <div class="mk-chart-card__head">
+                  <div class="mk-chart-card__head-text">
+                    <h3>Curva G* · TIR vs Duration</h3>
+                    <div class="sub">Bonos soberanos ley Nueva York</div>
+                  </div>
+                  <button class="mk-trend-btn" id="trendBtnHdG">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 1 18"/></svg>
+                    Tendencia
+                  </button>
+                </div>
+                <div class="mk-hist-nav">
+                  <span class="mk-hist-nav-label">Ver:</span>
+                  <button class="mk-hist-btn is-active">Hoy</button>
+                  <button class="mk-hist-btn" disabled title="Sin datos historicos para Hard Dollar">-1D</button>
+                  <button class="mk-hist-btn" disabled title="Sin datos historicos para Hard Dollar">-2D</button>
+                  <button class="mk-hist-btn" disabled title="Sin datos historicos para Hard Dollar">-3D</button>
+                  <button class="mk-hist-btn" disabled title="Sin datos historicos para Hard Dollar">-1S</button>
+                </div>
+                <div class="mk-chart-box" style="height:280px"><canvas id="chartHdG"></canvas></div>
+              </div>
+            </div>
+            <div class="mk-sub-head">
+              <h3 class="mk-sub-title">Bonos A* (Ley Argentina)</h3>
+              <span class="mk-sub-badge">Soberanos ARS-law</span>
+            </div>
+            <div class="mk-table-wrap" style="margin-bottom:18px"><div class="mk-table-scroll">
+              <table class="mk-table"><thead><tr>
+                <th>Instrumento</th><th class="num">TIR %</th><th class="num">Duration</th>
+                <th>Vencimiento</th><th class="num">Precio</th>
+                <th class="num">Precio tecnico</th><th class="num">Paridad %</th><th class="num">1D %</th>
+              </tr></thead><tbody id="bodyHdA"></tbody></table>
+            </div></div>
+            <div class="mk-sub-head">
+              <h3 class="mk-sub-title">Bonos G* (Ley Nueva York)</h3>
+              <span class="mk-sub-badge">Soberanos NY-law</span>
+            </div>
+            <div class="mk-table-wrap"><div class="mk-table-scroll">
+              <table class="mk-table"><thead><tr>
+                <th>Instrumento</th><th class="num">TIR %</th><th class="num">Duration</th>
+                <th>Vencimiento</th><th class="num">Precio</th>
+                <th class="num">Precio tecnico</th><th class="num">Paridad %</th><th class="num">1D %</th>
+              </tr></thead><tbody id="bodyHdG"></tbody></table>
+            </div></div>
+          </div>
+        </section>
+      </div>
+      <footer class="eg-footer">
+        <span>Seccion: Mercados - Eco Go</span>
+        <a href="../index.html">volver al inicio</a>
+      </footer>
+    </main>
+  </div>
+  <script src="../assets/js/layout.js"></script>
+  <script src="../assets/data/mercados.js"></script>
+  <script src="../assets/js/mercados.js"></script>
+</body>
+</html>

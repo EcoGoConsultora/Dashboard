@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Reservas · Eco Go</title>
+  <link rel="stylesheet" href="../assets/css/theme.css"/>
+  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .res-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:20px 24px 24px;margin-bottom:24px}
+    .res-title{font-size:1rem;font-weight:700;color:var(--eg-teal-dark);margin:0 0 4px}
+    .res-sub{font-size:.76rem;color:var(--color-text-muted);margin:0 0 14px}
+    .res-note{font-size:.72rem;color:var(--color-text-muted);margin-top:8px}
+    /* RIN table */
+    .rin-wrap{overflow-x:auto;overflow-y:auto;max-height:580px;border:1px solid var(--color-border);border-radius:8px}
+    .rin-table{border-collapse:collapse;font-size:.79rem;white-space:nowrap;width:100%}
+    .rin-table th{position:sticky;top:0;background:var(--color-surface);z-index:2;padding:6px 10px;border-bottom:2px solid var(--color-border);color:var(--eg-teal-dark);font-weight:700;text-align:right;font-size:.72rem}
+    .rin-table th:first-child{text-align:left;position:sticky;left:0;z-index:3;background:var(--color-surface);min-width:220px}
+    .rin-table td{padding:5px 10px;border-bottom:1px solid var(--color-border);text-align:right;color:var(--color-text);font-size:.79rem}
+    .rin-table td:first-child{position:sticky;left:0;background:var(--color-surface);text-align:left;min-width:220px}
+    .rin-table tr:hover td{background:rgba(60,151,148,.05)}
+    .rin-table tr:hover td:first-child{background:rgba(60,151,148,.05)}
+    /* row styles */
+    .rin-l0{font-weight:700;color:var(--color-text)}
+    .rin-l0 td:first-child{color:var(--eg-teal-dark)}
+    .rin-l1 td:first-child{padding-left:20px;color:var(--color-text-muted)}
+    .rin-l2 td:first-child{padding-left:36px;color:var(--color-text-muted);font-style:italic}
+    .rin-neg{color:#d94032!important;font-weight:600}
+    .rin-pos{color:#2a9d5e!important;font-weight:600}
+    .rin-result{background:rgba(60,151,148,.04)!important}
+    .rin-result td:first-child{background:rgba(60,151,148,.04)!important;font-weight:700!important;color:var(--eg-teal-dark)!important}
+    /* expand toggle */
+    .rin-toggle{display:inline-flex;align-items:center;gap:5px;cursor:pointer;padding:2px 0}
+    .rin-toggle-icon{font-size:.7rem;transition:transform .2s;display:inline-block}
+    .rin-toggle-icon.open{transform:rotate(90deg)}
+    .rin-child-row{transition:opacity .15s}
+    .rin-child-row.hidden{display:none}
+    /* chart */
+    .res-chart-box{position:relative}
+    /* timeline */
+    .tl-bar{display:flex;align-items:center;gap:6px}
+    .tl-btn{padding:3px 11px;border-radius:16px;border:1.5px solid var(--color-border);font-size:.74rem;font-weight:700;cursor:pointer;background:transparent;color:var(--color-text-muted);transition:all .15s}
+    .tl-btn.is-active{background:var(--eg-teal-dark);border-color:var(--eg-teal-dark);color:#fff}
+    .tl-sep{width:1px;height:16px;background:var(--color-border);margin:0 4px}
+    .tl-slider-wrap{position:relative;height:36px;margin-top:8px;user-select:none;cursor:pointer}
+    .tl-track{position:absolute;top:50%;left:0;right:0;height:3px;background:var(--color-border);border-radius:2px;transform:translateY(-50%)}
+    .tl-fill{position:absolute;top:50%;height:3px;background:var(--eg-teal-dark);border-radius:2px;transform:translateY(-50%);pointer-events:none}
+    .tl-handle{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;background:#fff;border:2.5px solid var(--eg-teal-dark);transform:translate(-50%,-50%);cursor:ew-resize;z-index:2}
+    .tl-handle:hover{box-shadow:0 0 0 5px rgba(60,151,148,.18)}
+    .tl-labels{display:flex;justify-content:space-between;font-size:.68rem;color:var(--color-text-muted);margin-top:1px}
+  </style>
+</head>
+<body data-depth="1" data-active-section="reservas">
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+    <main class="eg-main">
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title">Reservas internacionales</h1>
+          <p class="eg-page-header__subtitle">Composición RIN · reservas brutas y depósitos · BCRA</p>
+        </div>
+      </section>
+
+      <!-- Cuadro RIN -->
+      <div class="res-card">
+        <p class="res-title">Cuadro RIN · Reservas internacionales netas</p>
+        <p class="res-sub">En millones de dólares · Hacé click en ▶ para desagregar</p>
+        <div class="rin-wrap">
+          <table class="rin-table" id="rinTable"></table>
+        </div>
+        <p class="res-note">Fuente: BCRA / EcoGo · pasivos reservas.xlsx · Cuadro RIN</p>
+      </div>
+
+      <!-- Gráfico 5: Reservas + Depósitos + Préstamos (diario) -->
+      <div class="res-card">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+          <div>
+            <p class="res-title">Reservas brutas · Depósitos y Préstamos en USD</p>
+            <p class="res-sub" style="margin:0">Serie diaria · en millones de USD</p>
+          </div>
+          <div class="tl-bar" id="g5TlBtns">
+            <button class="tl-btn" onclick="g5SetRange(365)">1A</button>
+            <button class="tl-btn" onclick="g5SetRange(730)">2A</button>
+            <button class="tl-btn" onclick="g5SetRange(1825)">5A</button>
+            <span class="tl-sep"></span>
+            <button class="tl-btn is-active" onclick="g5SetRange(0)">Todo</button>
+          </div>
+        </div>
+        <div class="res-chart-box" style="height:360px"><canvas id="chartG5"></canvas></div>
+        <div style="padding:0 4px;margin-top:10px">
+          <div class="tl-slider-wrap" id="g5SliderWrap">
+            <div class="tl-track"></div>
+            <div class="tl-fill" id="g5Fill"></div>
+            <div class="tl-handle" id="g5HandleL"></div>
+            <div class="tl-handle" id="g5HandleR"></div>
+          </div>
+          <div class="tl-labels" id="g5SliderLabels"></div>
+        </div>
+        <p class="res-note">Fuente: BCRA / EcoGo · Reservas brutas y depósitos.xlsx · Gráfico5</p>
+      </div>
+
+      <footer class="eg-footer">
+        <span>Reservas · Eco Go</span>
+        <a href="../index.html">← Volver al inicio</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../assets/js/layout.js"></script>
+  <script src="../assets/data/reservas.js"></script>
+  <script>
+  (function(){
+    var RIN = window.RESERVAS_DATA.rin;
+    var G5  = window.RESERVAS_DATA.g5;
+
+    /* ══ Cuadro RIN ══ */
+    var expandState = {};  // group -> bool (expanded)
+
+    function fmt(v) {
+      if (v === null || v === undefined) return '—';
+      var n = Number(v);
+      if (isNaN(n)) return '—';
+      var s = Math.abs(n).toLocaleString('es-AR', {minimumFractionDigits:1, maximumFractionDigits:1});
+      return (n < 0 ? '-' : '') + s;
+    }
+
+    function colorClass(v, row) {
+      // result rows (indent=0, no group) get colored values
+      if (v === null || v === undefined) return '';
+      var n = Number(v);
+      if (isNaN(n)) return '';
+      var isResult = !row.expandable && row.group === null && row.indent === 0;
+      if (!isResult) return '';
+      return n < 0 ? 'rin-neg' : (n > 0 ? 'rin-pos' : '');
+    }
+
+    function buildRinTable() {
+      var tbl = document.getElementById('rinTable');
+      var html = '<thead><tr><th>Concepto</th>';
+      RIN.dates.forEach(function(d){ html += '<th>' + d + '</th>'; });
+      html += '</tr></thead><tbody>';
+
+      RIN.rows.forEach(function(row, ri) {
+        var isChild = row.group && !row.expandable;
+        var hidden  = isChild && !expandState[row.group];
+        var isResult = row.indent === 0 && !row.expandable && row.group === null;
+        var lvlClass = 'rin-l' + row.indent;
+        var resultClass = isResult ? ' rin-result' : '';
+        var hiddenAttr = hidden ? ' class="rin-child-row hidden"' : ' class="rin-child-row"';
+        var trClass = 'class="' + lvlClass + resultClass + '"';
+
+        // For child rows wrap in hidden-aware container
+        if (isChild) {
+          html += '<tr data-group="' + row.group + '" data-child="1"' + (hidden ? ' style="display:none"' : '') + ' ' + trClass + '>';
+        } else {
+          html += '<tr ' + trClass + '>';
+        }
+
+        // Label cell
+        html += '<td>';
+        if (row.expandable) {
+          var open = !!expandState[row.group];
+          html += '<span class="rin-toggle" onclick="toggleGroup(\'' + row.group + '\')">'
+               + '<span class="rin-toggle-icon' + (open?' open':'') + '" id="ti_' + row.group + '">▶</span>'
+               + ' ' + row.label + '</span>';
+        } else {
+          html += row.label;
+        }
+        html += '</td>';
+
+        // Value cells
+        row.vals.forEach(function(v, ci) {
+          var cc = colorClass(v, row);
+          html += '<td' + (cc ? ' class="' + cc + '"' : '') + '>' + fmt(v) + '</td>';
+        });
+
+        html += '</tr>';
+      });
+
+      html += '</tbody>';
+      tbl.innerHTML = html;
+    }
+
+    window.toggleGroup = function(group) {
+      expandState[group] = !expandState[group];
+      var open = expandState[group];
+      // Show/hide child rows
+      var rows = document.querySelectorAll('[data-group="' + group + '"][data-child="1"]');
+      rows.forEach(function(tr){ tr.style.display = open ? '' : 'none'; });
+      // Rotate icon
+      var icon = document.getElementById('ti_' + group);
+      if (icon) icon.classList.toggle('open', open);
+    };
+
+    buildRinTable();
+
+    /* ══ Gráfico 5 ══ */
+    var G5_DATES = G5.map(function(r){ return r.d; });
+    var G5_RES   = G5.map(function(r){ return r.r; });
+    var G5_DEP   = G5.map(function(r){ return r.dep; });
+    var G5_PRE   = G5.map(function(r){ return r.pre; });
+
+    Chart.defaults.font.family = "'HK Grotesk', system-ui, sans-serif";
+    Chart.defaults.color = '#333333';
+    var scaleGrid = {grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#6E7679'}};
+
+    var chartG5 = new Chart(document.getElementById('chartG5'), {
+      type: 'line',
+      data: {
+        labels: G5_DATES,
+        datasets: [
+          { label:'Reservas brutas',    data: G5_RES, borderColor:'#1B5F5E', backgroundColor:'rgba(27,95,94,0.07)',  borderWidth:2, pointRadius:0, pointHoverRadius:4, tension:0.1, fill:false },
+          { label:'Depósitos USD',      data: G5_DEP, borderColor:'#2890A4', backgroundColor:'rgba(40,144,164,0.07)', borderWidth:1.8, pointRadius:0, pointHoverRadius:4, tension:0.1, fill:false },
+          { label:'Préstamos USD',      data: G5_PRE, borderColor:'#89C442', backgroundColor:'rgba(137,196,66,0.07)', borderWidth:1.8, pointRadius:0, pointHoverRadius:4, tension:0.1, fill:false }
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false, animation:{duration:200},
+        plugins:{
+          legend:{ display:true, position:'top', labels:{ usePointStyle:true, pointStyleWidth:14, color:'#333', font:{size:12} }},
+          tooltip:{ callbacks:{ label:function(c){ return ' '+c.dataset.label+': USD '+Number(c.raw).toLocaleString('es-AR',{maximumFractionDigits:0})+'M'; }}}
+        },
+        scales:{
+          x:{ ticks:{ maxRotation:0, color:'#6E7679', font:{size:10}, maxTicksLimit:10 }, grid:{ color:'rgba(0,0,0,0.04)' } },
+          y:Object.assign({ ticks:{ color:'#6E7679', callback:function(v){ return 'USD '+Math.round(v/1000)+'k'; } } }, scaleGrid)
+        }
+      }
+    });
+
+    /* ── Slider for G5 ── */
+    var total = G5_DATES.length;
+    var idxL = 0, idxR = total - 1;
+
+    function g5UpdateChart() {
+      chartG5.data.labels   = G5_DATES.slice(idxL, idxR+1);
+      chartG5.data.datasets[0].data = G5_RES.slice(idxL, idxR+1);
+      chartG5.data.datasets[1].data = G5_DEP.slice(idxL, idxR+1);
+      chartG5.data.datasets[2].data = G5_PRE.slice(idxL, idxR+1);
+      chartG5.update('none');
+    }
+
+    function g5UpdateSlider() {
+      var pL = idxL/(total-1)*100, pR = idxR/(total-1)*100;
+      document.getElementById('g5HandleL').style.left = pL+'%';
+      document.getElementById('g5HandleR').style.left = pR+'%';
+      document.getElementById('g5Fill').style.left  = pL+'%';
+      document.getElementById('g5Fill').style.width = (pR-pL)+'%';
+      var lbl = document.getElementById('g5SliderLabels');
+      lbl.innerHTML = '<span>'+G5_DATES[idxL]+'</span><span>'+G5_DATES[idxR]+'</span>';
+    }
+
+    function g5Update() { g5UpdateChart(); g5UpdateSlider(); }
+
+    function pxToIdx(px) {
+      var r = document.getElementById('g5SliderWrap').getBoundingClientRect();
+      return Math.round(Math.max(0,Math.min(1,(px-r.left)/r.width))*(total-1));
+    }
+
+    function makeDrag(isLeft) {
+      return function(e) {
+        e.preventDefault();
+        var mv = function(ev) {
+          var cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+          if (isLeft) idxL = Math.min(pxToIdx(cx), idxR-1);
+          else        idxR = Math.max(pxToIdx(cx), idxL+1);
+          document.querySelectorAll('#g5TlBtns .tl-btn').forEach(function(b){b.classList.remove('is-active');});
+          g5Update();
+        };
+        var up = function(){ document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); document.removeEventListener('touchmove',mv); document.removeEventListener('touchend',up); };
+        document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+        document.addEventListener('touchmove',mv,{passive:false}); document.addEventListener('touchend',up);
+      };
+    }
+    document.getElementById('g5HandleL').addEventListener('mousedown', makeDrag(true));
+    document.getElementById('g5HandleL').addEventListener('touchstart', makeDrag(true), {passive:false});
+    document.getElementById('g5HandleR').addEventListener('mousedown', makeDrag(false));
+    document.getElementById('g5HandleR').addEventListener('touchstart', makeDrag(false), {passive:false});
+    document.getElementById('g5SliderWrap').addEventListener('click', function(e) {
+      var hL=document.getElementById('g5HandleL'), hR=document.getElementById('g5HandleR');
+      if(e.target===hL||e.target===hR) return;
+      var idx=pxToIdx(e.clientX);
+      if(Math.abs(idx-idxL)<=Math.abs(idx-idxR)) idxL=Math.min(idx,idxR-1);
+      else idxR=Math.max(idx,idxL+1);
+      document.querySelectorAll('#g5TlBtns .tl-btn').forEach(function(b){b.classList.remove('is-active');});
+      g5Update();
+    });
+
+    window.g5SetRange = function(days) {
+      idxL = days===0 ? 0 : Math.max(0, total-days);
+      idxR = total-1;
+      var idx = {365:0,730:1,1825:2,0:3}[days];
+      document.querySelectorAll('#g5TlBtns .tl-btn').forEach(function(b,i){b.classList.toggle('is-active',i===idx);});
+      g5Update();
+    };
+
+    g5UpdateSlider();
+
+    /* ── Botones de descarga ──────────────────────────── */
+    if (window.EcoGo) {
+      // Cuadro RIN — exporta todas las filas y fechas
+      EcoGo.dlBtn('#rinTable', 'cuadro_RIN.csv', function(){
+        var headers = ['Concepto'].concat(RIN.dates);
+        var rows = RIN.rows.map(function(r){
+          var indent = r.indent === 1 ? '  ' : r.indent === 2 ? '    ' : '';
+          return [indent + r.label].concat(r.vals.map(function(v){ return v !== null ? v : ''; }));
+        });
+        return { headers: headers, rows: rows };
+      });
+
+      // Gráfico 5 — serie diaria completa
+      EcoGo.dlBtn('#chartG5', 'reservas_depositos_prestamos.csv', function(){
+        return {
+          headers: ['Fecha','Reservas brutas (MM USD)','Depósitos USD (MM USD)','Préstamos USD (MM USD)'],
+          rows: G5.map(function(r){ return [r.d, r.r, r.dep, r.pre]; })
+        };
+      });
+    }
+
+  })();
+  </script>
+</body>
+</html>

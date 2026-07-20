@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Actividad · Eco Go</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .act-section{margin-bottom:36px}
+    .act-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:20px 24px 24px;margin-bottom:20px}
+    .act-card__head{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+    .act-card__title{font-size:1rem;font-weight:700;color:var(--eg-teal-dark);margin:0 0 2px}
+    .act-card__sub{font-size:.76rem;color:var(--color-text-muted);margin:0}
+    .act-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+    .act-filter-btn{display:inline-flex;align-items:center;gap:5px;padding:3px 10px 3px 7px;border-radius:20px;border:1.5px solid transparent;font-size:.74rem;font-weight:600;cursor:pointer;transition:opacity .15s;background:transparent}
+    .act-filter-btn .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .act-filter-btn.active{opacity:1}
+    .act-filter-btn.inactive{opacity:.3}
+    .act-chart-box{position:relative}
+    .act-group-filter{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+    .act-group-btn{padding:4px 12px;border-radius:20px;border:1.5px solid;font-size:.74rem;font-weight:600;cursor:pointer;transition:all .15s;background:transparent}
+    .act-group-btn.active{color:#fff}
+    .act-group-btn.inactive{opacity:.4}
+    .act-note{font-size:.72rem;color:var(--color-text-muted);margin-top:8px}
+    /* tabla series */
+    .ser-table{border-collapse:collapse;font-size:.78rem;white-space:nowrap;width:100%}
+    .ser-table th{position:sticky;top:0;background:var(--color-surface);z-index:2;padding:7px 10px;border-bottom:2px solid var(--color-border);color:var(--eg-teal-dark);font-weight:700;text-align:right}
+    .ser-table th:first-child{text-align:left;position:sticky;left:0;z-index:3;background:var(--color-surface)}
+    .ser-table td{padding:5px 10px;border-bottom:1px solid var(--color-border);text-align:right;color:var(--color-text)}
+    .ser-table td:first-child{position:sticky;left:0;background:var(--color-surface);text-align:left;font-weight:600;color:var(--color-text-muted)}
+    .ser-table tr:hover td{background:rgba(60,151,148,.06)}
+    .ser-table tr:hover td:first-child{background:rgba(60,151,148,.06)}
+    .sc-hidden{display:none}
+    /* tabs */
+    /* KPI cards */
+    .esae-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:28px}
+    .esae-kpi{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:18px 22px;display:flex;align-items:flex-start;gap:16px}
+    .esae-kpi__icon{width:42px;height:42px;border-radius:10px;background:rgba(60,151,148,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .esae-kpi__icon svg{color:var(--eg-teal-dark)}
+    .esae-kpi__label{font-size:.72rem;color:var(--color-text-muted);font-weight:600;margin:0 0 4px;text-transform:uppercase;letter-spacing:.04em}
+    .esae-kpi__value{font-size:1.7rem;font-weight:800;line-height:1;margin:0 0 4px}
+    .esae-kpi__value.positive{color:#2a9d5e}
+    .esae-kpi__value.negative{color:#d94032}
+    .esae-kpi__sub{font-size:.72rem;color:var(--color-text-muted);margin:0}
+    /* timeline */
+    .tl-bar{display:flex;align-items:center;gap:6px}
+    .tl-btn{padding:3px 11px;border-radius:16px;border:1.5px solid var(--color-border);font-size:.74rem;font-weight:700;cursor:pointer;background:transparent;color:var(--color-text-muted);transition:all .15s}
+    .tl-btn.is-active{background:var(--eg-teal-dark);border-color:var(--eg-teal-dark);color:#fff}
+    .tl-sep{width:1px;height:16px;background:var(--color-border);margin:0 4px}
+    .tl-slider-wrap{position:relative;height:36px;margin-top:8px;user-select:none;cursor:pointer}
+    .tl-track{position:absolute;top:50%;left:0;right:0;height:3px;background:var(--color-border);border-radius:2px;transform:translateY(-50%)}
+    .tl-fill{position:absolute;top:50%;height:3px;background:var(--eg-teal-dark);border-radius:2px;transform:translateY(-50%);pointer-events:none}
+    .tl-handle{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;background:#fff;border:2.5px solid var(--eg-teal-dark);transform:translate(-50%,-50%);cursor:ew-resize;z-index:2;transition:box-shadow .1s}
+    .tl-handle:hover,.tl-handle:active{box-shadow:0 0 0 5px rgba(60,151,148,.18)}
+    .tl-labels{display:flex;justify-content:space-between;font-size:.68rem;color:var(--color-text-muted);margin-top:1px}
+    /* EsAE selector */
+    .esae-selector{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+    .esae-sel-btn{padding:5px 16px;border-radius:20px;border:1.5px solid;font-size:.8rem;font-weight:700;cursor:pointer;background:transparent;transition:all .15s}
+    .esae-sel-btn.is-active{color:#fff}
+    .esae-sel-btn:not(.is-active){opacity:.55}
+  </style>
+</head>
+<body data-depth="1" data-active-section="actividad">
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+    <main class="eg-main">
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title">Actividad · EsAE</h1>
+          <p class="eg-page-header__subtitle">EsAE · Estimador de Actividad Económica · Eco Go.</p>
+        </div>
+        <div class="eg-page-header__actions">
+          <span class="eg-tag" id="emaeTag">—</span>
+        </div>
+      </section>
+
+      <!-- ══════════ PANEL EsAE ══════════ -->
+      <div id="panelEsae">
+
+        <!-- KPI cards -->
+        <div class="esae-kpis">
+          <div class="esae-kpi">
+            <div class="esae-kpi__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            </div>
+            <div>
+              <p class="esae-kpi__label">EsAE · Serie original</p>
+              <p class="esae-kpi__value positive">+4.1% i.a.</p>
+              <p class="esae-kpi__sub">vs. marzo 2025</p>
+            </div>
+          </div>
+          <div class="esae-kpi">
+            <div class="esae-kpi__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            </div>
+            <div>
+              <p class="esae-kpi__label">EsAE · Serie desestacionalizada</p>
+              <p class="esae-kpi__value positive">+1.2% s.e.</p>
+              <p class="esae-kpi__sub">vs. febrero 2026</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comparación i.a. EMAE vs EsAE -->
+        <div class="act-section">
+          <div class="act-card">
+            <div class="act-card__head">
+              <div>
+                <p class="act-card__title">Comparación i.a. · EsAE vs EMAE</p>
+                <p class="act-card__sub">Variación interanual % · serie original</p>
+              </div>
+              <div class="tl-bar" id="cmpTlBtns">
+                <button class="tl-btn" onclick="cmpSetRange(24)">2A</button>
+                <button class="tl-btn" onclick="cmpSetRange(60)">5A</button>
+                <button class="tl-btn" onclick="cmpSetRange(120)">10A</button>
+                <span class="tl-sep"></span>
+                <button class="tl-btn is-active" onclick="cmpSetRange(0)">Todo</button>
+              </div>
+            </div>
+            <div class="act-chart-box" style="height:300px"><canvas id="chartCmp"></canvas></div>
+            <div style="padding:0 4px;margin-top:10px">
+              <div class="tl-slider-wrap" id="cmpSliderWrap">
+                <div class="tl-track"></div>
+                <div class="tl-fill" id="cmpFill"></div>
+                <div class="tl-handle" id="cmpHandleL"></div>
+                <div class="tl-handle" id="cmpHandleR"></div>
+              </div>
+              <div class="tl-labels" id="cmpSliderLabels"></div>
+            </div>
+            <p class="act-note">Fuente: INDEC / EcoGo · Última observación EsAE: mar-26 · EMAE: abr-26</p>
+          </div>
+        </div>
+
+        <!-- Demanda: selector único con 4 componentes -->
+        <div class="act-section">
+          <div class="act-card">
+            <div class="act-card__head">
+              <div>
+                <p class="act-card__title" id="demandaTitle">Consumo · Var. i.a. Serie original</p>
+                <p class="act-card__sub">EsAE Demanda · variación interanual (%)</p>
+              </div>
+            </div>
+            <div class="esae-selector">
+              <button class="esae-sel-btn is-active" style="border-color:#2890A4;color:#2890A4;background:rgba(40,144,164,.12)" onclick="setDemanda('consumo')">Consumo</button>
+              <button class="esae-sel-btn" style="border-color:#89C442;color:#89C442" onclick="setDemanda('exportacion')">Exportación</button>
+              <button class="esae-sel-btn" style="border-color:#FE8B5F;color:#FE8B5F" onclick="setDemanda('importacion')">Importación</button>
+              <button class="esae-sel-btn" style="border-color:#7E5CCB;color:#7E5CCB" onclick="setDemanda('inversion')">Inversión + Stocks</button>
+            </div>
+            <div class="act-chart-box" style="height:300px"><canvas id="chartDemanda"></canvas></div>
+            <p class="act-note">Fuente: EcoGo · EsAE Demanda · Última observación: mar-26</p>
+          </div>
+        </div>
+
+      </div><!-- /panelEsae -->
+
+      <footer class="eg-footer">
+        <span>Actividad · Eco Go</span>
+        <a href="../index-clientes.html">← Volver al inicio</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../assets/js/layout-clientes.js"></script>
+  <script src="../assets/data/emae_series.js"></script>
+  <script>
+  
+
+  (function(){
+    /* ─── data ─── */
+    var G4       = {"dates":["2023-02","2023-03","2023-04","2023-05","2023-06","2023-07","2023-08","2023-09","2023-10","2023-11","2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03"],"series":{"EMAE":[102.2323,102.838,100.5372,99.3768,99.7738,101.4732,102.3479,102.0687,101.0643,100,97.5587,98.065,98.2263,97.2574,96.1503,97.3205,98.082,100.553,100.9604,100.8902,101.6046,102.8065,103.2164,103.4396,104.5817,102.1566,103.7935,103.6544,103.339,103.2957,103.9482,104.6227,104.2124,104.1762,106.108,105.8652,103.0479,106.6344],"Agro":[99.0751,92.6197,64.452,53.4015,57.8101,82.2617,94.5485,97.5379,98.1663,100,96.9826,102.9154,102.4104,102.193,103.5984,104.1424,103.1655,104.887,103.9312,104.7491,104.0679,103.2858,101.9141,101.9066,106.6449,105.8617,107.6978,108.0389,108.8284,108.659,107.0268,109.2087,109.4348,113.0848,125.7518,122.6507,114.7769,121.2752],"Energía":[93.7122,95.1273,95.4756,97.1555,97.9345,96.9154,98.1187,98.5794,98.7494,100,100.8825,101.9265,104.1952,101.4196,103.8645,104.5127,101.6433,102.5081,104.5884,106.8451,107.256,108.0065,108.3671,110.4941,109.6274,107.326,108.7599,109.538,113.0236,116.1425,114.4591,115.4377,115.7639,115.611,118.6972,121.7607,120.6332,124.6688],"Industria":[104.6535,109.2663,108.1891,105.6025,104.1083,104.9483,103.8913,103.8191,101.7145,100,94.5182,93.9411,94.0927,90.0425,89.1776,89.8669,86.7012,96.8003,98.2902,97.251,98.4474,99.6853,100.003,98.2708,100.4475,94.0197,96.0423,96.0457,92.822,95.7352,94.9403,95.2655,95.2474,92.9098,94.6362,96.6505,92.8978,96.7263],"Construcción":[101.6646,103.1617,103.3456,100.1518,101.2859,99.5351,101.5939,101.6077,100.7065,100,95.3426,85.4129,84.2464,76.5827,76.7563,79.6109,80.3835,84.7639,84.6963,85.41,85.0051,86.8235,88.2567,87.3954,88.2239,85.0157,88.6052,85.3573,86.4767,85.6164,85.2698,86.7241,88.4997,86.267,87.7506,88.1873,87.4502,90.5308],"Comercio":[103.4279,106.2676,107.3167,104.6648,106.9794,104.4702,103.8638,104.6004,101.6292,100,96.2387,95.5261,97.5037,94.5169,88.3212,91.3036,91.5372,96.25,98.8843,98.6837,99.1821,101.9737,102.307,102.4888,103.8848,100.6274,100.4706,100.8804,99.1815,97.9882,98.3722,98.0378,99.6285,98.2074,99.1879,100.3646,98.0202,100.5329],"Transp. y com.":[100.7225,99.5548,99.511,98.2947,99.0885,100.7665,101.0559,101.1663,99.8772,100,99.8386,99.6702,99.3171,99.6037,99.7735,100.991,100.778,101.1541,99.7134,100.9272,101.2432,101.8047,102.6341,102.3923,103.6045,101.5449,102.2093,102.3895,101.9822,102.2921,103.0965,103.4589,104.0023,104.201,104.1409,105.1928,102.8405,105.8018],"Int. financiera":[104.837,107.0461,105.7904,103.7579,104.1791,104.5123,102.9581,102.6732,104.0621,100,95.4354,93.3603,92.4821,92.4182,93.9317,94.5542,95.0868,99.889,99.5978,101.8142,103.0054,107.9583,110.1394,115.5256,118.0642,117.677,119.7107,119.8434,120.93,121.6967,125.2799,140.1578,126.8983,124.5873,124.9887,125.065,125.4969,127.2549],"Act. empresariales":[99.143,100.0279,100.1653,99.7526,99.7565,99.6592,100.4203,100.2203,100.461,100,98.7478,98.4784,98.382,97.795,97.8161,99.0333,99.0867,98.9789,99.9854,99.6774,100.4634,101.7195,102.429,102.2216,103.0208,102.1506,103.6125,102.7041,103.3072,102.7826,102.888,104.0263,104.3661,102.8154,103.5792,102.7896,103.0509,104.1458],"Imp. netos de subs.":[101.1798,102.8536,103.4825,100.4494,101.3187,103.3476,103.6817,103.2319,102.1375,100,96.0391,94.6684,96.5074,96.2472,96.2488,98.6114,100.322,100.8892,100.896,102.205,103.396,106.1733,107.5997,107.0937,109.6527,104.9411,107.6844,108.3631,107.1613,109.14,111.385,111.0606,111.5064,111.3715,111.1367,110.1389,105.246,110.0927]}};
+    var G4C      = {"EMAE":"#1B5F5E","Agro":"#89C442","Energía":"#FE8B5F","Industria":"#DA4531","Construcción":"#E8A87C","Comercio":"#2890A4","Transp. y com.":"#3C9794","Int. financiera":"#7E5CCB","Act. empresariales":"#F5A623","Imp. netos de subs.":"#9B9B9B"};
+    var G8       = [{"label":"EMAE","x":6.634,"y":1.963,"size":100,"group":"EMAE","color":"#1B5F5E"},{"label":"Agro","x":21.275,"y":13.719,"size":5.115,"group":"Bienes","color":"#89C442"},{"label":"Pesca","x":131.456,"y":9.81,"size":0.234,"group":"Bienes","color":"#5D9E1F"},{"label":"Energía","x":24.669,"y":13.72,"size":1.436,"group":"Bienes","color":"#FE8B5F"},{"label":"Industria","x":-3.274,"y":-3.705,"size":18.49,"group":"Bienes","color":"#DA4531"},{"label":"Serv. Pub.","x":1.338,"y":-3.921,"size":1.223,"group":"Sector público","color":"#F5A623"},{"label":"Construcción","x":-9.469,"y":2.615,"size":6.07,"group":"Bienes","color":"#E8A87C"},{"label":"Comercio","x":0.533,"y":-3.227,"size":20.071,"group":"Servicios privados","color":"#2890A4"},{"label":"Hot. y rest.","x":14.259,"y":0.757,"size":4.483,"group":"Servicios privados","color":"#8FCCCA"},{"label":"Tran. y com.","x":5.802,"y":2.121,"size":8.252,"group":"Servicios privados","color":"#3C9794"},{"label":"Int. financiera","x":27.255,"y":7.785,"size":2.399,"group":"Servicios privados","color":"#7E5CCB"},{"label":"Act. empresariales","x":4.146,"y":1.092,"size":14.263,"group":"Servicios privados","color":"#5B45A0"},{"label":"Adm. pública","x":-3.357,"y":-1.508,"size":6.793,"group":"Sector público","color":"#F7C06A"},{"label":"Enseñanza","x":1.131,"y":0.371,"size":5.297,"group":"Sector público","color":"#D4902A"},{"label":"Serv. sociales","x":-0.169,"y":0.857,"size":5.873,"group":"Sector público","color":"#A06020"},{"label":"Otras act.","x":-2.446,"y":1.146,"size":0.001,"group":"Servicios privados","color":"#B0A0D8"},{"label":"Imp. netos de subs.","x":10.093,"y":0.401,"size":1.0,"group":"Otros","color":"#9B9B9B"}];
+    var SC_COLORS= ["#89C442","#5D9E1F","#FE8B5F","#DA4531","#E8A87C","#2890A4","#8FCCCA","#3C9794","#7E5CCB","#5B45A0","#B0A0D8","#F5A623","#F7C06A","#D4902A","#A06020","#9B9B9B"];
+    var ESAE_DATES = ["2023-04", "2023-05", "2023-06", "2023-07", "2023-08", "2023-09", "2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"];
+    var ESAE = { consumo:[-0.11, -2.54, -2.25, -1.21, -0.81, 1.0, 0.1, -1.02, -3.38, -6.23, -7.19, -9.34, -9.32, -7.04, -7.85, -4.16, -3.82, -3.09, 0.45, 2.95, 6.73, 9.71, 13.41, 11.35, 11.4, 11.04, 10.35, 6.12, 6.9, 6.13, 3.76, 1.26, 0.62, -1.96, -5.83, -0.47], exportacion:[-11.91, -12.74, -12.34, -8.36, -7.65, -8.04, -13.82, -12.37, -7.51, 8.65, 16.26, 20.59, 18.22, 18.93, 19.34, 18.12, 18.83, 20.42, 27.44, 26.94, 23.01, 10.83, 6.14, 3.43, 2.9, 2.91, 3.96, 7.78, 9.28, 10.24, 10.21, 10.79, 11.47, 14.04, -7.78, 31.65], importacion:[3.79, 3.57, 3.2, 2.47, 1.8, 0.96, 1.29, -0.94, -4.36, -10.98, -14.75, -17.74, -21.59, -21.9, -20.48, -15.97, -11.76, -6.43, 1.06, 8.84, 17.71, 33.42, 48.3, 44.46, 40.61, 38.48, 34.95, 28.65, 23.96, 19.29, 15.14, 10.27, 5.3, -11.37, -19.98, -5.81], inversion:[0.32, 6.26, 0.75, -4.83, -5.97, 13.6, 17.82, 14.42, 3.5, -8.77, -18.4, -24.15, -16.74, -19.12, -14.97, -12.82, -9.93, -20.18, -19.97, -14.61, -2.66, 14.43, 33.44, 32.5, 29.44, 27.13, 25.29, 13.21, 13.47, 3.97, 5.13, -0.64, -7.02, -18.48, -8.65, -28.86] };
+    var CMP_DATES  = ["2005-01", "2005-02", "2005-03", "2005-04", "2005-05", "2005-06", "2005-07", "2005-08", "2005-09", "2005-10", "2005-11", "2005-12", "2006-01", "2006-02", "2006-03", "2006-04", "2006-05", "2006-06", "2006-07", "2006-08", "2006-09", "2006-10", "2006-11", "2006-12", "2007-01", "2007-02", "2007-03", "2007-04", "2007-05", "2007-06", "2007-07", "2007-08", "2007-09", "2007-10", "2007-11", "2007-12", "2008-01", "2008-02", "2008-03", "2008-04", "2008-05", "2008-06", "2008-07", "2008-08", "2008-09", "2008-10", "2008-11", "2008-12", "2009-01", "2009-02", "2009-03", "2009-04", "2009-05", "2009-06", "2009-07", "2009-08", "2009-09", "2009-10", "2009-11", "2009-12", "2010-01", "2010-02", "2010-03", "2010-04", "2010-05", "2010-06", "2010-07", "2010-08", "2010-09", "2010-10", "2010-11", "2010-12", "2011-01", "2011-02", "2011-03", "2011-04", "2011-05", "2011-06", "2011-07", "2011-08", "2011-09", "2011-10", "2011-11", "2011-12", "2012-01", "2012-02", "2012-03", "2012-04", "2012-05", "2012-06", "2012-07", "2012-08", "2012-09", "2012-10", "2012-11", "2012-12", "2013-01", "2013-02", "2013-03", "2013-04", "2013-05", "2013-06", "2013-07", "2013-08", "2013-09", "2013-10", "2013-11", "2013-12", "2014-01", "2014-02", "2014-03", "2014-04", "2014-05", "2014-06", "2014-07", "2014-08", "2014-09", "2014-10", "2014-11", "2014-12", "2015-01", "2015-02", "2015-03", "2015-04", "2015-05", "2015-06", "2015-07", "2015-08", "2015-09", "2015-10", "2015-11", "2015-12", "2016-01", "2016-02", "2016-03", "2016-04", "2016-05", "2016-06", "2016-07", "2016-08", "2016-09", "2016-10", "2016-11", "2016-12", "2017-01", "2017-02", "2017-03", "2017-04", "2017-05", "2017-06", "2017-07", "2017-08", "2017-09", "2017-10", "2017-11", "2017-12", "2018-01", "2018-02", "2018-03", "2018-04", "2018-05", "2018-06", "2018-07", "2018-08", "2018-09", "2018-10", "2018-11", "2018-12", "2019-01", "2019-02", "2019-03", "2019-04", "2019-05", "2019-06", "2019-07", "2019-08", "2019-09", "2019-10", "2019-11", "2019-12", "2020-01", "2020-02", "2020-03", "2020-04", "2020-05", "2020-06", "2020-07", "2020-08", "2020-09", "2020-10", "2020-11", "2020-12", "2021-01", "2021-02", "2021-03", "2021-04", "2021-05", "2021-06", "2021-07", "2021-08", "2021-09", "2021-10", "2021-11", "2021-12", "2022-01", "2022-02", "2022-03", "2022-04", "2022-05", "2022-06", "2022-07", "2022-08", "2022-09", "2022-10", "2022-11", "2022-12", "2023-01", "2023-02", "2023-03", "2023-04", "2023-05", "2023-06", "2023-07", "2023-08", "2023-09", "2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04"];
+    var CMP_EMAE   = [6.31, 6.58, 8.61, 13.63, 15.28, 10.26, 6.4, 7.59, 6.94, 6.77, 7.86, 8.68, 8.18, 8.29, 7.17, 4.76, 5.3, 6.69, 8.8, 9.91, 9.45, 11.5, 9.39, 8.23, 7.67, 8.31, 9.02, 9.32, 10.67, 9.52, 8.84, 8.85, 7.59, 10.25, 9.81, 7.77, 10.05, 8.94, 2.36, 8.85, 4.44, 3.22, 7.26, 3.75, 7.02, 1.54, -3.24, -4.21, -7.5, -6.49, -4.66, -11.9, -13.7, -7.96, -6.79, -5.59, -4.54, -2.54, 1.25, 2.28, 4.07, 4.32, 8.5, 13.89, 18.85, 15.89, 9.53, 10.68, 8.33, 6.34, 9.84, 9.65, 9.52, 8.08, 7.38, 3.61, 5.1, 4.56, 4.93, 6.67, 7.66, 7.33, 4.84, 3.53, 2.34, 2.2, 0.3, -3.65, -5.28, -4.89, 0.33, -0.48, -3.19, 1.5, 0.01, 0.16, 0.24, 0.33, 1.33, 7.16, 6.71, 4.86, 2.63, 1.87, 3.18, 0.99, -0.46, -0.7, 1.06, -0.23, -3.26, -2.31, -2.24, -1.58, -3.52, -5.6, -3.6, -3.59, -3.31, -1.5, -2.88, 0.11, 3.37, 3.38, 2.85, 5.94, 4.42, 4.54, 2.94, 2.58, 3.76, 1.07, 0.56, 1.21, 0.45, -2.69, -3.18, -5.69, -5.34, -1.91, -2.66, -4.02, -0.85, 0.46, 1.4, -1.54, 1.69, -0.85, 2.98, 4.8, 4.57, 3.88, 3.08, 5.84, 4.82, 2.94, 4.47, 5.04, 2.12, -0.28, -5.24, -6.15, -2.89, -1.67, -5.9, -4.38, -7.46, -7.18, -5.75, -4.72, -6.99, -1.06, 2.86, -0.18, 0.56, -3.74, -2.08, -0.84, -2.01, -0.36, -0.48, -2.49, -11.56, -24.43, -20.17, -12.16, -13.16, -11.39, -5.71, -7.27, -4.14, -1.41, -1.77, -2.12, 13.84, 30.0, 15.37, 12.42, 11.74, 12.61, 11.1, 6.22, 8.85, 9.99, 6.17, 9.2, 5.46, 7.05, 8.94, 8.37, 7.03, 7.44, 5.58, 5.05, 2.98, -0.71, 2.43, -0.43, 0.73, -4.85, -6.63, -5.51, -1.46, 0.31, -0.5, 0.65, -1.13, -4.68, -3.83, -2.64, -8.06, -1.84, 1.95, -3.4, -0.35, -3.04, -2.42, 0.33, 1.17, 6.63, 6.36, 5.66, 5.5, 7.79, 5.17, 6.26, 2.81, 2.16, 4.83, 3.09, -0.25, 3.33, 1.54, -2.03, 5.48, 3.25];
+    var CMP_ESAE   = [3.93, 6.67, 8.05, 10.25, 10.14, 7.3, 7.11, 7.56, 6.93, 6.97, 7.99, 7.56, 7.2, 8.08, 7.25, 5.85, 6.69, 7.42, 8.3, 9.51, 9.25, 10.24, 8.7, 8.33, 7.43, 6.75, 7.96, 7.73, 9.01, 7.26, 6.98, 7.25, 5.41, 9.13, 9.05, 7.7, 9.47, 7.69, 2.57, 7.72, 4.23, 2.97, 6.3, 2.42, 6.4, 0.71, -6.25, -7.16, -9.23, -8.59, -6.22, -9.77, -10.5, -4.72, -5.14, -4.37, -3.47, -1.4, 3.42, 5.86, 6.24, 7.34, 9.26, 10.5, 13.22, 11.12, 6.88, 9.28, 6.75, 4.48, 8.93, 8.0, 7.99, 6.92, 6.9, 5.02, 7.1, 4.74, 5.71, 6.43, 6.63, 6.57, 4.5, 3.68, 2.08, 2.44, 1.08, -3.25, -3.77, -3.57, -0.65, -0.54, -2.86, 1.61, -0.32, -0.1, 0.06, -0.2, 0.8, 7.24, 6.8, 4.75, 3.6, 2.43, 3.51, 1.95, -0.07, 0.1, 1.44, 1.75, -2.88, -2.12, -2.74, -2.5, -3.25, -6.37, -3.58, -4.36, -3.77, -3.04, -2.79, -3.02, 2.13, 1.77, 0.82, 4.09, 2.39, 4.19, 2.27, 1.37, 2.68, 1.89, 0.29, 2.19, -0.78, -1.64, -1.8, -4.25, -4.57, -2.26, -3.14, -3.97, -0.38, -1.48, 2.22, -1.54, 2.84, -0.27, 3.66, 4.79, 5.49, 5.22, 4.72, 6.62, 5.04, 3.63, 4.39, 5.31, 0.35, 0.04, -3.68, -5.77, -3.62, -4.47, -5.97, -3.78, -8.34, -6.61, -6.5, -5.33, -5.72, -1.91, 1.09, -0.45, 0.03, -1.8, -3.21, -2.06, -1.63, -0.91, -1.62, -2.83, -8.86, -22.55, -19.11, -12.49, -12.89, -11.26, -6.65, -7.51, -2.79, -2.19, -0.6, -0.69, 13.6, 27.91, 17.38, 14.94, 11.77, 10.69, 10.96, 6.19, 8.05, 9.72, 3.32, 7.18, 4.1, 5.36, 6.57, 6.3, 6.29, 7.08, 3.7, 4.18, 2.15, -0.01, 2.87, 0.11, -0.92, -5.54, -6.32, -6.07, -4.19, -2.36, 1.34, 0.94, -0.82, -4.12, -2.9, -3.23, -6.94, 0.4, 1.86, -1.82, 2.13, -1.25, -2.35, 1.04, 1.04, 6.04, 5.55, 6.42, 5.77, 6.26, 5.39, 7.44, 2.84, 3.92, 4.31, 2.6, -0.49, 0.61, -0.49, -2.47, 4.08, 0.11];
+
+    Chart.defaults.font.family = "'HK Grotesk', system-ui, sans-serif";
+    Chart.defaults.color = '#333333';
+    var scaleGrid = {grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#6E7679'}};
+
+    /* ══ Shared slider factory ══ */
+    function makeSlider(cfg) {
+      // cfg: { wrapId, fillId, handleLId, handleRId, labelsId, btnGroupId, allDates, onRange }
+      var wrap = document.getElementById(cfg.wrapId);
+      var fill = document.getElementById(cfg.fillId);
+      var hL   = document.getElementById(cfg.handleLId);
+      var hR   = document.getElementById(cfg.handleRId);
+      var lbls = document.getElementById(cfg.labelsId);
+      var total = cfg.allDates.length;
+      var idxL = 0, idxR = total - 1;
+
+      function update() {
+        var pL = idxL / (total-1) * 100, pR = idxR / (total-1) * 100;
+        hL.style.left = pL + '%'; hR.style.left = pR + '%';
+        fill.style.left = pL + '%'; fill.style.width = (pR-pL) + '%';
+        lbls.innerHTML = '<span>'+cfg.allDates[idxL]+'</span><span>'+cfg.allDates[idxR]+'</span>';
+        cfg.onRange(idxL, idxR);
+      }
+
+      function pxToIdx(px) {
+        var r = wrap.getBoundingClientRect();
+        return Math.round(Math.max(0, Math.min(1, (px-r.left)/r.width)) * (total-1));
+      }
+
+      function drag(isLeft) {
+        return function(e) {
+          e.preventDefault();
+          var mv = function(ev) {
+            var cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+            if (isLeft) idxL = Math.min(pxToIdx(cx), idxR-1);
+            else        idxR = Math.max(pxToIdx(cx), idxL+1);
+            if (cfg.btnGroupId) document.querySelectorAll('#'+cfg.btnGroupId+' .tl-btn').forEach(function(b){b.classList.remove('is-active');});
+            update();
+          };
+          var up = function() {
+            document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up);
+            document.removeEventListener('touchmove',mv); document.removeEventListener('touchend',up);
+          };
+          document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+          document.addEventListener('touchmove',mv,{passive:false}); document.addEventListener('touchend',up);
+        };
+      }
+      hL.addEventListener('mousedown', drag(true));  hL.addEventListener('touchstart', drag(true),  {passive:false});
+      hR.addEventListener('mousedown', drag(false)); hR.addEventListener('touchstart', drag(false), {passive:false});
+      wrap.addEventListener('click', function(e) {
+        if (e.target===hL||e.target===hR) return;
+        var idx = pxToIdx(e.clientX);
+        if (Math.abs(idx-idxL) <= Math.abs(idx-idxR)) idxL = Math.min(idx, idxR-1);
+        else idxR = Math.max(idx, idxL+1);
+        if (cfg.btnGroupId) document.querySelectorAll('#'+cfg.btnGroupId+' .tl-btn').forEach(function(b){b.classList.remove('is-active');});
+        update();
+      });
+
+      update();
+      return {
+        setRange: function(months, activeBtnIdx) {
+          idxL = months === 0 ? 0 : Math.max(0, total - months);
+          idxR = total - 1;
+          if (cfg.btnGroupId) {
+            var btns = document.querySelectorAll('#'+cfg.btnGroupId+' .tl-btn');
+            btns.forEach(function(b){b.classList.remove('is-active');});
+            if (btns[activeBtnIdx]) btns[activeBtnIdx].classList.add('is-active');
+          }
+          update();
+        }
+      };
+    }
+
+    /* ══ Gráfico 4 ══ */
+    var g4Datasets = Object.keys(G4.series).map(function(name){
+      var c=G4C[name]||'#888';
+      return {label:name,data:G4.series[name].slice(),borderColor:c,backgroundColor:c,
+              borderWidth:name==='EMAE'?2.5:1.8,pointRadius:0,pointHoverRadius:4,tension:0.25,hidden:false};
+    });
+    if (document.getElementById('chartG4')) {
+    var chartG4 = new Chart(document.getElementById('chartG4'),{
+      type:'line', data:{labels:G4.dates.slice(),datasets:g4Datasets},
+      options:{responsive:true,maintainAspectRatio:false,animation:{duration:200},
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return ' '+c.dataset.label+': '+Number(c.raw).toFixed(1);}}}},
+        scales:{x:{ticks:{maxRotation:45,color:'#6E7679',font:{size:10}},grid:{color:'rgba(0,0,0,0.05)'}},
+                y:Object.assign({min:80,max:130,title:{display:true,text:'nov-23 = 100',color:'#6E7679',font:{size:11}}},scaleGrid)}}
+    });
+    var g4El=document.getElementById('g4Filters');
+    Object.keys(G4.series).forEach(function(name,i){
+      var c=G4C[name]||'#888', btn=document.createElement('button');
+      btn.className='act-filter-btn active'; btn.style.borderColor=c; btn.style.color=c;
+      btn.innerHTML='<span class="dot" style="background:'+c+'"></span>'+name;
+      btn.addEventListener('click',function(){ var ds=chartG4.data.datasets[i]; ds.hidden=!ds.hidden;
+        btn.classList.toggle('active',!ds.hidden); btn.classList.toggle('inactive',ds.hidden); chartG4.update(); });
+      g4El.appendChild(btn);
+    });
+    var g4Slider = makeSlider({
+      wrapId:'g4SliderWrap',fillId:'g4Fill',handleLId:'g4HandleL',handleRId:'g4HandleR',
+      labelsId:'g4SliderLabels',btnGroupId:'g4TlBtns',allDates:G4.dates,
+      onRange:function(l,r){
+        chartG4.data.labels=G4.dates.slice(l,r+1);
+        chartG4.data.datasets.forEach(function(ds,i){ ds.data=G4.series[Object.keys(G4.series)[i]].slice(l,r+1); });
+        chartG4.update('none');
+      }
+    });
+    window.g4SetRange = function(m){ g4Slider.setRange(m, {6:0,12:1,24:2,0:3}[m]); };
+
+    /* ══ Gráfico 8 ══ */
+    var GRUPOS=['EMAE','Bienes','Servicios privados','Sector público','Otros'];
+    var GC={EMAE:'#1B5F5E',Bienes:'#89C442','Servicios privados':'#2890A4','Sector público':'#F5A623',Otros:'#9B9B9B'};
+    var g8Vis={}; GRUPOS.forEach(function(g){g8Vis[g]=true;});
+    G8 = G8.filter(function(p){return p.label!=='Pesca';});
+    var maxSz=Math.max.apply(null,G8.filter(function(p){return p.label!=='EMAE';}).map(function(p){return p.size;}));
+    function bR(p){return p.label==='EMAE'?14:Math.max(4,Math.round(6+22*Math.sqrt(p.size/maxSz)));}
+    var g8Datasets=G8.map(function(pt){var isE=pt.label==='EMAE'; return {label:pt.label,_group:pt.group,_color:pt.color,data:[{x:pt.x,y:pt.y,r:bR(pt)}],backgroundColor:pt.color+(isE?'FF':'A0'),borderColor:pt.color,borderWidth:isE?2.5:1.5,hidden:false};});
+    var bubbleLbl={id:'bLbl',afterDatasetsDraw:function(chart){var ctx=chart.ctx; chart.data.datasets.forEach(function(ds,di){ if(ds.hidden||!ds.data.length) return; var meta=chart.getDatasetMeta(di); if(!meta.data.length) return; var el=meta.data[0],r=ds.data[0].r||8; ctx.save(); ctx.font='700 8px "HK Grotesk",system-ui,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.strokeText(ds.label,el.x,el.y-r-2); ctx.fillStyle=ds._color||'#333'; ctx.fillText(ds.label,el.x,el.y-r-2); ctx.restore(); });}};
+    var zeroLines={id:'zL',afterDraw:function(chart){ if(chart.canvas.id!=='chartG8') return; var ctx=chart.ctx,xs=chart.scales.x,ys=chart.scales.y,x0=xs.getPixelForValue(0),y0=ys.getPixelForValue(0); ctx.save(); ctx.strokeStyle='rgba(0,0,0,0.18)'; ctx.lineWidth=1; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(x0,chart.chartArea.top); ctx.lineTo(x0,chart.chartArea.bottom); ctx.stroke(); ctx.beginPath(); ctx.moveTo(chart.chartArea.left,y0); ctx.lineTo(chart.chartArea.right,y0); ctx.stroke(); ctx.restore();}};
+    Chart.register(zeroLines);
+    var chartG8=new Chart(document.getElementById('chartG8'),{type:'bubble',data:{datasets:g8Datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){ var pt=G8[c.datasetIndex]; return[' '+pt.label,' Desde nov-23: '+(pt.x>=0?'+':'')+pt.x.toFixed(1)+'%',' Desde ene-25: '+(pt.y>=0?'+':'')+pt.y.toFixed(1)+'%']; }}}},scales:{x:Object.assign({min:-10,max:30,title:{display:true,text:'Var. % acumulada desde nov-23',color:'#6E7679',font:{size:11}},ticks:{color:'#6E7679',callback:function(v){return v+'%';}}},{grid:{color:'rgba(0,0,0,0.05)'}}),y:Object.assign({min:-5,max:15,title:{display:true,text:'Var. % acumulada desde ene-25',color:'#6E7679',font:{size:11}},ticks:{color:'#6E7679',callback:function(v){return v+'%';}}},scaleGrid)}},plugins:[bubbleLbl]});
+    var g8FEl=document.getElementById('g8GroupFilter');
+    GRUPOS.forEach(function(g){ var c=GC[g],btn=document.createElement('button'); btn.className='act-group-btn active'; btn.style.borderColor=c; btn.style.color=c; btn.textContent=g; btn.addEventListener('click',function(){ g8Vis[g]=!g8Vis[g]; btn.classList.toggle('active',g8Vis[g]); btn.classList.toggle('inactive',!g8Vis[g]); chartG8.data.datasets.forEach(function(ds){if(ds._group===g) ds.hidden=!g8Vis[g];}); chartG8.update(); }); g8FEl.appendChild(btn); });
+
+    /* ══ Comparación i.a. ══ */
+    } // end chartG8 guard
+    var chartCmp = new Chart(document.getElementById('chartCmp'), {
+      type: 'line',
+      data: {
+        labels: CMP_DATES,
+        datasets: [
+          { label: 'EMAE', data: CMP_EMAE, borderColor: '#1B5F5E', backgroundColor: 'rgba(27,95,94,0.08)', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: 0.2, fill: false },
+          { label: 'EsAE', data: CMP_ESAE, borderColor: '#7E5CCB', backgroundColor: 'rgba(126,92,203,0.08)', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: 0.2, fill: false }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 200 },
+        plugins: {
+          legend: { display: true, position: 'top', labels: { usePointStyle: true, pointStyleWidth: 14, color: '#333', font: { size: 12 } } },
+          tooltip: { callbacks: { label: function(c) { return ' ' + c.dataset.label + ': ' + (c.raw >= 0 ? '+' : '') + Number(c.raw).toFixed(1) + '%'; } } }
+        },
+        scales: {
+          x: { ticks: { maxRotation: 45, color: '#6E7679', font: { size: 10 }, maxTicksLimit: 14 }, grid: { color: 'rgba(0,0,0,0.05)' } },
+          y: Object.assign({ ticks: { color: '#6E7679', callback: function(v) { return v + '%'; } } }, scaleGrid)
+        }
+      }
+    });
+    var cmpSlider = makeSlider({
+      wrapId:'cmpSliderWrap',fillId:'cmpFill',handleLId:'cmpHandleL',handleRId:'cmpHandleR',
+      labelsId:'cmpSliderLabels',btnGroupId:'cmpTlBtns',allDates:CMP_DATES,
+      onRange:function(l,r){
+        chartCmp.data.labels = CMP_DATES.slice(l,r+1);
+        chartCmp.data.datasets[0].data = CMP_EMAE.slice(l,r+1);
+        chartCmp.data.datasets[1].data = CMP_ESAE.slice(l,r+1);
+        chartCmp.update('none');
+      }
+    });
+    window.cmpSetRange = function(m){ cmpSlider.setRange(m, {24:0,60:1,120:2,0:3}[m]); };
+
+    /* ══ Demanda: chart único con selector ══ */
+    var DEMANDA_CFG = {
+      consumo:    { label:'Consumo',           color:'#2890A4', data: ESAE.consumo     },
+      exportacion:{ label:'Exportación',       color:'#89C442', data: ESAE.exportacion },
+      importacion:{ label:'Importación',       color:'#FE8B5F', data: ESAE.importacion },
+      inversion:  { label:'Inversión + Stocks',color:'#7E5CCB', data: ESAE.inversion   }
+    };
+    var curDemanda = 'consumo';
+
+    function barColors(vals, color) {
+      return vals.map(function(v){ return v >= 0 ? color : '#DA4531'; });
+    }
+
+    var chartDemanda = new Chart(document.getElementById('chartDemanda'), {
+      type: 'bar',
+      data: {
+        labels: ESAE_DATES,
+        datasets: [{
+          data: DEMANDA_CFG.consumo.data,
+          backgroundColor: barColors(DEMANDA_CFG.consumo.data, DEMANDA_CFG.consumo.color),
+          borderRadius: 2, borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c) {
+          return ' ' + (c.raw >= 0 ? '+' : '') + Number(c.raw).toFixed(1) + '%';
+        }}}},
+        scales: {
+          x: { ticks: { maxRotation: 45, color: '#6E7679', font: { size: 9 }, maxTicksLimit: 12 }, grid: { display: false } },
+          y: Object.assign({ ticks: { color: '#6E7679', callback: function(v){ return v+'%'; } } }, scaleGrid)
+        }
+      }
+    });
+
+    window.setDemanda = function(key) {
+      curDemanda = key;
+      var cfg = DEMANDA_CFG[key];
+      document.getElementById('demandaTitle').textContent = cfg.label + ' · Var. i.a. Serie original';
+      chartDemanda.data.datasets[0].data = cfg.data;
+      chartDemanda.data.datasets[0].backgroundColor = barColors(cfg.data, cfg.color);
+      chartDemanda.update();
+      // update selector buttons
+      document.querySelectorAll('.esae-sel-btn').forEach(function(b) {
+        var k = b.getAttribute('onclick').replace("setDemanda('","").replace("')","");
+        var c = DEMANDA_CFG[k].color;
+        b.classList.toggle('is-active', k === key);
+        b.style.background = k === key ? c.replace(')',',0.12)').replace('rgb','rgba') : 'transparent';
+        // rebuild alpha for hex
+        if (k === key) {
+          b.style.color = c;
+          var hex = c.replace('#','');
+          var r=parseInt(hex.substring(0,2),16), g=parseInt(hex.substring(2,4),16), bl=parseInt(hex.substring(4,6),16);
+          b.style.background = 'rgba('+r+','+g+','+bl+',0.12)';
+        } else {
+          b.style.background = 'transparent';
+          b.style.color = c;
+        }
+      });
+    };
+
+    /* ══ Tablas EMAE ══ */
+    var currentMode='', currentSeasonal='CE', colVis=[];
+    function fmt(v){return (v==null)?'—':Number(v).toFixed(1);}
+    function buildSectorTable(seasonal){
+      var S=window.EMAE_SERIES, data=seasonal==='CE'?S.sector_ce:S.sector_se, lbls=S.sector_labels;
+      colVis=lbls.map(function(){return true;});
+      var h='<table class="ser-table"><thead><tr><th>Período</th>';
+      lbls.forEach(function(l,i){ h+='<th class="sc-'+i+'">'+l+'</th>'; }); h+='</tr></thead><tbody>';
+      data.slice().reverse().forEach(function(r){ if(!r.date) return; h+='<tr><td>'+r.date+'</td>'; r.vals.forEach(function(v,i){ h+='<td class="sc-'+i+'">'+fmt(v)+'</td>'; }); h+='</tr>'; });
+      h+='</tbody></table>'; document.getElementById('seriesTableWrap').innerHTML=h;
+      var fEl=document.getElementById('seriesFilters'); fEl.innerHTML='';
+      lbls.forEach(function(name,i){ var c=SC_COLORS[i]||'#888', btn=document.createElement('button');
+        btn.className='act-filter-btn active'; btn.style.borderColor=c; btn.style.color=c;
+        btn.innerHTML='<span class="dot" style="background:'+c+'"></span>'+name;
+        btn.addEventListener('click',function(){ colVis[i]=!colVis[i]; btn.classList.toggle('active',colVis[i]); btn.classList.toggle('inactive',!colVis[i]); document.querySelectorAll('.sc-'+i).forEach(function(td){td.classList.toggle('sc-hidden',!colVis[i]);}); });
+        fEl.appendChild(btn); });
+    }
+    function buildOriginalTable(){
+      var S=window.EMAE_SERIES;
+      var h='<table class="ser-table"><thead><tr><th>Período</th><th>Serie original</th><th>Desestacionalizada</th></tr></thead><tbody>';
+      S.original.slice().reverse().forEach(function(r){ h+='<tr><td>'+r.date+'</td><td>'+fmt(r.original)+'</td><td>'+fmt(r.desest)+'</td></tr>'; });
+      h+='</tbody></table>'; document.getElementById('seriesTableWrap').innerHTML=h; document.getElementById('seriesFilters').innerHTML='';
+    }
+    window.setSeasonal=function(mode){ currentSeasonal=mode;
+      document.getElementById('btnCE').classList.toggle('active',mode==='CE'); document.getElementById('btnCE').classList.toggle('inactive',mode!=='CE');
+      document.getElementById('btnSE').classList.toggle('active',mode==='SE'); document.getElementById('btnSE').classList.toggle('inactive',mode!=='SE');
+      buildSectorTable(mode); };
+    window.showSeries=function(mode){ var sec=document.getElementById('seriesSection'), btnS=document.getElementById('btnSector'), btnO=document.getElementById('btnOriginal'), cese=document.getElementById('ceseToggle');
+      if(currentMode===mode){ sec.style.display='none'; currentMode=''; btnS.classList.remove('is-active'); btnO.classList.remove('is-active'); return; }
+      currentMode=mode; sec.style.display=''; setTimeout(function(){sec.scrollIntoView({behavior:'smooth',block:'start'});},80);
+      if(mode==='sector'){ btnS.classList.add('is-active'); btnO.classList.remove('is-active'); cese.style.display=''; document.getElementById('seriesTitle').textContent='EMAE por sector de actividad'; document.getElementById('seriesSub').textContent='Número índice · Base 2004 = 100 · más reciente primero'; buildSectorTable(currentSeasonal); }
+      else { btnO.classList.add('is-active'); btnS.classList.remove('is-active'); cese.style.display='none'; document.getElementById('seriesTitle').textContent='EMAE · Serie original y desestacionalizada'; document.getElementById('seriesSub').textContent='Número índice · Base 2004 = 100 · solo datos publicados · más reciente primero'; buildOriginalTable(); } };
+
+
+    /* ── Botones de descarga ──────────────────────────── */
+    if (window.EcoGo) {
+      // EMAE G4 — serie original + desestacionalizada
+
+      // EsAE — comparación i.a. EsAE vs EMAE
+      EcoGo.dlBtn('#chartCmp', 'esae_vs_emae_ia.csv', function(){
+        return {
+          headers: ['Fecha','EsAE var. i.a. (%)','EMAE var. i.a. (%)'],
+          rows: CMP_DATES.map(function(d,i){
+            return [d, CMP_ESAE[i] !== undefined ? CMP_ESAE[i].toFixed(2) : '', CMP_EMAE[i] !== undefined ? CMP_EMAE[i].toFixed(2) : ''];
+          })
+        };
+      });
+
+      // Demanda — todos los componentes
+      EcoGo.dlBtn('#chartDemanda', 'esae_demanda.csv', function(){
+        var keys = Object.keys(DEMANDA_CFG);
+        var headers = ['Fecha'].concat(keys.map(function(k){ return DEMANDA_CFG[k].label + ' (%)'; }));
+        var rows = ESAE_DATES.map(function(d, i){
+          return [d].concat(keys.map(function(k){ var v = DEMANDA_CFG[k].data[i]; return v !== undefined ? v.toFixed(2) : ''; }));
+        });
+        return { headers: headers, rows: rows };
+      });
+    }
+
+  })();
+  </script>
+</body>
+</html>

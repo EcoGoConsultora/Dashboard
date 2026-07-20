@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Eco Go · Dashboard Maestro</title>
+  <link rel="stylesheet" href="assets/css/theme.css" />
+  <link rel="icon" type="image/jpeg" href="assets/img/logo-ecogo.jpg" />
+</head>
+<body data-depth="0" data-active-section="home" data-no-sidebar="true">
+
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+
+    <main class="eg-main">
+
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title">Dashboard Eco Go</h1>
+          <p class="eg-page-header__subtitle">
+            Consolidado de monitores e indicadores macroeconómicos. Seleccioná una sección para acceder al detalle.
+          </p>
+        </div>
+        <div class="eg-page-header__actions">
+          <a href="https://ecogo.com.ar/" target="_blank" rel="noopener" class="eg-btn eg-btn--primary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            ecogo.com.ar
+          </a>
+          <span class="eg-tag">v1.0</span>
+        </div>
+      </section>
+
+      <!-- Acceso por sección -->
+      <h2 style="margin-top:4px;">Secciones</h2>
+      <div class="eg-section-grid" id="sectionGrid"></div>
+
+      <footer class="eg-footer">
+        <span>www.ecogo.com.ar</span>
+      </footer>
+      <p style="text-align:center;font-size:.78rem;color:var(--color-text-muted);margin:8px 0 16px;">
+        Consultas sobre este tablero: <a href="mailto:tableros@ecogo.com.ar" style="color:var(--eg-teal);text-decoration:none;">tableros@ecogo.com.ar</a>
+      </p>
+
+    </main>
+  </div>
+
+  <!-- Datos de todas las secciones -->
+  <script src="assets/js/layout.js"></script>
+  <script>
+    const grid = document.getElementById('sectionGrid');
+    grid.innerHTML = window.EcoGo.SECTIONS
+      .filter(function(s){ return s.id !== 'home'; })
+      .map(function(s){
+        return '<a href="' + s.href + '" class="eg-section-card">' +
+          window.EcoGo.icon(s.icon, 'eg-section-card__icon') +
+          '<div class="eg-section-card__title">' + s.label + '</div>' +
+          '<div class="eg-section-card__desc">' + s.desc + '</div>' +
+        '</a>';
+      }).join('');
+  </script>
+</body>
+</html>

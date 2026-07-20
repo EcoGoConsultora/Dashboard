@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Jupyter
+.ipynb_checkpoints/
+Untitled*.ipynb
+
+# Archivos generados (PPT de cada corrida)
+Informe_*.pptx
+
+# Imágenes temporales de preview
+arg_preview.png
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# VS Code
+.vscode/
+
+# OneDrive
+*.tmp
+~$*

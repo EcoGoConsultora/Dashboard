@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Internacional · Eco Go</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <style>
+    /* ===== layout principal del primer tab ===== */
+    .intl-hero{
+      display:grid; grid-template-columns: 2.2fr 1fr; gap:18px;
+      align-items:start; margin-top:14px;
+    }
+    @media (max-width:1100px){ .intl-hero{ grid-template-columns:1fr } }
+
+    /* ===== Panel de gráfico ===== */
+    .intl-chart-card{
+      background:var(--color-surface); border:1px solid var(--color-border);
+      border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:18px 20px;
+    }
+    .intl-chart-card__head{display:flex; align-items:flex-end; justify-content:space-between; gap:14px; margin-bottom:8px}
+    .intl-chart-card__title{font-size:1.1rem; font-weight:800; color:var(--eg-teal-dark); margin:0}
+    .intl-chart-card__sub{font-size:.78rem; color:var(--color-text-muted); margin-top:2px}
+    .intl-chart-card__source{font-size:.7rem; color:var(--color-text-muted); padding:3px 10px; border:1px solid var(--color-border); border-radius:999px}
+    .intl-chart-box{position:relative; width:100%; height:340px}
+
+    /* ===== Filtros laterales (más protagonismo) ===== */
+    .intl-filter-card{
+      background:linear-gradient(180deg, var(--eg-teal-dark) 0%, var(--eg-teal) 100%);
+      color:#fff; border-radius:var(--radius); padding:22px 20px;
+    }
+    .intl-filter-card h3{
+      font-size:.78rem; text-transform:uppercase; letter-spacing:.12em;
+      color:rgba(255,255,255,0.75); font-weight:700; margin:0 0 14px;
+    }
+    .intl-filter-card label{
+      display:block; font-size:.72rem; text-transform:uppercase; letter-spacing:.08em;
+      color:rgba(255,255,255,0.7); font-weight:700; margin:0 0 6px;
+    }
+    .intl-filter-card select{
+      width:100%; padding:10px 12px; border:1px solid rgba(255,255,255,0.18);
+      background:rgba(255,255,255,0.08); color:#fff; border-radius:8px;
+      font-family:inherit; font-weight:600; font-size:.92rem; margin-bottom:14px;
+      cursor:pointer;
+    }
+    .intl-filter-card select option{ background:var(--eg-teal-dark); color:#fff }
+    .intl-filter-card__divider{ border-top:1px solid rgba(255,255,255,0.15); margin:10px 0 16px }
+    .intl-filter-card__kpi{
+      background:rgba(255,255,255,0.08); border-radius:8px; padding:12px 14px; margin-bottom:8px;
+    }
+    .intl-filter-card__kpi-label{
+      font-size:.66rem; text-transform:uppercase; letter-spacing:.08em;
+      color:rgba(255,255,255,0.65); font-weight:700; margin-bottom:4px;
+    }
+    .intl-filter-card__kpi-value{ font-size:1.45rem; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums }
+    .intl-filter-card__kpi-sub{ font-size:.72rem; color:rgba(255,255,255,0.7); margin-top:4px }
+
+    /* ===== Comparativo dinámico ===== */
+    .intl-comp{ margin-top:24px; }
+    .intl-comp__head{
+      display:flex; align-items:flex-end; justify-content:space-between; gap:16px;
+      margin-bottom:14px; padding-bottom:10px; border-bottom:2px solid var(--eg-teal);
+    }
+    .intl-comp__head h2{ margin:0; font-size:1.25rem }
+    .intl-comp__head p{ margin:4px 0 0; font-size:.85rem; color:var(--color-text-muted) }
+    .intl-comp__pickers{
+      display:grid; grid-template-columns: 2fr 1fr auto; gap:14px;
+      align-items:end; background:var(--eg-gray-100); border-radius:var(--radius);
+      padding:16px 18px; margin-bottom:14px;
+    }
+    @media (max-width:780px){ .intl-comp__pickers{ grid-template-columns:1fr } }
+    .intl-comp__pickers .picker label{
+      display:block; font-size:.7rem; text-transform:uppercase; letter-spacing:.08em;
+      color:var(--color-text-muted); font-weight:700; margin-bottom:6px;
+    }
+    .intl-comp__pickers input[type="search"]{
+      width:100%; padding:9px 12px; border:1px solid var(--color-border);
+      border-radius:8px; font-family:inherit; font-size:.9rem; background:#fff;
+    }
+    .intl-comp__pickers input[type="search"]:focus{ outline:none; border-color:var(--eg-teal); }
+    .intl-comp__pickers select{
+      width:100%; padding:9px 12px; border:1px solid var(--color-border);
+      border-radius:8px; font-family:inherit; font-weight:600; font-size:.9rem;
+      background:#fff; cursor:pointer;
+    }
+
+    .intl-countries-pick{
+      display:flex; flex-wrap:wrap; gap:6px;
+      padding:12px 0 6px;
+    }
+    .intl-chip{
+      display:inline-flex; align-items:center; gap:5px;
+      padding:5px 12px; border-radius:999px; border:1px solid var(--color-border);
+      background:var(--color-surface); color:var(--color-text-muted);
+      font-size:.78rem; font-weight:600; cursor:pointer; font-family:inherit;
+      transition:all .15s;
+    }
+    .intl-chip:hover{ border-color:var(--eg-teal); color:var(--eg-teal-dark) }
+    .intl-chip.is-active{ background:var(--eg-teal-dark); color:#fff; border-color:var(--eg-teal-dark) }
+    .intl-chip__flag{ font-size:.9rem }
+
+    .intl-comp__actions{ display:flex; justify-content:space-between; align-items:center; margin:6px 2px 12px; }
+    .intl-comp__count{ font-size:.78rem; color:var(--color-text-muted) }
+
+    /* Tabla comparativa */
+    .intl-cuadro{ border:1px solid var(--color-border); border-radius:var(--radius); overflow:hidden; background:var(--color-surface) }
+    .intl-cuadro__scroll{ overflow-x:auto }
+    .intl-cuadro table{ width:100%; border-collapse:collapse }
+    .intl-cuadro th, .intl-cuadro td{ padding:10px 14px; font-size:.85rem; border-bottom:1px solid #ECEFEF; white-space:nowrap }
+    .intl-cuadro thead th{
+      background:var(--eg-teal-dark); color:#fff; text-transform:uppercase;
+      letter-spacing:.06em; font-size:.7rem; font-weight:700; text-align:left;
+    }
+    .intl-cuadro td.num, .intl-cuadro th.num{ text-align:right; font-variant-numeric:tabular-nums; font-family:ui-monospace,monospace }
+    .intl-cuadro tbody tr:hover td{ background:var(--eg-gray-100) }
+    .intl-cuadro tr.is-highlight td{ background:rgba(60,151,148,0.10); font-weight:700 }
+    .intl-cuadro td.pos{ color:#3F8E16; font-weight:600 }
+    .intl-cuadro td.neg{ color:var(--eg-red); font-weight:600 }
+    .intl-cuadro td .flag{ margin-right:8px }
+    .intl-cuadro__empty{ padding:40px 22px; text-align:center; color:var(--color-text-muted) }
+
+    /* ===== Ranking ===== */
+    .ranking-grid{ display:grid; gap:18px }
+    .ranking-card{
+      background:var(--color-surface); border:1px solid var(--color-border);
+      border-radius:var(--radius); padding:18px 20px;
+    }
+    .ranking-card__head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px }
+    .ranking-card__title{ font-size:.95rem; font-weight:800; color:var(--eg-teal-dark); margin:0; text-transform:uppercase; letter-spacing:.04em }
+    .ranking-card__meta{ font-size:.7rem; color:var(--color-text-muted) }
+    .ranking-card__list{ list-style:none; padding:0; margin:0 }
+    .ranking-card__list li{
+      display:grid; grid-template-columns: 28px 1fr auto; gap:10px;
+      align-items:center; padding:8px 0; border-bottom:1px solid #ECEFEF;
+      font-size:.88rem;
+    }
+    .ranking-card__list li:last-child{ border-bottom:0 }
+    .ranking-card__list li.is-highlight{ background:rgba(60,151,148,0.08); padding-left:8px; padding-right:8px; border-radius:6px }
+    .ranking-card__pos{
+      font-size:.72rem; color:var(--color-text-muted); font-weight:700;
+      font-family:ui-monospace, monospace;
+    }
+    .ranking-card__name{ font-weight:600 }
+    .ranking-card__sub{ font-size:.7rem; color:var(--color-text-muted); margin-top:2px }
+    .ranking-card__val{ font-weight:800; font-family:ui-monospace,monospace; color:var(--eg-teal-dark) }
+
+    /* ===== Calendario ===== */
+    .cal-list{ display:flex; flex-direction:column; gap:10px }
+    .cal-item{
+      display:grid; grid-template-columns: 100px 1fr auto;
+      align-items:center; gap:14px;
+      background:var(--color-surface); border:1px solid var(--color-border);
+      border-left:4px solid var(--eg-teal); border-radius:8px;
+      padding:14px 18px;
+    }
+    .cal-item.is-imp-alta{ border-left-color:var(--eg-red) }
+    .cal-item.is-imp-baja{ border-left-color:var(--eg-teal-light) }
+    .cal-item__date{ font-weight:800; color:var(--eg-teal-dark); font-family:ui-monospace,monospace }
+    .cal-item__sub{ font-size:.7rem; color:var(--color-text-muted); margin-top:2px; text-transform:uppercase; letter-spacing:.06em }
+    .cal-item__title{ font-weight:700; font-size:.95rem }
+    .cal-item__country{ font-size:.78rem; color:var(--color-text-muted); margin-top:2px }
+    .cal-item__indicator{
+      font-size:.72rem; padding:3px 10px; border-radius:999px;
+      background:var(--color-primary-soft); color:var(--eg-teal-dark);
+      font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+    }
+
+    /* ===== Sin sources botoncito en filtro ===== */
+    .intl-source-link{
+      display:inline-block; margin-top:6px; font-size:.7rem;
+      color:rgba(255,255,255,0.75); border-bottom:1px solid rgba(255,255,255,0.3);
+    }
+    .intl-source-link:hover{ color:#fff; border-bottom-color:#fff }
+  </style>
+</head>
+<body data-depth="1" data-active-section="internacional">
+
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+
+    <main class="eg-main">
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title">Internacional</h1>
+          <p class="eg-page-header__subtitle">Monitor mundial · G20 con foco en Argentina · indicadores oficiales.</p>
+        </div>
+        <div class="eg-page-header__actions">
+          <span class="eg-tag" id="intlLastUpdate">—</span>
+        </div>
+      </section>
+
+      <div class="eg-tabs">
+        <div class="eg-tabs__title">Monitor mundial</div>
+        <div class="eg-tabs__subtitle">Inflación, actividad, tasas y empleo en países seleccionados</div>
+        <div class="eg-tabs__nav" id="intlTabsNav">
+          <button class="eg-tabs__btn is-active" data-tab="principal">Principales variables</button>
+          <button class="eg-tabs__btn" data-tab="ranking">Ranking</button>
+          <button class="eg-tabs__btn" data-tab="calendario">Calendario</button>
+        </div>
+      </div>
+
+      <!-- ============================ TAB 1: PRINCIPALES VARIABLES ============================ -->
+      <section class="eg-tab-panel" id="panel-principal">
+
+        <div class="intl-hero">
+          <!-- gráfico principal -->
+          <div class="intl-chart-card">
+            <div class="intl-chart-card__head">
+              <div>
+                <h3 class="intl-chart-card__title" id="heroChartTitle">—</h3>
+                <div class="intl-chart-card__sub" id="heroChartSub">—</div>
+              </div>
+              <div class="intl-chart-card__source" id="heroSource">—</div>
+            </div>
+            <div class="intl-chart-box"><canvas id="heroChart"></canvas></div>
+          </div>
+
+          <!-- filtros laterales -->
+          <div class="intl-filter-card">
+            <h3>Selección</h3>
+            <label for="heroCountry">País</label>
+            <select id="heroCountry"></select>
+            <label for="heroIndicator">Variable</label>
+            <select id="heroIndicator"></select>
+            <div class="intl-filter-card__divider"></div>
+            <div class="intl-filter-card__kpi" id="heroKpi"></div>
+          </div>
+        </div>
+
+        <!-- Sección comparativa dinámica -->
+        <div class="intl-comp">
+          <div class="intl-comp__head">
+            <div>
+              <h2>Comparativo</h2>
+              <p>Seleccioná países y una variable. Tocá "Ver todo" para incluir los 19 países.</p>
+            </div>
+          </div>
+
+          <div class="intl-comp__pickers">
+            <div class="picker">
+              <label for="compSearch">Buscar país</label>
+              <input type="search" id="compSearch" placeholder="Ej: Brasil, Alemania..." autocomplete="off" />
+            </div>
+            <div class="picker">
+              <label for="compIndicator">Variable</label>
+              <select id="compIndicator"></select>
+            </div>
+            <button class="eg-btn eg-btn--primary" id="btnVerTodo" style="height:38px;">Ver todo (19 países)</button>
+          </div>
+
+          <div class="intl-countries-pick" id="compCountriesPick"></div>
+
+          <div class="intl-comp__actions">
+            <div class="intl-comp__count" id="compCount">—</div>
+            <button class="eg-btn" id="btnLimpiar" style="font-size:.74rem; padding:5px 12px">Limpiar selección</button>
+          </div>
+
+          <div class="intl-cuadro">
+            <div class="intl-cuadro__scroll"><table id="compTable"></table></div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ============================ TAB 2: RANKING ============================ -->
+      <section class="eg-tab-panel" id="panel-ranking" hidden>
+        <p style="color:var(--color-text-muted); margin:8px 0 18px; font-size:.88rem">
+          Ranking por variable. Argentina destacada en cada lista.
+        </p>
+        <div class="ranking-grid" id="rankingGrid"></div>
+      </section>
+
+      <!-- ============================ TAB 3: CALENDARIO ============================ -->
+      <section class="eg-tab-panel" id="panel-calendario" hidden>
+        <p style="color:var(--color-text-muted); margin:8px 0 18px; font-size:.88rem">
+          Próximas publicaciones oficiales para los países del monitor.
+        </p>
+        <div class="cal-list" id="calList"></div>
+      </section>
+
+      <footer class="eg-footer">
+        <span>Sección: Internacional · Eco Go</span>
+        <a href="../index.html">← Volver al inicio</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../assets/js/layout.js"></script>
+  <script src="../assets/data/internacional.js"></script>
+  <script src="../assets/js/internacional.js"></script>
+</body>
+</html>

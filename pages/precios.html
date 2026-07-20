@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Precios · Eco Go</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <style>
+    .chart-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius);padding:16px 18px 14px;box-shadow:var(--shadow-sm);margin-bottom:18px}
+    .chart-card h3{font-size:1rem;color:var(--eg-teal-dark);margin:0 0 4px}
+    .chart-card .chart-source{font-size:.72rem;color:var(--color-text-muted);margin-bottom:10px}
+    .chart-box{position:relative;width:100%;height:380px}
+    .chart-box--tall{height:520px}
+</style>
+</head>
+<body data-depth="1" data-active-section="precios">
+
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+
+    <main class="eg-main">
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title">Precios</h1>
+          <p class="eg-page-header__subtitle">IPC INDEC: núcleo, estacionales y regulados. Precios relativos.</p>
+        </div>
+        <div class="eg-page-header__actions">
+          <span class="eg-tag" id="ultimoMesTag">—</span>
+        </div>
+      </section>
+
+      <!-- Hero IPC: último dato -->
+      <div class="eg-summary-hero" id="preciosHero" style="--hero-cols:4;margin-top:14px;"></div>
+      <div style="display:flex;justify-content:center;margin-bottom:14px;">
+        <button class="eg-btn eg-btn--primary" id="btnDlIPC" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;font-size:.88rem;font-weight:700;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Descargar serie IPC completa
+        </button>
+      </div>
+
+      <!-- Panel IPC -->
+      <section id="panel-ipc">
+        <div class="eg-stats" id="kpiGrid"></div>
+        <div class="eg-stats-source">
+          Fuente:
+          <a href="https://www.indec.gob.ar/indec/web/Nivel4-Tema-3-5-31" target="_blank" rel="noopener">
+            IPC INDEC
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+          </a>
+        </div>
+
+        <div class="chart-card">
+          <h3>Variación IPC — mensual, promedio anual y var. i.a.</h3>
+          <div class="chart-source">Fuente: IPC INDEC · Eco Go · Gráfico 21</div>
+          <div class="chart-box"><canvas id="chart21"></canvas></div>
+        </div>
+
+        <div class="chart-card">
+          <h3>IPC — Variación mensual y interanual por componente</h3>
+          <div class="chart-source">Fuente: IPC INDEC · Eco Go · Gráfico 23</div>
+          <div class="chart-box chart-box--tall"><canvas id="chart23"></canvas></div>
+        </div>
+
+        <div class="chart-card">
+          <h3>Precios relativos: cuánto corregimos y cuánto falta corregir</h3>
+          <div class="chart-source">Fuente: GD - DB · Gráfico 5 · Eco Go · Filtrá por categoría</div>
+          <div class="eg-chips" id="chart5Filters"></div>
+          <div class="chart-box chart-box--tall"><canvas id="chart5"></canvas></div>
+        </div>
+      </section>
+
+      <footer class="eg-footer">
+        <span>Sección: Precios · Eco Go</span>
+        <a href="../index.html">← Volver al inicio</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../assets/js/layout.js"></script>
+  <script src="../assets/data/precios.js"></script>
+  <script src="../assets/js/precios-charts.js"></script>
+
+  <!-- Hero IPC + descarga serie -->
+  <script>
+  (function(){
+    var D = window.PRECIOS_DATA;
+    if (!D || !D.ultimo) return;
+    var u = D.ultimo;
+
+    function fp(v, d) {
+      d = d === undefined ? 1 : d;
+      if (v === null || v === undefined || isNaN(v)) return '\u2014';
+      return (v * 100).toFixed(d).replace('.', ',') + ' %';
+    }
+    function fmtMes(iso) {
+      if (!iso) return '';
+      var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      var m = String(iso).match(/^(\d{4})-(\d{2})/);
+      return m ? MESES[+m[2]-1] + '-' + String(m[1]).slice(2) : iso;
+    }
+
+    var hero = document.getElementById('preciosHero');
+    if (hero) {
+      hero.innerHTML =
+        '<div class="eg-summary-hero__meta">' +
+          '<div class="eg-summary-hero__label">Último mes</div>' +
+          '<div class="eg-summary-hero__period">' + fmtMes(u.fecha) + '</div>' +
+          '<div class="eg-summary-hero__sub">IPC INDEC · variaciones mensuales</div>' +
+        '</div>' +
+        '<div class="eg-summary-hero__stat">' +
+          '<div class="eg-summary-hero__stat-label">IPC General m/m</div>' +
+          '<div class="eg-summary-hero__stat-value">' + fp(u.general_mm) + '</div>' +
+          '<div class="eg-summary-hero__stat-sub">i.a.: ' + fp(u.general_ia) + '</div>' +
+        '</div>' +
+        '<div class="eg-summary-hero__stat">' +
+          '<div class="eg-summary-hero__stat-label">Núcleo m/m</div>' +
+          '<div class="eg-summary-hero__stat-value">' + fp(u.nucleo_mm) + '</div>' +
+          '<div class="eg-summary-hero__stat-sub">i.a.: ' + fp(u.nucleo_ia) + '</div>' +
+        '</div>' +
+        '<div class="eg-summary-hero__stat">' +
+          '<div class="eg-summary-hero__stat-label">Regulados m/m</div>' +
+          '<div class="eg-summary-hero__stat-value">' + fp(u.regulados_mm) + '</div>' +
+          '<div class="eg-summary-hero__stat-sub">i.a.: ' + fp(u.regulados_ia) + '</div>' +
+        '</div>' +
+        '<div class="eg-summary-hero__stat">' +
+          '<div class="eg-summary-hero__stat-label">Estacionales m/m</div>' +
+          '<div class="eg-summary-hero__stat-value">' + fp(u.estacional_mm) + '</div>' +
+          '<div class="eg-summary-hero__stat-sub">i.a.: ' + fp(u.estacional_ia) + '</div>' +
+        '</div>';
+    }
+
+    var btnDl = document.getElementById('btnDlIPC');
+    if (btnDl && D.series_24m) {
+      btnDl.addEventListener('click', function(){
+        window.EcoGo.downloadCSV('ipc_serie_completa.csv',
+          ['Fecha','General m/m (%)','General i.a. (%)','Núcleo m/m (%)','Núcleo i.a. (%)','Estacional m/m (%)','Regulados m/m (%)','Regulados i.a. (%)'],
+          D.series_24m.map(function(r){
+            function pct(v){ return v !== null && v !== undefined ? (v*100).toFixed(2) : ''; }
+            return [r.fecha, pct(r.general_mm), pct(r.general_ia), pct(r.nucleo_mm), pct(r.nucleo_ia), pct(r.estacional_mm), pct(r.regulados_mm), pct(r.regulados_ia)];
+          })
+        );
+      });
+    }
+  })();
+  </script>
+</body>
+</html>

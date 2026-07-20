@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Internacional · Consenso · Eco Go</title>
+  <link rel="stylesheet" href="../assets/css/theme.css"/>
+  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── Tabla resumen ───────────────────────────────────── */
+    .cf-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:20px 24px 24px;margin-bottom:20px}
+    .cf-title{font-size:.95rem;font-weight:700;color:var(--eg-teal-dark);margin:0 0 2px}
+    .cf-sub{font-size:.73rem;color:var(--color-text-muted);margin:0 0 14px}
+    .cf-source{font-size:.67rem;color:var(--color-text-muted);margin-top:8px}
+    .cf-wrap{overflow-x:auto;border:1px solid var(--color-border);border-radius:8px}
+
+    /* Grid table */
+    .cf-table{border-collapse:collapse;font-size:.76rem;white-space:nowrap;width:100%;background:var(--color-surface)}
+    .cf-table th,.cf-table td{border:1px solid rgba(168,176,177,.22);padding:6px 10px;text-align:right}
+    .cf-table thead th{position:sticky;top:0;background:var(--color-surface);z-index:2;
+      color:var(--eg-teal-dark);font-weight:700;font-size:.67rem;line-height:1.35;
+      border-bottom:2px solid rgba(60,151,148,.35)}
+    .cf-table thead th:first-child{position:sticky;left:0;z-index:3;text-align:left;min-width:164px;background:var(--color-surface)}
+    .cf-table tbody td:first-child{position:sticky;left:0;z-index:1;background:var(--color-surface);text-align:left;font-weight:600;color:var(--color-text)}
+    /* group header row */
+    .cf-table thead tr:first-child th{background:rgba(60,151,148,.04);font-size:.63rem;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted);font-weight:600;text-align:center;padding:5px 8px}
+    .cf-table thead tr:first-child th:first-child{text-align:left;background:var(--color-surface)}
+    /* group left-border separators */
+    .cf-grp-sep{border-left:2px solid rgba(60,151,148,.35)!important}
+    /* 2026f column highlight */
+    .cf-col-hl{background:rgba(27,95,94,.05)!important}
+    .cf-table thead th.cf-col-hl{background:rgba(27,95,94,.1)!important;color:var(--eg-teal-dark)!important}
+    /* row types */
+    .cf-row-ref td{color:var(--color-text-muted);font-size:.71rem}
+    .cf-row-ref td:first-child{font-weight:500;padding-left:20px}
+    .cf-row-grp td{background:rgba(60,151,148,.06)!important;font-weight:700;color:var(--eg-teal-dark)}
+    .cf-row-grp td:first-child{background:rgba(60,151,148,.06)!important}
+    .cf-row-cnt td,.cf-row-arg td{cursor:pointer;transition:background .12s}
+    .cf-row-cnt:hover td,.cf-row-arg:hover td,.cf-row-cnt:hover td:first-child,.cf-row-arg:hover td:first-child{background:rgba(60,151,148,.1)!important}
+    .cf-row-arg td{background:rgba(27,95,94,.06)!important;font-weight:700}
+    .cf-row-arg td:first-child{color:var(--eg-teal-dark)!important}
+    .cf-row-cnt.is-active td,.cf-row-arg.is-active td,.cf-row-cnt.is-active td:first-child,.cf-row-arg.is-active td:first-child{background:rgba(27,95,94,.16)!important}
+    /* badge */
+    .cf-badge{display:inline-block;font-size:.57rem;font-weight:800;padding:1px 5px;border-radius:6px;margin-left:6px;vertical-align:middle;background:rgba(60,151,148,.18);color:var(--eg-teal-dark)}
+
+    /* value colors */
+    .v-pos2{color:#1a7a45;font-weight:700}.v-pos1{color:#2a9d5e}.v-neu{color:var(--color-text-muted)}
+    .v-neg1{color:#c0392b}.v-neg2{color:#8b0000;font-weight:700}
+    .v-inf-hi{color:#a93226;font-weight:700}.v-inf-md{color:#e67e22}.v-inf-lo{color:var(--color-text-muted)}
+
+    /* ── Country detail ──────────────────────────────────── */
+    .cf-detail{display:none}
+    .cf-detail.is-open{display:block;animation:cfFade .28s ease}
+    @keyframes cfFade{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+
+    .cf-det-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:20px 24px 22px;margin-bottom:20px}
+    .cf-det-hdr{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+    .cf-det-flag{font-size:2rem;line-height:1}
+    .cf-det-title{font-size:1.35rem;font-weight:800;color:var(--eg-teal-dark);margin:0}
+    .cf-det-sub{font-size:.74rem;color:var(--color-text-muted);margin:2px 0 0}
+    .cf-det-close{margin-left:auto;border:1.5px solid var(--color-border);background:transparent;border-radius:8px;padding:5px 14px;font-size:.73rem;font-weight:700;color:var(--color-text-muted);cursor:pointer;font-family:inherit;transition:all .15s}
+    .cf-det-close:hover{border-color:var(--eg-teal);color:var(--eg-teal-dark)}
+
+    .cf-det-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+    @media(max-width:700px){.cf-det-kpis{grid-template-columns:repeat(2,1fr)}}
+    .cf-det-kpi{border:1px solid var(--color-border);border-radius:10px;padding:11px 13px}
+    .cf-det-kpi__lbl{font-size:.66rem;color:var(--color-text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+    .cf-det-kpi__val{font-size:1.45rem;font-weight:800;color:var(--eg-teal-dark);line-height:1}
+    .cf-det-kpi__sub{font-size:.66rem;color:var(--color-text-muted);margin-top:2px}
+
+    .cf-det-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+    @media(max-width:860px){.cf-det-charts{grid-template-columns:1fr}}
+    .cf-det-chart-box{border:1px solid var(--color-border);border-radius:10px;padding:14px 16px}
+    .cf-det-chart-title{font-size:.79rem;font-weight:700;color:var(--eg-teal-dark);margin:0 0 4px}
+    .cf-det-chart-sub{font-size:.67rem;color:var(--color-text-muted);margin:0 0 10px}
+    .cf-det-canvas{height:210px;position:relative}
+    .cf-det-canvas--tall{height:400px;position:relative}
+    .cf-det-canvas--med{height:260px;position:relative}
+
+    /* Indicators table */
+    .ind-wrap{overflow-x:auto;max-height:340px;border:1px solid var(--color-border);border-radius:8px}
+    .ind-table{border-collapse:collapse;font-size:.71rem;white-space:nowrap;width:100%}
+    .ind-table th{position:sticky;top:0;background:var(--color-surface);z-index:2;
+      padding:6px 10px;border:1px solid rgba(0,0,0,.08);
+      color:var(--eg-teal-dark);font-weight:700;text-align:right;font-size:.64rem}
+    .ind-table th:first-child{position:sticky;left:0;z-index:3;text-align:left;min-width:210px}
+    .ind-table td{padding:4px 10px;border:1px solid rgba(0,0,0,.05);text-align:right;font-variant-numeric:tabular-nums}
+    .ind-table td:first-child{position:sticky;left:0;background:var(--color-surface);text-align:left}
+    .ind-table .ind-sec td,.ind-table .ind-sec td:first-child{background:rgba(60,151,148,.07);font-weight:700;color:var(--eg-teal-dark);font-size:.69rem}
+    .ind-table .ind-fc td{color:var(--color-text-muted);font-style:italic}
+  </style>
+</head>
+<body data-depth="1" data-active-section="internacional2">
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+    <main class="eg-main">
+
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title">Consensus Forecast · Latin America</h1>
+          <p class="eg-page-header__subtitle" id="cf-subtitle">LatinFocus · Mayo 2026 · Hacé clic en cualquier país para ver su detalle</p>
+        </div>
+      </section>
+
+      <!-- TABLA RESUMEN -->
+      <div class="cf-card">
+        <p class="cf-title">Resumen macroeconómico · América Latina y referencias globales</p>
+        <p class="cf-sub">Hacé clic en cualquier fila de país para ver el análisis detallado</p>
+        <div class="cf-wrap">
+          <table class="cf-table" id="cfTable"></table>
+        </div>
+        <p class="cf-source" id="cf-source-label">Fuente: FocusEconomics Consensus Forecast · LatinFocus · Mayo 2026</p>
+      </div>
+
+      <!-- COUNTRY DETAILS (generated by JS) -->
+      <div id="cfDetails"></div>
+
+      <footer class="eg-footer">
+        <span>Internacional · Consenso · Eco Go</span>
+        <a href="../index.html">← Volver al inicio</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../assets/js/layout-clientes.js"></script>
+  <!-- Datos del Consensus Forecast (generado por parse_latinfocus.py) -->
+  <script src="../assets/data/internacional2.js"></script>
+  <script>
+  (function(){
+    var TEAL='#3C9794', TEAL_D='#1B5F5E', RED='#DA4531', ORANGE='#FE8B5F';
+    Chart.defaults.font.family = "'HK Grotesk', system-ui, sans-serif";
+    Chart.defaults.color = '#333333';
+
+    /* =========================================================
+       DATA  —  usa window.CF_DATA si está disponible (parse_latinfocus.py),
+                de lo contrario usa los datos hardcodeados como fallback.
+    ========================================================= */
+    var _CF = window.CF_DATA || null;
+
+    var SUMMARY = _CF ? _CF.summary : [
+      {id:'mundo',     flag:'🌍', type:'ref', name:'Mundo',          gdp:[3.0,3.1,3.0,2.7,2.9], inf:[6.2,5.3,3.5,3.8,3.1],  fis:[-4.3,-4.5,-4.4,-4.6,-4.5], ca:[0.0,0.0,0.0,0.0,0.0]},
+      {id:'usa',       flag:'🇺🇸', type:'ref', name:'Estados Unidos', gdp:[2.9,2.8,2.1,2.2,2.0], inf:[4.1,2.9,2.6,3.1,2.4],  fis:[-6.2,-6.3,-5.8,-6.1,-6.2], ca:[-3.3,-4.0,-3.6,-3.2,-3.2]},
+      {id:'eurozona',  flag:'🇪🇺', type:'ref', name:'Zona Euro',      gdp:[0.5,0.9,1.5,1.0,1.3], inf:[5.5,2.4,2.1,2.6,2.1],  fis:[-3.5,-3.0,-2.9,-3.3,-3.3], ca:[1.6,2.7,1.6,1.7,1.8]},
+      {id:'china',     flag:'🇨🇳', type:'ref', name:'China',          gdp:[5.2,5.0,4.9,4.6,4.4], inf:[0.2,0.2,0.0,1.0,1.1],  fis:[-4.5,-4.8,-5.1,-5.5,-5.4], ca:[1.4,2.5,3.8,3.1,2.9]},
+      {id:'latam',     flag:'🌎', type:'grp', name:'América Latina',  gdp:[2.2,2.1,2.2,2.0,2.3], inf:[18.4,24.8,7.9,6.8,5.4], fis:[-5.3,-5.3,-4.9,-5.0,-4.6], ca:[-1.3,-1.2,-1.1,-1.2,-1.3]},
+      {id:'argentina', flag:'🇦🇷', type:'arg', name:'Argentina',      gdp:[-1.9,-1.3,4.4,2.9,3.1], inf:[133.5,219.9,41.9,30.4,20.6], fis:[-4.4,0.3,0.2,0.1,0.1], ca:[-3.2,0.9,-1.1,-0.5,-0.7]},
+      {id:'brasil',    flag:'🇧🇷', type:'cnt', name:'Brasil',         gdp:[3.2,3.4,2.3,1.7,1.9], inf:[4.6,4.4,5.0,4.3,3.9],  fis:[-8.8,-8.5,-8.3,-8.5,-7.9], ca:[-1.2,-3.0,-2.9,-2.5,-2.4]},
+      {id:'chile',     flag:'🇨🇱', type:'cnt', name:'Chile',          gdp:[0.7,2.8,2.5,2.1,2.5], inf:[7.6,4.3,4.2,3.5,3.2],  fis:[-2.4,-2.9,-2.8,-1.9,-1.6], ca:[-3.1,-1.2,-1.2,-1.9,-2.0]},
+      {id:'mexico',    flag:'🇲🇽', type:'cnt', name:'México',         gdp:[3.1,1.4,0.6,1.3,1.8], inf:[5.5,4.7,3.8,4.0,3.7],  fis:[-3.3,-5.0,-3.8,-4.0,-3.8], ca:[-0.7,-0.9,-0.4,-0.7,-0.9]},
+      {id:'colombia',  flag:'🇨🇴', type:'cnt', name:'Colombia',       gdp:[0.8,1.5,2.6,2.6,2.4], inf:[11.7,6.6,5.1,5.7,5.0], fis:[-4.2,-6.7,-6.4,-6.5,-5.6], ca:[-2.3,-1.7,-2.4,-2.7,-2.7]},
+      {id:'paraguay',  flag:'🇵🇾', type:'cnt', name:'Paraguay',       gdp:[5.3,4.7,6.6,4.1,3.8], inf:[4.6,3.8,4.0,3.6,3.6],  fis:[-4.1,-2.5,-2.0,-1.6,-1.6], ca:[0.3,-3.3,-3.2,-2.9,-2.6]},
+      {id:'uruguay',   flag:'🇺🇾', type:'cnt', name:'Uruguay',        gdp:[0.8,3.3,1.8,1.7,2.1], inf:[5.9,4.8,4.6,4.3,4.4],  fis:[-3.7,-4.0,-4.4,-4.3,-4.1], ca:[-3.0,-0.8,-0.4,-1.3,-1.3]},
+      {id:'peru',      flag:'🇵🇪', type:'cnt', name:'Perú',           gdp:[-0.4,3.5,3.4,2.9,3.0],inf:[6.3,2.4,1.5,3.0,2.2],  fis:[-2.7,-3.5,-2.2,-2.1,-1.9], ca:[0.3,2.2,3.2,2.6,2.1]},
+      {id:'ecuador',   flag:'🇪🇨', type:'cnt', name:'Ecuador',        gdp:[1.8,-1.9,3.7,2.3,2.4], inf:[2.2,1.5,0.7,2.3,1.8],  fis:[-3.5,-1.3,-2.9,-1.4,-1.0], ca:[2.1,5.7,5.9,5.1,4.0]},
+      {id:'bolivia',   flag:'🇧🇴', type:'cnt', name:'Bolivia',        gdp:[2.5,-1.1,-1.6,-0.9,2.1],inf:[2.6,5.1,19.5,16.7,11.9],fis:[-10.1,-8.7,-11.6,-8.9,-6.1],ca:[-2.2,-2.4,-1.9,-1.3,-1.5]},
+      {id:'venezuela', flag:'🇻🇪', type:'cnt', name:'Venezuela',      gdp:[4.0,6.2,1.8,4.5,8.0], inf:[337.2,49.3,252.0,461.3,157.9],fis:[-1.2,-3.7,-5.8,-4.4,-3.8],ca:[0.3,4.6,3.2,3.6,3.6]}
+    ];
+
+    var YEARS = ['2023','2024','2025','2026f','2027f'];
+    var BUILT = {};
+
+    /* Argentina specific */
+    var GDP_PANEL = [
+      {p:'4intelligence',v26:2.9},{p:'ABECEB',v26:2.6},{p:'Aldazabal',v26:3.3},
+      {p:'Allianz',v26:3.5},{p:'Analytica',v26:1.0},{p:'Aurum Valores',v26:2.8},
+      {p:'Balanz Capital',v26:2.7},{p:'Banco Galicia',v26:3.0},{p:'Banco Supervielle',v26:1.5},
+      {p:'Barclays',v26:2.5},{p:'BBVA Research',v26:3.0},{p:'C&T Asesores',v26:3.1},
+      {p:'Capital Economics',v26:2.8},{p:'Citigroup',v26:3.2},{p:'Coface',v26:3.4},
+      {p:'Credicorp Capital',v26:3.7},{p:'DekaBank',v26:3.2},{p:'Dun & Bradstreet',v26:3.2},
+      {p:'E2 Economia',v26:3.2},{p:'Eco Go',v26:1.9},{p:'Ecolatina',v26:2.8},
+      {p:'Econosignal',v26:3.5},{p:'Econviews',v26:2.0},{p:'EIU',v26:3.0},
+      {p:'EMFI',v26:3.8},{p:'Empiria',v26:2.7},{p:'Equilibra',v26:2.0},
+      {p:'Euromonitor',v26:3.1},{p:'FIEL',v26:2.0},{p:'Fitch Ratings',v26:3.2},
+      {p:'Fitch Solutions',v26:2.7},{p:'FrontierView',v26:2.7},{p:'Goldman Sachs',v26:2.7},
+      {p:'Invecq',v26:2.5},{p:'IMF',v26:3.5},{p:'Itau Unibanco',v26:3.5},
+      {p:'JPMorgan',v26:3.2},{p:'Kiel Institute',v26:2.5},{p:'LCG',v26:2.5},
+      {p:'MAP',v26:4.0},{p:'MAPFRE',v26:3.2},{p:'OJF',v26:2.5},
+      {p:'Oxford Economics',v26:2.4},{p:'Pantheon Macro',v26:2.4},{p:'Quantum',v26:3.7},
+      {p:'S&P Global',v26:3.2},{p:'Santander',v26:3.0},{p:'UBS',v26:3.3},
+      {p:'World Bank',v26:3.6}
+    ];
+
+    var CPI_PANEL = [
+      {p:'4intelligence',v26:33.4},{p:'ABECEB',v26:32.8},{p:'Aldazabal',v26:30.9},
+      {p:'Allianz',v26:18.0},{p:'Balanz Capital',v26:34.0},{p:'Banco Galicia',v26:32.0},
+      {p:'Banco Supervielle',v26:33.3},{p:'BBVA Research',v26:32.7},{p:'C&T Asesores',v26:31.8},
+      {p:'Capital Economics',v26:31.5},{p:'Citigroup',v26:28.0},{p:'DekaBank',v26:31.6},
+      {p:'E2 Economia',v26:27.9},{p:'Eco Go',v26:32.8},{p:'Ecolatina',v26:32.8},
+      {p:'Econosignal',v26:32.2},{p:'Econviews',v26:33.9},{p:'EIU',v26:31.6},
+      {p:'EMFI',v26:34.5},{p:'Empiria',v26:33.7},{p:'Equilibra',v26:32.4},
+      {p:'Euromonitor',v26:30.6},{p:'FIEL',v26:32.0},{p:'Fitch Ratings',v26:33.8},
+      {p:'Fitch Solutions',v26:32.1},{p:'Goldman Sachs',v26:31.8},{p:'IMF',v26:30.4},
+      {p:'Invecq',v26:33.0},{p:'MAP',v26:32.8},{p:'MAPFRE',v26:27.8},
+      {p:'Moody\'s',v26:26.6},{p:'OJF',v26:33.2},{p:'Oxford Economics',v26:34.9},
+      {p:'Pantheon Macro',v26:31.0},{p:'Pezco',v26:23.3},{p:'Quantum',v26:32.0},
+      {p:'S&P Global',v26:26.0},{p:'UBS',v26:29.7}
+    ];
+
+    var GDP_QTR = {
+      labels:['Q3-25','Q4-25','Q1-26','Q2-26','Q3-26','Q4-26','Q1-27','Q2-27','Q3-27','Q4-27'],
+      yoy:   [3.3,2.1,1.8,3.1,3.1,3.5,3.5,3.1,2.9,2.9],
+      qoq:   [0.6,0.6,0.8,0.9,0.8,0.8,0.7,0.7,0.6,0.7]
+    };
+
+    var IND_ROWS = [
+      {sec:true,label:'Sector Real'},
+      {label:'PIB per capita (USD)',vals:[10606,13688,14044,13551,14339,15670,16197,16930,17760,18859],fc:5},
+      {label:'PIB (USD bn)',vals:[486,633,655,638,681,751,784,828,877,941],fc:5},
+      {label:'PIB real (var. % i.a.)',vals:[10.4,6.0,-1.9,-1.3,4.4,2.9,3.1,3.0,2.8,2.9],fc:5},
+      {label:'Consumo privado (var. %)',vals:[9.5,9.5,1.0,-2.9,7.9,2.4,2.6,2.8,2.6,2.7],fc:5},
+      {label:'Inversion fija (var. %)',vals:[34.0,10.5,-2.0,-17.2,16.4,3.8,6.2,5.2,5.2,5.9],fc:5},
+      {label:'Exportaciones (var. %)',vals:[8.5,4.6,-9.5,19.8,7.6,6.7,5.0,4.7,4.5,5.1],fc:5},
+      {label:'Importaciones (var. %)',vals:[18.6,17.5,1.9,-10.2,27.0,3.4,5.2,4.8,4.5,5.1],fc:5},
+      {label:'Desempleo (% PEA, prom)',vals:[8.8,6.8,6.1,7.1,7.4,7.3,7.1,7.0,6.8,6.7],fc:5},
+      {sec:true,label:'Sector Fiscal'},
+      {label:'Resultado fiscal (% PIB)',vals:[-3.6,-3.8,-4.4,0.3,0.2,0.1,0.1,0.0,-0.1,-0.1],fc:5},
+      {label:'Deuda publica (% PIB)',vals:[80.8,84.8,155.7,82.6,78.4,70.7,67.6,64.3,59.7,61.1],fc:5},
+      {sec:true,label:'Sector Monetario'},
+      {label:'Inflacion CPI (% i.a. eop)',vals:[50.9,94.8,211.4,117.8,31.5,28.2,18.2,12.0,9.1,7.5],fc:5},
+      {label:'Inflacion CPI (% i.a. aop)',vals:[48.4,72.4,133.5,219.9,41.9,30.4,20.6,13.1,10.3,8.2],fc:5},
+      {label:'Tipo de cambio (ARS/USD, eop)',vals:[102.7,177.3,808.5,1031,1452,1687,1975,2190,2362,2438],fc:5},
+      {label:'Tipo de cambio paralelo (eop)',vals:[208,346,1025,1230,1530,1747,2020,2238,2371,2498],fc:5},
+      {sec:true,label:'Sector Externo'},
+      {label:'Cuenta corriente (% PIB)',vals:[1.4,-0.6,-3.2,0.9,-1.1,-0.5,-0.7,-0.2,-0.1,-0.2],fc:5},
+      {label:'Exportaciones (USD bn)',vals:[77.9,88.7,67.0,79.7,87.1,95.8,99.8,105.2,108.5,114.7],fc:5},
+      {label:'Reservas internacionales (USD bn)',vals:[39.7,44.6,23.1,29.6,41.2,49.3,55.1,61.6,66.1,75.1],fc:5}
+    ];
+    var IND_YEARS = [2021,2022,2023,2024,2025,2026,2027,2028,2029,2030];
+
+    /* =========================================================
+       HELPERS
+    ========================================================= */
+    function gdpCls(v){if(v===null)return '';if(v>=4)return 'v-pos2';if(v>=2)return 'v-pos1';if(v>=0)return 'v-neu';if(v>=-2)return 'v-neg1';return 'v-neg2';}
+    function infCls(v){if(v===null)return '';if(v>50)return 'v-inf-hi';if(v>10)return 'v-inf-md';return 'v-inf-lo';}
+    function fisCls(v){if(v===null)return '';if(v>0)return 'v-pos1';if(v>=-2)return 'v-neu';if(v>=-5)return 'v-neg1';return 'v-neg2';}
+    function sgn(v,d){d=d===undefined?1:d;if(v===null||v===undefined)return '—';return (v>0?'+':'')+v.toFixed(d);}
+    function pos(v,d){d=d===undefined?1:d;if(v===null||v===undefined)return '—';return v.toFixed(d);}
+
+    /* =========================================================
+       BUILD SUMMARY TABLE
+    ========================================================= */
+    function buildTable(){
+      var t = document.getElementById('cfTable');
+      var h = '<thead>'
+        + '<tr>'
+        + '<th rowspan="2" style="vertical-align:bottom;text-align:left;border-bottom:2px solid rgba(60,151,148,.35)">País / Región</th>'
+        + '<th colspan="5" class="cf-grp-sep" style="text-align:center">PIB real · var. % anual</th>'
+        + '<th colspan="5" class="cf-grp-sep" style="text-align:center">Inflación · % anual prom.</th>'
+        + '<th colspan="3" class="cf-grp-sep" style="text-align:center">Fiscal · % PIB</th>'
+        + '<th colspan="3" class="cf-grp-sep" style="text-align:center">Cta. Corriente · % PIB</th>'
+        + '</tr><tr>'
+        + '<th class="cf-grp-sep">2023</th><th>2024</th><th>2025</th><th class="cf-col-hl">2026f</th><th>2027f</th>'
+        + '<th class="cf-grp-sep">2023</th><th>2024</th><th>2025</th><th class="cf-col-hl">2026f</th><th>2027f</th>'
+        + '<th class="cf-grp-sep">2024</th><th class="cf-col-hl">2026f</th><th>2027f</th>'
+        + '<th class="cf-grp-sep">2024</th><th class="cf-col-hl">2026f</th><th>2027f</th>'
+        + '</tr></thead><tbody>';
+
+      SUMMARY.forEach(function(r){
+        var clickable = r.type==='cnt'||r.type==='arg';
+        var rowCls = 'cf-row-'+r.type;
+        var oc = clickable ? ' data-id="'+r.id+'" onclick="window._cfToggle(this.dataset.id)"' : '';
+        h += '<tr id="row-'+r.id+'" class="'+rowCls+'"'+oc+'>';
+
+        var name = r.flag+' '+r.name;
+        if(clickable) name += '<span class="cf-badge">ver ↓</span>';
+        h += '<td>'+name+'</td>';
+
+        /* GDP */
+        for(var i=0;i<5;i++){
+          var v=r.gdp[i];
+          var cls=[gdpCls(v),i===3?'cf-col-hl':'',i===0?'cf-grp-sep':''].filter(Boolean).join(' ');
+          h += '<td class="'+cls+'">'+sgn(v)+'</td>';
+        }
+        /* Inflation */
+        for(var i=0;i<5;i++){
+          var v=r.inf[i];
+          var cls=[infCls(v),i===3?'cf-col-hl':'',i===0?'cf-grp-sep':''].filter(Boolean).join(' ');
+          h += '<td class="'+cls+'">'+pos(v)+'</td>';
+        }
+        /* Fiscal 2024,2026f,2027f */
+        h += '<td class="'+[fisCls(r.fis[1]),'cf-grp-sep'].join(' ')+'">'+sgn(r.fis[1])+'</td>';
+        h += '<td class="'+[fisCls(r.fis[3]),'cf-col-hl'].join(' ')+'">'+sgn(r.fis[3])+'</td>';
+        h += '<td class="'+fisCls(r.fis[4])+'">'+sgn(r.fis[4])+'</td>';
+        /* CA 2024,2026f,2027f */
+        h += '<td class="'+[fisCls(r.ca[1]),'cf-grp-sep'].join(' ')+'">'+sgn(r.ca[1])+'</td>';
+        h += '<td class="'+[fisCls(r.ca[3]),'cf-col-hl'].join(' ')+'">'+sgn(r.ca[3])+'</td>';
+        h += '<td class="'+fisCls(r.ca[4])+'">'+sgn(r.ca[4])+'</td>';
+        h += '</tr>';
+      });
+      h += '</tbody>';
+      t.innerHTML = h;
+    }
+
+    /* =========================================================
+       BUILD ALL DETAIL SECTIONS (HTML skeleton)
+    ========================================================= */
+    function buildDetails(){
+      var container = document.getElementById('cfDetails');
+      var html = '';
+
+      SUMMARY.forEach(function(r){
+        if(r.type!=='cnt'&&r.type!=='arg') return;
+        var g26=r.gdp[3], i26=r.inf[3], f26=r.fis[3], c26=r.ca[3];
+        var isArg = r.type==='arg';
+
+        html += '<div class="cf-detail" id="det-'+r.id+'">';
+        html += '<div class="cf-det-card">';
+
+        /* Header */
+        html += '<div class="cf-det-hdr">'
+          + '<span class="cf-det-flag">'+r.flag+'</span>'
+          + '<div><h2 class="cf-det-title">'+r.name+'</h2>'
+          + '<p class="cf-det-sub">Consensus Forecast · Mayo 2026 · FocusEconomics</p></div>'
+          + '<button class="cf-det-close" data-id="'+r.id+'" onclick="window._cfClose(this.dataset.id)">&#x2715; Cerrar</button>'
+          + '</div>';
+
+        /* KPIs */
+        html += '<div class="cf-det-kpis">'
+          + '<div class="cf-det-kpi"><div class="cf-det-kpi__lbl">PIB real 2026f</div>'
+          + '<div class="cf-det-kpi__val">'+sgn(g26)+'%</div>'
+          + '<div class="cf-det-kpi__sub">2027f: '+sgn(r.gdp[4])+'%</div></div>'
+
+          + '<div class="cf-det-kpi"><div class="cf-det-kpi__lbl">Inflación 2026f (aop)</div>'
+          + '<div class="cf-det-kpi__val">'+pos(i26)+'%</div>'
+          + '<div class="cf-det-kpi__sub">2025: '+pos(r.inf[2])+'%</div></div>'
+
+          + '<div class="cf-det-kpi"><div class="cf-det-kpi__lbl">Fiscal 2026f (% PIB)</div>'
+          + '<div class="cf-det-kpi__val">'+sgn(f26)+'%</div>'
+          + '<div class="cf-det-kpi__sub">2024: '+sgn(r.fis[1])+'%</div></div>'
+
+          + '<div class="cf-det-kpi"><div class="cf-det-kpi__lbl">Cta. Corriente 2026f</div>'
+          + '<div class="cf-det-kpi__val">'+sgn(c26)+'%</div>'
+          + '<div class="cf-det-kpi__sub">2024: '+sgn(r.ca[1])+'%</div></div>'
+          + '</div>';
+
+        /* Generic charts: GDP + Inflation */
+        html += '<div class="cf-det-charts">'
+          + '<div class="cf-det-chart-box"><p class="cf-det-chart-title">Crecimiento del PIB real (%)</p>'
+          + '<p class="cf-det-chart-sub">Var. anual · 2023–2027f</p>'
+          + '<div class="cf-det-canvas"><canvas id="gdp-'+r.id+'"></canvas></div></div>'
+          + '<div class="cf-det-chart-box"><p class="cf-det-chart-title">Inflación promedio anual (%)</p>'
+          + '<p class="cf-det-chart-sub">CPI · 2023–2027f</p>'
+          + '<div class="cf-det-canvas"><canvas id="cpi-'+r.id+'"></canvas></div></div>'
+          + '</div>';
+
+        /* Fiscal + CA charts */
+        html += '<div class="cf-det-charts">'
+          + '<div class="cf-det-chart-box"><p class="cf-det-chart-title">Resultado fiscal (% PIB)</p>'
+          + '<p class="cf-det-chart-sub">2023–2027f</p>'
+          + '<div class="cf-det-canvas"><canvas id="fis-'+r.id+'"></canvas></div></div>'
+          + '<div class="cf-det-chart-box"><p class="cf-det-chart-title">Cuenta corriente (% PIB)</p>'
+          + '<p class="cf-det-chart-sub">2023–2027f</p>'
+          + '<div class="cf-det-canvas"><canvas id="ca-'+r.id+'"></canvas></div></div>'
+          + '</div>';
+
+        /* Argentina extra */
+        if(isArg){
+          html += '<div class="cf-det-charts">'
+            + '<div class="cf-det-chart-box"><p class="cf-det-chart-title">PIB 2026 · Forecasts individuales</p>'
+            + '<p class="cf-det-chart-sub"><strong style="color:var(--eg-teal-dark)">Eco Go: 1.9%</strong> · Consenso: 2.9%</p>'
+            + '<div class="cf-det-canvas--tall"><canvas id="gdp-panel"></canvas></div></div>'
+            + '<div class="cf-det-chart-box"><p class="cf-det-chart-title">Inflación 2026 · Forecasts individuales</p>'
+            + '<p class="cf-det-chart-sub"><strong style="color:var(--eg-teal-dark)">Eco Go: 32.8%</strong> · Consenso: 30.4%</p>'
+            + '<div class="cf-det-canvas--tall"><canvas id="cpi-panel"></canvas></div></div>'
+            + '</div>';
+
+          html += '<div class="cf-det-chart-box" style="margin-bottom:18px">'
+            + '<p class="cf-det-chart-title">Crecimiento del PIB · Evolución trimestral (var. i.a. %)</p>'
+            + '<p class="cf-det-chart-sub">Q3-2025 – Q4-2027 · Forecast consenso</p>'
+            + '<div class="cf-det-canvas--med"><canvas id="gdp-qtr"></canvas></div></div>';
+
+          html += '<div class="cf-det-chart-box">'
+            + '<p class="cf-det-chart-title" style="margin-bottom:10px">Indicadores económicos · Argentina 2021–2030</p>'
+            + '<div class="ind-wrap"><table class="ind-table" id="ind-table"></table></div>'
+            + '<p style="font-size:.65rem;color:var(--color-text-muted);margin-top:8px">'
+            + 'Itálico = forecast consenso · Fuente: FocusEconomics / INDEC</p>'
+            + '</div>';
+        }
+
+        html += '</div></div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    /* =========================================================
+       TOGGLE
+    ========================================================= */
+    window._cfToggle = function(id){
+      var det = document.getElementById('det-'+id);
+      var row = document.getElementById('row-'+id);
+      var isOpen = det && det.classList.contains('is-open');
+
+      document.querySelectorAll('.cf-detail').forEach(function(d){d.classList.remove('is-open');});
+      document.querySelectorAll('.cf-row-cnt,.cf-row-arg').forEach(function(rw){rw.classList.remove('is-active');});
+
+      if(!isOpen && det){
+        det.classList.add('is-open');
+        if(row) row.classList.add('is-active');
+        setTimeout(function(){ det.scrollIntoView({behavior:'smooth',block:'start'}); }, 60);
+        if(!BUILT[id]){
+          var r = SUMMARY.filter(function(s){return s.id===id;})[0];
+          if(r) buildCountryCharts(r);
+        }
+      }
+    };
+
+    window._cfClose = function(id){
+      var det = document.getElementById('det-'+id);
+      var row = document.getElementById('row-'+id);
+      if(det) det.classList.remove('is-open');
+      if(row) row.classList.remove('is-active');
+    };
+
+    /* =========================================================
+       BUILD CHARTS FOR A COUNTRY
+    ========================================================= */
+    function barColors(vals, posCol, negCol, faded){
+      return vals.map(function(v,i){
+        var c = v>=0 ? posCol : negCol;
+        return i<3 ? c+'dd' : c+'77';
+      });
+    }
+
+    function buildCountryCharts(r){
+      BUILT[r.id] = true;
+
+      /* GDP */
+      var gdpEl = document.getElementById('gdp-'+r.id);
+      if(gdpEl) new Chart(gdpEl,{
+        type:'bar',
+        data:{labels:YEARS,datasets:[{
+          label:'PIB real (% i.a.)',data:r.gdp,
+          backgroundColor:barColors(r.gdp,TEAL,RED),
+          borderColor:barColors(r.gdp,TEAL,RED).map(function(c){return c.slice(0,7);}),
+          borderWidth:1.5
+        }]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+sgn(c.parsed.y)+'%';}} }},
+          scales:{
+            x:{ticks:{color:'#6E7679'},grid:{color:'rgba(0,0,0,0.04)'}},
+            y:{ticks:{color:'#6E7679',callback:function(v){return v+'%';}},grid:{color:'rgba(0,0,0,0.05)'}}
+          }
+        }
+      });
+
+      /* Inflation */
+      var cpiEl = document.getElementById('cpi-'+r.id);
+      if(cpiEl) new Chart(cpiEl,{
+        type:'bar',
+        data:{labels:YEARS,datasets:[{
+          label:'Inflacion (% anual prom.)',data:r.inf,
+          backgroundColor:YEARS.map(function(_,i){return i<3?ORANGE+'dd':ORANGE+'77';}),
+          borderColor:ORANGE,borderWidth:1.5
+        }]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+pos(c.parsed.y)+'%';}} }},
+          scales:{
+            x:{ticks:{color:'#6E7679'},grid:{color:'rgba(0,0,0,0.04)'}},
+            y:{ticks:{color:'#6E7679',callback:function(v){return v+'%';}},grid:{color:'rgba(0,0,0,0.05)'}}
+          }
+        }
+      });
+
+      /* Fiscal */
+      var fisEl = document.getElementById('fis-'+r.id);
+      if(fisEl) new Chart(fisEl,{
+        type:'bar',
+        data:{labels:YEARS,datasets:[{
+          label:'Fiscal (% PIB)',data:r.fis,
+          backgroundColor:barColors(r.fis,TEAL,RED),
+          borderColor:barColors(r.fis,TEAL,RED).map(function(c){return c.slice(0,7);}),
+          borderWidth:1.5
+        }]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+sgn(c.parsed.y)+'%';}} }},
+          scales:{
+            x:{ticks:{color:'#6E7679'},grid:{color:'rgba(0,0,0,0.04)'}},
+            y:{ticks:{color:'#6E7679',callback:function(v){return v+'%';}},grid:{color:'rgba(0,0,0,0.05)'}}
+          }
+        }
+      });
+
+      /* Current Account */
+      var caEl = document.getElementById('ca-'+r.id);
+      if(caEl) new Chart(caEl,{
+        type:'bar',
+        data:{labels:YEARS,datasets:[{
+          label:'Cta. Corriente (% PIB)',data:r.ca,
+          backgroundColor:barColors(r.ca,TEAL_D,RED),
+          borderColor:barColors(r.ca,TEAL_D,RED).map(function(c){return c.slice(0,7);}),
+          borderWidth:1.5
+        }]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+sgn(c.parsed.y)+'%';}} }},
+          scales:{
+            x:{ticks:{color:'#6E7679'},grid:{color:'rgba(0,0,0,0.04)'}},
+            y:{ticks:{color:'#6E7679',callback:function(v){return v+'%';}},grid:{color:'rgba(0,0,0,0.05)'}}
+          }
+        }
+      });
+
+      /* Argentina extras */
+      if(r.type==='arg'){
+        buildArgExtras();
+        buildIndTable();
+      }
+    }
+
+    function buildArgExtras(){
+      /* GDP panelists */
+      var sorted = GDP_PANEL.slice().sort(function(a,b){return a.v26-b.v26;});
+      var gdpLabels = sorted.map(function(x){return x.p;});
+      var gdpVals = sorted.map(function(x){return x.v26;});
+      var gdpColors = sorted.map(function(x){return x.p==='Eco Go'?TEAL_D:TEAL+'88';});
+      new Chart(document.getElementById('gdp-panel'),{
+        type:'bar',
+        data:{labels:gdpLabels,datasets:[
+          {label:'Forecast PIB 2026',data:gdpVals,backgroundColor:gdpColors,borderColor:gdpColors,borderWidth:1},
+          {label:'Consenso 2.9%',data:gdpVals.map(function(){return 2.9;}),type:'line',
+            borderColor:RED,borderWidth:2,borderDash:[5,4],pointRadius:0,fill:false}
+        ]},
+        options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+c.parsed.x.toFixed(1)+'%';}} }},
+          scales:{
+            x:{ticks:{color:'#6E7679',callback:function(v){return v+'%';}},grid:{color:'rgba(0,0,0,0.05)'}},
+            y:{ticks:{color:'#6E7679',font:{size:9}},grid:{display:false}}
+          }
+        }
+      });
+
+      /* CPI panelists */
+      var csorted = CPI_PANEL.slice().sort(function(a,b){return a.v26-b.v26;});
+      var cLabels = csorted.map(function(x){return x.p;});
+      var cVals = csorted.map(function(x){return x.v26;});
+      var cColors = csorted.map(function(x){return x.p==='Eco Go'?TEAL_D:ORANGE+'aa';});
+      new Chart(document.getElementById('cpi-panel'),{
+        type:'bar',
+        data:{labels:cLabels,datasets:[
+          {label:'Forecast Inflacion 2026',data:cVals,backgroundColor:cColors,borderColor:cColors,borderWidth:1},
+          {label:'Consenso 30.4%',data:cVals.map(function(){return 30.4;}),type:'line',
+            borderColor:RED,borderWidth:2,borderDash:[5,4],pointRadius:0,fill:false}
+        ]},
+        options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+c.parsed.x.toFixed(1)+'%';}} }},
+          scales:{
+            x:{ticks:{color:'#6E7679',callback:function(v){return v+'%';}},grid:{color:'rgba(0,0,0,0.05)'}},
+            y:{ticks:{color:'#6E7679',font:{size:9}},grid:{display:false}}
+          }
+        }
+      });
+
+      /* Quarterly GDP */
+      new Chart(document.getElementById('gdp-qtr'),{
+        type:'bar',
+        data:{labels:GDP_QTR.labels,datasets:[
+          {type:'bar',label:'Var. i.a. (%)',data:GDP_QTR.yoy,
+            backgroundColor:GDP_QTR.yoy.map(function(v){return v>=2?TEAL+'cc':ORANGE+'cc';}),yAxisID:'y'},
+          {type:'line',label:'Var. t/t s.a. (%)',data:GDP_QTR.qoq,
+            borderColor:TEAL_D,backgroundColor:TEAL_D,borderWidth:2.5,pointRadius:4,tension:.3,yAxisID:'y2'}
+        ]},
+        options:{responsive:true,maintainAspectRatio:false,
+          interaction:{mode:'index',intersect:false},
+          plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:12}}},
+          scales:{
+            x:{ticks:{color:'#6E7679'},grid:{color:'rgba(0,0,0,0.04)'}},
+            y:{position:'left',ticks:{color:'#6E7679',callback:function(v){return v+'%';}},grid:{color:'rgba(0,0,0,0.05)'},title:{display:true,text:'Var. i.a. (%)'}},
+            y2:{position:'right',ticks:{color:'#6E7679',callback:function(v){return v+'%';}},grid:{drawOnChartArea:false},title:{display:true,text:'Var. t/t s.a. (%)'}}
+          }
+        }
+      });
+    }
+
+    function buildIndTable(){
+      var t = document.getElementById('ind-table');
+      var h = '<thead><tr><th>Indicador</th>';
+      IND_YEARS.forEach(function(y){h+='<th>'+y+'</th>';});
+      h += '</tr></thead><tbody>';
+      IND_ROWS.forEach(function(r){
+        if(r.sec){
+          h += '<tr class="ind-sec"><td colspan="'+(IND_YEARS.length+1)+'">'+r.label+'</td></tr>';
+          return;
+        }
+        h += '<tr>';
+        h += '<td>'+r.label+'</td>';
+        r.vals.forEach(function(v,i){
+          var isFc = i>=r.fc;
+          var cls = isFc ? ' class="ind-fc"' : '';
+          var txt = v===null ? '—' : (Math.abs(v)>=100 ? v.toLocaleString('es-AR',{maximumFractionDigits:0}) : v.toFixed(1));
+          h += '<td'+cls+'>'+txt+'</td>';
+        });
+        h += '</tr>';
+      });
+      h += '</tbody>';
+      t.innerHTML = h;
+    }
+
+    /* =========================================================
+       INIT
+    ========================================================= */
+    document.addEventListener('DOMContentLoaded',function(){
+      // Actualizar subtítulo y fuente con la edición del JS externo
+      if(_CF && _CF.edition){
+        var ed = _CF.edition;
+        var sub = document.getElementById('cf-subtitle');
+        if(sub) sub.textContent = 'LatinFocus · '+ed+' · Hacé clic en cualquier país para ver su detalle';
+        var src = document.getElementById('cf-source-label');
+        if(src) src.textContent = 'Fuente: FocusEconomics Consensus Forecast · LatinFocus · '+ed;
+        // Actualizar también el label del detalle de Argentina si se cargó desde JS
+        document.querySelectorAll('.cf-det-sub').forEach(function(el){
+          el.textContent = 'Consensus Forecast · '+ed+' · FocusEconomics';
+        });
+      }
+      buildTable();
+      buildDetails();
+    });
+
+  })();
+  </script>
+</body>
+</html>

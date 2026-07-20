@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Empleo · Eco Go</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <style>
+    /* ── Provincias tab ─────────────────────────────────── */
+    .prov-view-btn{background:transparent;border:none;cursor:pointer;padding:5px 10px;font-size:.75rem;font-weight:600;color:var(--color-text-muted);display:flex;align-items:center;gap:4px;font-family:inherit;transition:all .15s}
+    .prov-view-btn.is-active{background:var(--color-primary-soft);color:var(--eg-teal-dark)}
+    .prov-view-btn:hover:not(.is-active){background:var(--color-hover)}
+    .prov-province{cursor:pointer;transition:opacity .15s}
+    .prov-province:hover{opacity:.75}
+    .prov-tooltip{position:fixed;background:#fff;border:1px solid var(--color-border);border-radius:8px;padding:8px 12px;font-size:.77rem;box-shadow:var(--shadow-sm);pointer-events:none;z-index:999;max-width:220px;display:none}
+    .prov-tooltip strong{display:block;color:var(--eg-teal-dark);font-size:.82rem;margin-bottom:3px}
+    .eg-table .is-total td{background:var(--color-primary-soft);font-weight:800;color:var(--eg-teal-dark)}
+    .eg-select{border:1px solid var(--color-border);border-radius:6px;background:var(--color-surface);color:var(--color-text);padding:4px 8px;font-family:inherit;cursor:pointer}
+
+    .chart-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius);padding:16px 18px 14px;box-shadow:var(--shadow-sm);margin-bottom:18px}
+    .chart-card h3{font-size:1rem;color:var(--eg-teal-dark);margin:0 0 4px}
+    .chart-card .chart-source{font-size:.72rem;color:var(--color-text-muted);margin-bottom:10px}
+    .chart-box{position:relative;width:100%;height:380px}
+    .chart-box--tall{height:460px}
+
+    /* Hero EPH último cuatri */
+    .eph-hero{
+      display:grid; grid-template-columns:auto repeat(4,1fr); gap:14px;
+      background:linear-gradient(135deg, var(--eg-teal-dark) 0%, var(--eg-teal) 100%);
+      color:#fff; border-radius:var(--radius); padding:18px 22px;
+      align-items:center; margin-bottom:14px;
+    }
+    .eph-hero__title{font-size:.75rem; text-transform:uppercase; letter-spacing:.1em; opacity:.85; font-weight:700}
+    .eph-hero__period{font-size:1.4rem; font-weight:800; margin-top:4px}
+    .eph-hero__sub{font-size:.78rem; opacity:.75; margin-top:2px}
+    .eph-hero__stat{display:flex; flex-direction:column}
+    .eph-hero__stat-label{font-size:.7rem; text-transform:uppercase; letter-spacing:.08em; opacity:.7; font-weight:600}
+    .eph-hero__stat-value{font-size:1.85rem; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums; margin-top:4px}
+    @media (max-width:780px){ .eph-hero{grid-template-columns:1fr 1fr; gap:10px} }
+
+    /* Modal histórico */
+    .eph-modal-backdrop{
+      position:fixed; inset:0; background:rgba(15,30,31,0.6); backdrop-filter:blur(2px);
+      display:none; align-items:center; justify-content:center; z-index:100; padding:20px;
+    }
+    .eph-modal-backdrop.is-open{display:flex}
+    .eph-modal{
+      background:#fff; border-radius:var(--radius-lg); padding:22px 26px;
+      max-width:1100px; width:100%; max-height:92vh; overflow:auto;
+      box-shadow:0 24px 60px rgba(0,0,0,0.25);
+    }
+    .eph-modal__head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:18px; flex-wrap:wrap}
+    .eph-modal__title{font-size:1.1rem; color:var(--eg-teal-dark); margin:0; font-weight:800}
+    .eph-modal__close{
+      background:transparent; border:1px solid var(--color-border); border-radius:6px;
+      padding:6px 12px; cursor:pointer; font-family:inherit; font-weight:600; font-size:.82rem;
+      color:var(--color-text-muted);
+    }
+    .eph-modal__close:hover{background:var(--eg-gray-100); color:var(--eg-teal-dark)}
+
+    /* Timeline picker */
+    .eph-range{display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:.82rem; color:var(--color-text-muted)}
+    .eph-range label{font-weight:600; color:var(--eg-teal-dark)}
+    .eph-range select{
+      padding:5px 10px; border:1px solid var(--color-border); border-radius:6px;
+      background:#fff; font-family:inherit; font-weight:600; color:var(--eg-teal-dark);
+      cursor:pointer; font-size:.82rem;
+    }
+    .eph-range__quick{display:flex; gap:4px}
+    .eph-range__quick button{
+      padding:4px 10px; border:1px solid var(--color-border); border-radius:6px;
+      background:#fff; cursor:pointer; font-family:inherit; font-size:.72rem; font-weight:600;
+      color:var(--color-text-muted);
+    }
+    .eph-range__quick button:hover{color:var(--eg-teal-dark); border-color:var(--eg-teal)}
+    .eph-range__quick button.is-active{background:var(--eg-teal-dark); color:#fff; border-color:var(--eg-teal-dark)}
+
+    /* Cuadro Dinámica (más prolijo, sin scroll horizontal salvo en móvil) */
+    .eg-cuadro{
+      border:1px solid var(--color-border); border-radius:var(--radius); overflow:hidden;
+      background:var(--color-surface);
+    }
+    .eg-cuadro__scroll{overflow-x:auto}
+    .eg-cuadro table{width:100%; border-collapse:collapse; min-width:780px}
+    .eg-cuadro th, .eg-cuadro td{padding:10px 14px; font-size:.82rem; white-space:nowrap; border-bottom:1px solid var(--color-border-soft, #ECEFEF)}
+    .eg-cuadro thead th{
+      background:var(--eg-teal-dark); color:#fff; font-weight:700; text-transform:uppercase;
+      letter-spacing:.06em; font-size:.7rem; border-bottom:0; text-align:left;
+    }
+    .eg-cuadro td.num, .eg-cuadro th.num{text-align:right; font-variant-numeric:tabular-nums; font-family:ui-monospace,monospace}
+    .eg-cuadro tbody tr:hover td{background:var(--eg-gray-100)}
+    .eg-cuadro tr.is-section td:first-child{font-weight:800; color:var(--eg-teal-dark)}
+    .eg-cuadro tr.is-section td{background:rgba(60,151,148,0.06)}
+    .eg-cuadro tr.is-indent td:first-child{padding-left:32px; color:var(--color-text-muted); font-size:.78rem}
+
+    /* SIPA con separador entre datos puros y diferencias */
+    .eg-cuadro td.col-sep-left,
+    .eg-cuadro th.col-sep-left{border-left:2px dashed var(--eg-teal); padding-left:18px}
+    .eg-cuadro td.diff.is-positive{color:#3F8E16; font-weight:600}
+    .eg-cuadro td.diff.is-negative{color:var(--eg-red); font-weight:600}
+
+    /* Botón grande para abrir histórico */
+    .eg-btn--big{padding:12px 22px; font-size:.92rem; font-weight:700; box-shadow:0 4px 12px rgba(27,95,94,0.18); display:inline-flex; align-items:center}
+    .eg-btn--big:hover{box-shadow:0 6px 18px rgba(27,95,94,0.28); transform:translateY(-1px)}
+
+    /* Cuadro EPH histórico con sticky header */
+    #tablaEPH{min-width:100%}
+    #tablaEPH thead th{position:sticky; top:0; z-index:2}
+
+
+    .eg-btn--ghost{
+      background:var(--color-primary-soft); border-color:transparent; color:var(--eg-teal-dark);
+      padding:9px 18px; font-size:.82rem;
+    }
+    .eg-btn--ghost:hover{background:var(--eg-teal-dark); color:#fff}
+  </style>
+</head>
+<body data-depth="1" data-active-section="empleo">
+
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+
+    <main class="eg-main">
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title">Empleo y mercado laboral</h1>
+          <p class="eg-page-header__subtitle">Tasas EPH, empleo trimestral, registro SIPA y distribución provincial.</p>
+        </div>
+        <div class="eg-page-header__actions">
+          <span class="eg-tag" id="ultimoTag">—</span>
+        </div>
+      </section>
+
+      <div class="eg-tabs">
+        <div class="eg-tabs__title">Mercado laboral</div>
+        <div class="eg-tabs__subtitle">EPH INDEC · SIPA · provincias</div>
+        <div class="eg-tabs__nav" id="tabsNav">
+          <button class="eg-tabs__btn is-active" data-tab="empleo">Empleo</button>
+          <button class="eg-tabs__btn" data-tab="salarios">Salarios</button>
+          <button class="eg-tabs__btn" data-tab="provincias">Provincias</button>
+        </div>
+      </div>
+
+      <section class="eg-tab-panel" id="panel-empleo">
+
+        <!-- 1) Tasas EPH: hero + botón abre modal histórico -->
+        <div class="chart-card">
+          <h3>Tasas EPH · Mercado de trabajo</h3>
+          <div class="chart-source">Fuente: INDEC · Encuesta Permanente de Hogares · TOTAL aglomerados</div>
+          <div class="eph-hero" id="ephHero"></div>
+          <div style="display:flex; justify-content:center; margin-top:14px;">
+            <button class="eg-btn eg-btn--primary eg-btn--big" id="btnHistorico">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <line x1="3" y1="9" x2="21" y2="9"/>
+                <line x1="9" y1="21" x2="9" y2="9"/>
+              </svg>
+              Ver historial completo de tasas
+            </button>
+          </div>
+        </div>
+
+        <!-- 2) Cuadro empleo trim (hasta Inactivos / IV-25, sin scroll si entra) -->
+        <div class="chart-card">
+          <h3>Dinámica del mercado de trabajo</h3>
+          <div class="chart-source">Fuente: Eco Go en base a EPH INDEC · valores en miles de personas</div>
+          <div class="eg-cuadro">
+            <div class="eg-cuadro__scroll"><table id="tablaTrim"></table></div>
+          </div>
+        </div>
+
+        <!-- 3) SIPA -->
+        <div class="chart-card">
+          <h3>Empleo registrado · Min. de Trabajo (SIPA)</h3>
+          <div class="chart-source">Fuente: Eco Go en base a SIPA · serie desestacionalizada · valores en miles</div>
+          <div class="eg-cuadro">
+            <div class="eg-cuadro__scroll"><table id="tablaSIPA"></table></div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ===== PANEL PROVINCIAS ===== -->
+      <section class="eg-tab-panel" id="panel-provincias" hidden>
+
+        <div class="chart-card" style="padding-bottom:20px">
+          <!-- Controls bar -->
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+            <h3 style="margin:0;flex:none">Empleo asalariado privado por provincia · SIPA</h3>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <label style="font-size:.75rem;color:var(--color-text-muted);font-weight:600">Comparar</label>
+              <select id="provDesde" class="eg-select" style="font-size:.8rem;padding:4px 8px"></select>
+              <span style="color:var(--color-text-muted)">→</span>
+              <select id="provHasta" class="eg-select" style="font-size:.8rem;padding:4px 8px"></select>
+            </div>
+          </div>
+          <div class="chart-source" id="provFuente">Fuente: Eco Go en base a SIPA · serie desestacionalizada · valores en miles</div>
+
+          <!-- TABLE VIEW -->
+          <div id="provTablaWrap">
+            <div class="eg-cuadro"><div class="eg-cuadro__scroll"><table id="tablaProvincias" class="eg-table"></table></div></div>
+          </div>
+
+
+        </div>
+      </section>
+
+      <section class="eg-tab-panel" id="panel-salarios" hidden>
+
+        <!-- 1) G Sal real: evolución del salario real desde oct-16 -->
+        <div class="chart-card">
+          <h3>Evolución del salario real · Índice oct-16 = 100</h3>
+          <div class="chart-source">Fuente: Eco Go en base a INDEC · Índice de Salarios deflactado por IPC</div>
+          <div class="chart-box chart-box--tall"><canvas id="chartSalReal"></canvas></div>
+        </div>
+
+        <!-- 2) Cuadro INDEC 1.3 -->
+        <div class="chart-card">
+          <h3 id="cuadroSalTitulo">Evolución de los salarios — INDEC</h3>
+          <div class="chart-source" id="cuadroSalFuente">Fuente: Eco Go en base a INDEC</div>
+          <div class="eg-cuadro">
+            <div class="eg-cuadro__scroll"><table id="tablaSalIndec"></table></div>
+          </div>
+        </div>
+
+        <!-- 3) G real 21: ingresos en términos reales (base dic-21=100) -->
+        <div class="chart-card">
+          <h3>Evolución de los ingresos en términos reales · Índice dic-21 = 100</h3>
+          <div class="chart-source">Fuente: Eco Go en base a INDEC, ANSES y MTSS · deflactado por IPC</div>
+          <div class="chart-box chart-box--tall"><canvas id="chartReal21"></canvas></div>
+        </div>
+
+      </section>
+
+      <footer class="eg-footer">
+        <span>Sección: Empleo · Eco Go</span>
+        <a href="../index.html">← Volver al inicio</a>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Modal histórico EPH -->
+  <div class="eph-modal-backdrop" id="ephModal">
+    <div class="eph-modal">
+      <div class="eph-modal__head">
+        <h3 class="eph-modal__title">Historial de tasas EPH</h3>
+        <button class="eph-modal__close" id="ephModalClose">✕ Cerrar</button>
+      </div>
+      <div class="eph-range">
+        <label>Período:</label>
+        <select id="ephFrom"></select>
+        <span>—</span>
+        <select id="ephTo"></select>
+        <div class="eph-range__quick">
+          <button data-q="5">5 años</button>
+          <button data-q="10">10 años</button>
+          <button data-q="20">20 años</button>
+          <button data-q="all" class="is-active">Todo</button>
+        </div>
+      </div>
+      <div class="eg-cuadro" style="margin-top:14px;">
+        <div class="eg-cuadro__scroll"><table id="tablaEPH"></table></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../assets/js/layout.js"></script>
+  <script src="../assets/data/sipa_provincias.js"></script>
+  <script src="../assets/data/empleo.js"></script>
+  <script src="../assets/data/salarios.js"></script>
+  <script src="../assets/js/empleo.js"></script>
+  <!-- ===== PROVINCIAS JS ===== -->
+  <script>
+  (function(){
+    var D = window.SIPA_PROVINCIAS;
+    if (!D) { console.error('Missing SIPA_PROVINCIAS'); return; }
+
+    var selDesde=document.getElementById('provDesde');
+    var selHasta=document.getElementById('provHasta');
+    D.periodos.forEach(function(p,i){
+      var a=document.createElement('option');a.value=i;a.textContent=p.label;selDesde.appendChild(a);
+      var b=document.createElement('option');b.value=i;b.textContent=p.label;selHasta.appendChild(b);
+    });
+    selDesde.value=D.periodos.length-2; selHasta.value=D.periodos.length-1;
+    selDesde.addEventListener('change',render); selHasta.addEventListener('change',render);
+
+    function render(){
+      var iA=+selDesde.value,iB=+selHasta.value;
+      if(iA===iB){iB=Math.min(iA+1,D.periodos.length-1);selHasta.value=iB;}
+      var lA=D.periodos[iA].label,lB=D.periodos[iB].label;
+      var tbl=document.getElementById('tablaProvincias');
+      tbl.innerHTML='<thead><tr><th>Provincia</th><th class="num">'+lA+' (miles)</th>'+
+        '<th class="num">'+lB+' (miles)</th><th class="num">Var. abs.</th><th class="num">Var. %</th></tr></thead>'+
+        '<tbody>'+D.provincias.map(function(p){
+          var a=p.vals[iA],b=p.vals[iB];
+          var dA=(a!==null&&b!==null)?b-a:null;
+          var dP=(a!==null&&b!==null&&a!==0)?(b/a-1)*100:null;
+          var cls=p.name==='Total'?' class="is-total"':'';
+          return '<tr'+cls+'><td>'+p.name+'</td>'+
+            '<td class="num">'+(a!==null?a.toFixed(1):'—')+'</td>'+
+            '<td class="num">'+(b!==null?b.toFixed(1):'—')+'</td>'+
+            '<td class="num" style="color:'+(dA!==null?(dA>=0?'#1a7a45':'#c0392b'):'inherit')+';font-weight:700">'+
+              (dA!==null?(dA>=0?'+':'')+dA.toFixed(1):'—')+'</td>'+
+            '<td class="num" style="color:'+(dP!==null?(dP>=0?'#1a7a45':'#c0392b'):'inherit')+';font-weight:700">'+
+              (dP!==null?(dP>=0?'+':'')+dP.toFixed(1)+'%':'—')+'</td></tr>';
+        }).join('')+'</tbody>';
+    }
+    document.getElementById('tabsNav').addEventListener('click',function(e){
+      var btn=e.target.closest('[data-tab]');
+      if(btn&&btn.getAttribute('data-tab')==='provincias') render();
+    });
+    render();
+  })();
+  </script>
+
+</body>
+</html>

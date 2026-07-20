@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Internacional · Mercados · Eco Go</title>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg" />
+  <style>
+    /* ===== Strip global ===== */
+    .mg-strip{
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));
+      gap:12px; margin-top:18px;
+    }
+    .mg-strip-card{
+      background:var(--color-surface); border:1px solid var(--color-border);
+      border-radius:var(--radius); padding:14px 16px;
+      box-shadow:var(--shadow-sm); transition:box-shadow .15s;
+    }
+    .mg-strip-card:hover{ box-shadow:0 4px 18px rgba(0,0,0,0.10) }
+    .mg-strip-card__panel{
+      font-size:.64rem; text-transform:uppercase; letter-spacing:.1em;
+      color:var(--eg-teal); font-weight:700; margin-bottom:4px;
+    }
+    .mg-strip-card__label{ font-size:.88rem; font-weight:700; color:var(--eg-teal-dark); margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mg-strip-card__value{ font-size:1.45rem; font-weight:800; color:var(--color-text); font-variant-numeric:tabular-nums; line-height:1.1; }
+    .mg-strip-card__unit{ font-size:.65rem; color:var(--color-text-muted); margin-top:1px }
+    .mg-strip-card__changes{ display:flex; gap:10px; margin-top:8px; flex-wrap:wrap }
+    .mg-strip-card__chg{ font-size:.72rem; font-weight:700; font-variant-numeric:tabular-nums; }
+    .mg-strip-card__chg-lbl{ font-size:.62rem; color:var(--color-text-muted); margin-right:2px }
+    .mg-strip-card__source{
+      font-size:.62rem; color:var(--color-text-muted); margin-top:8px;
+      border-top:1px solid var(--color-border); padding-top:6px;
+    }
+
+    /* ===== Panel sections ===== */
+    .mg-section{ margin-top:28px }
+    .mg-section__head{
+      display:flex; align-items:center; gap:10px; margin-bottom:14px;
+      padding-bottom:8px; border-bottom:2px solid var(--eg-teal);
+    }
+    .mg-section__title{ font-size:1.05rem; font-weight:800; color:var(--eg-teal-dark); margin:0 }
+    .mg-section__badge{
+      font-size:.65rem; text-transform:uppercase; letter-spacing:.1em;
+      background:var(--eg-teal); color:#fff; padding:2px 8px;
+      border-radius:999px; font-weight:700;
+    }
+
+    /* ===== Tabla de cobertura completa ===== */
+    .mg-table-wrap{ border:1px solid var(--color-border); border-radius:var(--radius); overflow:hidden; background:var(--color-surface) }
+    .mg-table-scroll{ overflow-x:auto }
+    .mg-table{ width:100%; border-collapse:collapse; min-width:700px }
+    .mg-table th, .mg-table td{ padding:10px 14px; font-size:.83rem; border-bottom:1px solid #ECEFEF; white-space:nowrap }
+    .mg-table thead th{
+      background:var(--eg-teal-dark); color:#fff; text-transform:uppercase;
+      letter-spacing:.06em; font-size:.69rem; font-weight:700; text-align:left;
+    }
+    .mg-table td.num, .mg-table th.num{ text-align:right; font-variant-numeric:tabular-nums; font-family:ui-monospace,monospace }
+    .mg-table tbody tr:hover td{ background:var(--eg-gray-100) }
+    .mg-table td.pos{ color:#3A7D1A; font-weight:600 }
+    .mg-table td.neg{ color:#C0392B; font-weight:600 }
+    .mg-table td.panel-badge{
+      font-size:.65rem; text-transform:uppercase; letter-spacing:.08em;
+      color:var(--eg-teal); font-weight:700;
+    }
+    .mg-table .src-link{ font-size:.7rem; color:var(--eg-teal); text-decoration:none }
+    .mg-table .src-link:hover{ text-decoration:underline }
+
+    /* Loading / error */
+    .mg-loading{ padding:40px; text-align:center; color:var(--color-text-muted); font-size:.9rem }
+    .mg-error{
+      background:#FEF2F2; border:1px solid #FCA5A5; border-radius:var(--radius);
+      padding:16px 20px; color:#7F1D1D; font-size:.85rem; margin-top:12px;
+    }
+    .mg-date-tag{
+      display:inline-flex; align-items:center; gap:6px;
+      background:var(--eg-gray-100); border-radius:999px; padding:4px 12px;
+      font-size:.75rem; color:var(--color-text-muted); font-weight:600;
+    }
+  </style>
+</head>
+<body data-depth="1" data-active-section="mercados-global">
+
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+
+    <main class="eg-main">
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title">Internacional · Mercados globales</h1>
+          <p class="eg-page-header__subtitle">Benchmarks globales · contexto externo del pipeline.</p>
+        </div>
+        <div class="eg-page-header__actions">
+          <span class="eg-tag" id="mgDate">—</span>
+        </div>
+      </section>
+
+      <div id="mgLoading" class="mg-loading">Cargando datos del bundle…</div>
+      <div id="mgError" class="mg-error" style="display:none"></div>
+
+      <!-- Strip global -->
+      <div id="mgStripSection" style="display:none">
+        <div class="mg-section__head" style="margin-top:18px">
+          <h2 class="mg-section__title">Strip global del snapshot</h2>
+          <span class="mg-section__badge" id="mgStripCount">—</span>
+        </div>
+        <div class="mg-strip" id="mgStrip"></div>
+      </div>
+
+      <!-- Cobertura completa -->
+      <div id="mgCoberturaSection" style="display:none">
+        <div class="mg-section">
+          <div class="mg-section__head">
+            <h2 class="mg-section__title">Cobertura completa del bloque</h2>
+            <span class="mg-section__badge">Snapshot internacional</span>
+          </div>
+          <div class="mg-table-wrap">
+            <div class="mg-table-scroll">
+              <table class="mg-table">
+                <thead>
+                  <tr>
+                    <th>Panel</th>
+                    <th>Activo</th>
+                    <th class="num">Valor</th>
+                    <th>Unidad</th>
+                    <th class="num">1D %</th>
+                    <th class="num">1M %</th>
+                    <th class="num">YTD %</th>
+                    <th>Fecha</th>
+                    <th>Fuente</th>
+                  </tr>
+                </thead>
+                <tbody id="mgCoberturaBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="eg-footer">
+        <span>Sección: Internacional · Mercados · Eco Go</span>
+        <a href="../index.html">← Volver al inicio</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../assets/js/layout.js"></script>
+  <script src="../assets/data/mercados.js"></script>
+  <script>
+  (function(){
+    /* ---- helpers ---- */
+    function fmtVal(v, unit){
+      if(v===null||v===undefined) return '—';
+      var u=(unit||'').toLowerCase();
+      if(u.includes('ars')) return '$'+Number(v).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+      if(u.includes('usd')) return 'USD '+Number(v).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+      if(u.includes('%')||u.includes('annual')||u.includes('yield')||u.includes('implied')) return Number(v).toFixed(2)+'%';
+      if(u.includes('basis points')) return Number(v).toFixed(0)+' bps';
+      if(u.includes('fx rate')) return Number(v).toFixed(4);
+      return Number(v).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    }
+    function fmtChg(v){
+      if(v===null||v===undefined) return {html:'—',cls:''};
+      var sign=v>=0?'+':'';
+      return {html:sign+Number(v).toFixed(2)+'%', cls:v>=0?'pos':'neg'};
+    }
+    function panelLabel(id){
+      var m={equities:'Acciones',rates:'Tasas',fx:'FX global',commodities_crypto:'Commodities & Cripto'};
+      return m[id]||id;
+    }
+
+    var PANEL_ORDER = ['equities','rates','fx','commodities_crypto'];
+
+    function render(D){
+      var ec = D.external_context;
+      var strip = ec.benchmark_strip || [];
+      var panels = ec.panels || [];
+
+      // Fecha
+      var dateEl = document.getElementById('mgDate');
+      if(dateEl) dateEl.textContent = 'Datos al: ' + (ec.latest_date||D.meta.end_date||'—');
+
+      // Strip cards
+      var stripEl = document.getElementById('mgStrip');
+      var stripCount = document.getElementById('mgStripCount');
+      if(stripCount) stripCount.textContent = strip.length + ' activos';
+
+      // Determinar panel de cada item del strip
+      var panelMap = {};
+      panels.forEach(function(p){
+        (p.items||[]).forEach(function(it){ panelMap[it.asset||it.label] = p.panel; });
+      });
+
+      strip.forEach(function(it){
+        var panel = panelMap[it.asset]||'';
+        var c1 = fmtChg(it.ret_1d_pct), c2 = fmtChg(it.ret_1m_pct), c3 = fmtChg(it.ret_ytd_pct);
+        var card = document.createElement('div');
+        card.className = 'mg-strip-card';
+        card.innerHTML =
+          '<div class="mg-strip-card__panel">'+panelLabel(panel)+'</div>'+
+          '<div class="mg-strip-card__label" title="'+it.label+'">'+it.label+'</div>'+
+          '<div class="mg-strip-card__value">'+fmtVal(it.value, it.unit)+'</div>'+
+          '<div class="mg-strip-card__unit">'+it.unit+'</div>'+
+          '<div class="mg-strip-card__changes">'+
+            '<span class="mg-strip-card__chg"><span class="mg-strip-card__chg-lbl">1D</span><span class="'+c1.cls+'">'+c1.html+'</span></span>'+
+            '<span class="mg-strip-card__chg"><span class="mg-strip-card__chg-lbl">1M</span><span class="'+c2.cls+'">'+c2.html+'</span></span>'+
+            '<span class="mg-strip-card__chg"><span class="mg-strip-card__chg-lbl">YTD</span><span class="'+c3.cls+'">'+c3.html+'</span></span>'+
+          '</div>'+
+          '<div class="mg-strip-card__source">'+it.source+'</div>';
+        stripEl.appendChild(card);
+      });
+      document.getElementById('mgStripSection').style.display='';
+
+      // Tabla cobertura completa — agrupar por panel
+      var tbody = document.getElementById('mgCoberturaBody');
+      var rows = '';
+
+      // Construir lista ordenada por panel
+      var byPanel = {};
+      panels.forEach(function(p){ byPanel[p.panel] = p; });
+      PANEL_ORDER.forEach(function(pid){
+        var p = byPanel[pid]; if(!p) return;
+        (p.items||[]).forEach(function(it){
+          var c1=fmtChg(it.ret_1d_pct), c2=fmtChg(it.ret_1m_pct), c3=fmtChg(it.ret_ytd_pct);
+          rows +=
+            '<tr>'+
+            '<td class="panel-badge">'+panelLabel(p.panel)+'</td>'+
+            '<td><strong>'+it.label+'</strong></td>'+
+            '<td class="num">'+fmtVal(it.value, it.unit)+'</td>'+
+            '<td style="font-size:.75rem;color:var(--color-text-muted)">'+it.unit+'</td>'+
+            '<td class="num '+c1.cls+'">'+c1.html+'</td>'+
+            '<td class="num '+c2.cls+'">'+c2.html+'</td>'+
+            '<td class="num '+c3.cls+'">'+c3.html+'</td>'+
+            '<td style="font-size:.75rem">'+it.date+'</td>'+
+            '<td>'+(it.source_url?'<a class="src-link" href="'+it.source_url+'" target="_blank">'+it.source+'</a>':it.source)+'</td>'+
+            '</tr>';
+        });
+      });
+
+      // Items del strip que NO estén en panels
+      var inPanels = new Set();
+      panels.forEach(function(p){ (p.items||[]).forEach(function(it){ inPanels.add(it.label); }); });
+      strip.forEach(function(it){
+        if(!inPanels.has(it.label)){
+          var c1=fmtChg(it.ret_1d_pct), c2=fmtChg(it.ret_1m_pct), c3=fmtChg(it.ret_ytd_pct);
+          rows +=
+            '<tr>'+
+            '<td class="panel-badge">Otros</td>'+
+            '<td><strong>'+it.label+'</strong></td>'+
+            '<td class="num">'+fmtVal(it.value, it.unit)+'</td>'+
+            '<td style="font-size:.75rem;color:var(--color-text-muted)">'+it.unit+'</td>'+
+            '<td class="num '+c1.cls+'">'+c1.html+'</td>'+
+            '<td class="num '+c2.cls+'">'+c2.html+'</td>'+
+            '<td class="num '+c3.cls+'">'+c3.html+'</td>'+
+            '<td style="font-size:.75rem">'+(it.date||'—')+'</td>'+
+            '<td>'+(it.source||'—')+'</td>'+
+            '</tr>';
+        }
+      });
+
+      tbody.innerHTML = rows;
+      document.getElementById('mgCoberturaSection').style.display='';
+      document.getElementById('mgLoading').style.display='none';
+    }
+
+    document.addEventListener('DOMContentLoaded', function(){
+      if(window.MERCADOS_DATA){
+        render(window.MERCADOS_DATA);
+      } else {
+        document.getElementById('mgError').style.display='';
+        document.getElementById('mgError').textContent='No se encontró window.MERCADOS_DATA. Corré refresh.py para generar los datos locales.';
+        document.getElementById('mgLoading').style.display='none';
+      }
+    });
+  })();
+  </script>
+</body>
+</html>
