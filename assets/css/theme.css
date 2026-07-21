@@ -293,3 +293,8 @@ p { margin:0 0 1em; }
 .eg-snapshot-card__footer { margin-top:8px; display:flex; justify-content:flex-end; }
 .eg-snapshot-card__link { font-size:.72rem; color:var(--eg-teal-dark); font-weight:600; text-decoration:none; }
 .eg-snapshot-card__link:hover { text-decoration:underline; }
+
+/* ── Series Largas — nav highlight ─────────────────────────── */
+.eg-nav__item a.eg-nav--highlight { color:rgba(80,200,120,.95); }
+.eg-nav__item a.eg-nav--highlight:hover { background:rgba(39,174,96,.20); color:#fff; }
+.eg-nav__item a.eg-nav--highlight.is-active { background:#27AE60; color:#fff; }
