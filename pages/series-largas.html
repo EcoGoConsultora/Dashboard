@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Series Largas · Eco Go</title>
+  <link rel="stylesheet" href="../assets/css/theme.css"/>
+  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── Paleta destacada para esta sección ─────────────────── */
+    :root { --sl-accent:#27AE60; --sl-accent-soft:rgba(39,174,96,.09); --sl-accent-dark:#1E8449; }
+
+    /* ── Controles superiores ───────────────────────────────── */
+    .sl-controls{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:18px}
+    .sl-view-btns{display:flex;gap:6px}
+    .sl-view-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:20px;border:1.5px solid var(--color-border);font-size:.82rem;font-weight:700;cursor:pointer;background:transparent;color:var(--color-text-muted);transition:all .18s}
+    .sl-view-btn.is-active{background:var(--sl-accent);border-color:var(--sl-accent);color:#fff}
+    .sl-view-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .sl-sep{flex:1}
+
+    /* ── Year range picker ──────────────────────────────────── */
+    .sl-picker-wrap{position:relative;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .sl-presets{display:flex;align-items:center}
+    .sl-preset{background:none;border:none;cursor:pointer;font-size:.8rem;font-weight:700;color:var(--color-text-muted);padding:4px 10px;transition:color .15s;font-family:inherit}
+    .sl-preset:hover{color:var(--sl-accent)}
+    .sl-preset.is-active{color:var(--sl-accent-dark)}
+    .sl-preset-sep{color:var(--color-border);font-size:.85rem;user-select:none}
+    .sl-yr-inputs{display:flex;align-items:center;gap:6px}
+    .sl-yr-input{padding:5px 12px;border:1.5px solid var(--color-border);border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;background:#fff;color:var(--color-text);font-family:inherit;min-width:56px;text-align:center;transition:border-color .15s}
+    .sl-yr-input:hover,.sl-yr-input.open{border-color:var(--sl-accent);color:var(--sl-accent-dark)}
+    .sl-yr-sep{font-size:.78rem;color:var(--color-text-muted)}
+    .sl-yr-picker{display:none;position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1.5px solid var(--color-border);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.12);padding:12px;z-index:50;min-width:200px}
+    .sl-yr-picker.open{display:block}
+    .sl-yr-picker-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .sl-yr-nav{background:none;border:none;cursor:pointer;font-size:1rem;color:var(--sl-accent-dark);padding:2px 8px;border-radius:6px;transition:background .12s;font-family:inherit}
+    .sl-yr-nav:hover{background:var(--sl-accent-soft)}
+    .sl-yr-dec{font-size:.82rem;font-weight:800;color:var(--sl-accent-dark)}
+    .sl-yr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+    .sl-yr-cell{padding:7px 4px;border:none;border-radius:7px;cursor:pointer;font-size:.8rem;font-weight:600;background:none;color:var(--color-text);transition:background .12s;font-family:inherit;text-align:center}
+    .sl-yr-cell:hover{background:var(--sl-accent-soft);color:var(--sl-accent-dark)}
+    .sl-yr-cell.selected{background:var(--sl-accent);color:#fff;font-weight:800}
+    .sl-yr-cell.in-range{background:#d4f5e4;color:var(--sl-accent-dark)}
+    .sl-yr-cell:disabled{color:var(--color-border);cursor:default;background:none}
+
+    /* ── Categorías accordion ───────────────────────────────── */
+    .sl-cat{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;margin-bottom:12px;overflow:hidden}
+    .sl-cat-hdr{display:flex;align-items:center;gap:10px;padding:13px 18px;cursor:pointer;user-select:none;transition:background .15s}
+    .sl-cat-hdr:hover{background:var(--sl-accent-soft)}
+    .sl-cat-icon{width:22px;height:22px;border-radius:50%;background:var(--sl-accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .sl-cat-icon svg{width:12px;height:12px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+    .sl-cat-title{font-size:.92rem;font-weight:800;color:var(--sl-accent-dark);flex:1}
+    .sl-cat-count{font-size:.72rem;color:var(--color-text-muted);background:var(--sl-accent-soft);padding:2px 8px;border-radius:10px;font-weight:700}
+    .sl-cat-chevron{width:16px;height:16px;stroke:var(--color-text-muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+    .sl-cat-chevron.open{transform:rotate(90deg)}
+    .sl-cat-body{display:none}
+    .sl-cat-body.open{display:block}
+
+    /* ── Vista TABLA ────────────────────────────────────────── */
+    .sl-tbl-wrap{overflow-x:auto}
+    .sl-tbl{border-collapse:separate;border-spacing:0;width:100%;font-size:.75rem;white-space:nowrap}
+    .sl-tbl th{position:sticky;top:0;z-index:4;background:#ebf8f1;padding:6px 10px;text-align:right;font-size:.68rem;font-weight:700;color:var(--sl-accent-dark);border-bottom:2px solid rgba(39,174,96,.25)}
+    .sl-tbl th:first-child{position:sticky;left:0;top:0;z-index:5;text-align:left;min-width:260px;background:#ebf8f1}
+    .sl-tbl td{padding:5px 10px;border-bottom:1px solid var(--color-border);text-align:right;color:var(--color-text);font-variant-numeric:tabular-nums;background:#fff}
+    .sl-tbl td:first-child{position:sticky;left:0;z-index:2;background:#fff;will-change:transform;text-align:left;font-weight:500;color:var(--color-text);box-shadow:2px 0 6px rgba(0,0,0,.10);cursor:pointer}
+    .sl-tbl td:first-child:hover{color:var(--sl-accent);text-decoration:underline}
+    .sl-tbl tr:hover td{background:#eafaf2}
+    .sl-tbl tr:hover td:first-child{background:#eafaf2!important}
+    .sl-tbl .sl-null{color:var(--color-text-muted);font-style:italic}
+    .sl-tbl tr.sl-selected td{background:#eafaf2!important}
+    .sl-tbl tr.sl-selected td:first-child{color:var(--sl-accent);font-weight:700;background:#eafaf2!important}
+
+    /* ── Vista GRÁFICO (un gráfico por variable seleccionada) ── */
+    .sl-charts-area{padding:12px 16px 4px}
+    .sl-no-sel{text-align:center;padding:40px 20px;color:var(--color-text-muted);font-size:.85rem}
+    .sl-chart-block{background:var(--sl-accent-soft);border-radius:8px;padding:12px 14px 10px;margin-bottom:12px}
+    .sl-chart-lbl{font-size:.78rem;font-weight:700;color:var(--sl-accent-dark);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+    .sl-chart-rm{background:none;border:none;cursor:pointer;color:var(--color-text-muted);font-size:1rem;line-height:1;padding:0 2px}
+    .sl-chart-rm:hover{color:var(--sl-accent)}
+    .sl-chart-box{position:relative;height:200px}
+
+    /* ── Variable rows en modo gráfico ─────────────────────── */
+    .sl-var-list{padding:4px 0}
+    .sl-var-row{display:flex;align-items:center;gap:8px;padding:7px 18px;border-bottom:1px solid var(--color-border);cursor:pointer;transition:background .12s;font-size:.8rem}
+    .sl-var-row:hover{background:var(--sl-accent-soft)}
+    .sl-var-row.sl-selected{background:rgba(39,174,96,.08);font-weight:700;color:var(--sl-accent-dark)}
+    .sl-var-row.sl-selected .sl-var-check{opacity:1}
+    .sl-var-check{width:16px;height:16px;border-radius:4px;background:var(--sl-accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:0;transition:opacity .15s}
+    .sl-var-check svg{width:10px;height:10px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+    .sl-var-name{flex:1}
+    .sl-var-last{font-size:.72rem;color:var(--color-text-muted);font-variant-numeric:tabular-nums}
+
+    .sl-hint{font-size:.72rem;color:var(--color-text-muted);padding:6px 18px 10px;font-style:italic}
+  </style>
+</head>
+<body data-depth="1" data-active-section="series-largas">
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+    <main class="eg-main">
+
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title" style="color:var(--sl-accent)">Series Largas</h1>
+          <p class="eg-page-header__subtitle" id="slSubtitle">Variables macroeconómicas históricas · Fuente: Anexo EcoGo</p>
+        </div>
+        <div class="eg-page-header__actions">
+          <span class="eg-tag" style="background:var(--sl-accent-soft);color:var(--sl-accent-dark);border-color:var(--sl-accent)" id="slYearTag">1993–2024</span>
+        </div>
+      </section>
+
+      <!-- Controles -->
+      <div class="sl-controls">
+        <!-- Vista: Tabla / Gráfico -->
+        <div class="sl-view-btns">
+          <button class="sl-view-btn is-active" id="btnViewTable" onclick="setView('table')">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+            Tabla
+          </button>
+          <button class="sl-view-btn" id="btnViewChart" onclick="setView('chart')">
+            <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Gráfico
+          </button>
+        </div>
+
+        <div class="sl-sep"></div>
+
+        <!-- Year range picker -->
+        <div class="sl-picker-wrap" id="slPickerWrap">
+          <div class="sl-presets">
+            <button class="sl-preset" onclick="setPreset(1)">1A</button>
+            <span class="sl-preset-sep">|</span>
+            <button class="sl-preset" onclick="setPreset(5)">5A</button>
+            <span class="sl-preset-sep">|</span>
+            <button class="sl-preset" onclick="setPreset(10)">10A</button>
+            <span class="sl-preset-sep">|</span>
+            <button class="sl-preset is-active" onclick="setPreset(0)">Máx</button>
+          </div>
+          <div class="sl-yr-inputs">
+            <button class="sl-yr-input" id="fromYrBtn"></button>
+            <span class="sl-yr-sep">a</span>
+            <button class="sl-yr-input" id="toYrBtn"></button>
+          </div>
+          <div class="sl-yr-picker" id="yrPicker">
+            <div class="sl-yr-picker-hdr">
+              <button class="sl-yr-nav" id="yrPrev">«</button>
+              <span class="sl-yr-dec" id="yrDecLbl"></span>
+              <button class="sl-yr-nav" id="yrNext">»</button>
+            </div>
+            <div class="sl-yr-grid" id="yrGrid"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acordeón de categorías -->
+      <div id="slAccordion"></div>
+
+      <footer class="eg-footer">
+        <span>Series Largas · Eco Go · Fuente: Anexo histórico valores</span>
+        <a href="../index.html">← Volver al inicio</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../assets/js/layout.js"></script>
+  <script src="../assets/data/series-largas.js"></script>
+  <script>
+  (function(){
+    var D = window.SERIES_DATA;
+    if (!D) { document.getElementById('slAccordion').innerHTML = '<p style="color:red;padding:20px">Error: no se cargaron los datos (series-largas.js)</p>'; return; }
+
+    var ALL_YEARS = D.years;
+    var visYears  = ALL_YEARS.slice();   // años visibles actualmente
+    var VIEW      = 'table';             // 'table' | 'chart'
+
+    // Mapa: varId → {catIdx, varIdx} para selección en modo gráfico
+    var varMap = {};
+    D.categories.forEach(function(cat, ci){
+      cat.variables.forEach(function(v, vi){
+        varMap[v.id] = {ci: ci, vi: vi};
+      });
+    });
+
+    // Selección en modo gráfico (max 4)
+    var selectedVars = [];   // array de varId
+    var chartInstances = {}; // varId → Chart
+
+    /* ─────────────────────────────────────────────────────────
+       FORMATO
+    ───────────────────────────────────────────────────────── */
+    function fmt(v, varObj) {
+      if (v === null || v === undefined) return '<span class="sl-null">—</span>';
+      var n = Number(v);
+      // Excel guarda % como decimal (0.947 = 94.7%). Hay dos excepciones que
+      // ya vienen como número entero en %: "resultado primario" y "resultado financiero".
+      var hasPctLabel = varObj && (varObj.label.indexOf('%') >= 0 ||
+                                   varObj.label.toLowerCase().indexOf('tasa') >= 0);
+      if (hasPctLabel) {
+        var p = Math.round(n * 10000) / 100;
+        return p.toLocaleString('es-AR',{minimumFractionDigits:1,maximumFractionDigits:1}) + '%';
+      }
+      if (Math.abs(n) >= 1000000) return (n/1000000).toLocaleString('es-AR',{maximumFractionDigits:1}) + 'M';
+      if (Math.abs(n) >= 1000)    return n.toLocaleString('es-AR',{maximumFractionDigits:0});
+      return n.toLocaleString('es-AR',{minimumFractionDigits:1,maximumFractionDigits:2});
+    }
+
+    function lastVal(vals) {
+      for (var i = vals.length-1; i >= 0; i--) {
+        if (vals[i] !== null) return vals[i];
+      }
+      return null;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       SELECTOR DE AÑOS (year-picker)
+    ───────────────────────────────────────────────────────── */
+    var pickerFor   = null;   // 'from' | 'to'
+    var fromYear    = ALL_YEARS[0];
+    var toYear      = ALL_YEARS[ALL_YEARS.length - 1];
+    var decadeStart = Math.floor(toYear / 10) * 10;
+
+    function updateTag() {
+      var tag = document.getElementById('slYearTag');
+      if (tag) tag.textContent = fromYear + '–' + toYear;
+    }
+
+    function updateBtns() {
+      document.getElementById('fromYrBtn').textContent = fromYear;
+      document.getElementById('toYrBtn').textContent   = toYear;
+      updateTag();
+    }
+
+    function applyRange() {
+      var f = ALL_YEARS.indexOf(fromYear);
+      var t = ALL_YEARS.indexOf(toYear);
+      visYears = ALL_YEARS.slice(f, t + 1);
+      renderAll();
+      if (VIEW === 'chart') {
+        selectedVars.forEach(function(v){ setTimeout(function(){ drawChart(v); }, 50); });
+      }
+    }
+
+    function renderPickerGrid() {
+      var lbl  = document.getElementById('yrDecLbl');
+      var grid = document.getElementById('yrGrid');
+      var end  = decadeStart + 11;
+      lbl.textContent = decadeStart + '–' + (end);
+
+      var html = '';
+      for (var y = decadeStart; y <= end; y++) {
+        var inData = ALL_YEARS.indexOf(y) >= 0;
+        var isSel  = (pickerFor === 'from' && y === fromYear) ||
+                     (pickerFor === 'to'   && y === toYear);
+        var inRng  = y >= fromYear && y <= toYear;
+        var cls    = 'sl-yr-cell' + (isSel ? ' selected' : inRng ? ' in-range' : '');
+        if (!inData) {
+          html += '<button class="sl-yr-cell" disabled>' + y + '</button>';
+        } else {
+          html += '<button class="' + cls + '" onclick="pickYear(' + y + ')">' + y + '</button>';
+        }
+      }
+      grid.innerHTML = html;
+    }
+
+    window.pickYear = function(y) {
+      if (pickerFor === 'from') {
+        fromYear = y;
+        if (fromYear > toYear) toYear = fromYear;
+      } else {
+        toYear = y;
+        if (toYear < fromYear) fromYear = toYear;
+      }
+      closePicker();
+      updateBtns();
+      clearPresetActive();
+      applyRange();
+    };
+
+    function openPicker(which) {
+      if (pickerFor === which && document.getElementById('yrPicker').classList.contains('open')) {
+        closePicker(); return;
+      }
+      pickerFor = which;
+      decadeStart = Math.floor((which === 'from' ? fromYear : toYear) / 10) * 10;
+      document.getElementById('fromYrBtn').classList.toggle('open', which === 'from');
+      document.getElementById('toYrBtn').classList.toggle('open',   which === 'to');
+      renderPickerGrid();
+      document.getElementById('yrPicker').classList.add('open');
+    }
+
+    function closePicker() {
+      pickerFor = null;
+      document.getElementById('yrPicker').classList.remove('open');
+      document.getElementById('fromYrBtn').classList.remove('open');
+      document.getElementById('toYrBtn').classList.remove('open');
+    }
+
+    function clearPresetActive() {
+      document.querySelectorAll('.sl-preset').forEach(function(b){ b.classList.remove('is-active'); });
+    }
+
+    window.setPreset = function(years) {
+      closePicker();
+      clearPresetActive();
+      var last = ALL_YEARS[ALL_YEARS.length - 1];
+      if (years === 0) {
+        fromYear = ALL_YEARS[0];
+      } else {
+        fromYear = Math.max(ALL_YEARS[0], last - years + 1);
+      }
+      toYear = last;
+      // Mark active button
+      var btns = document.querySelectorAll('.sl-preset');
+      var labels = ['1A','5A','10A','Máx'];
+      var vals   = [1, 5, 10, 0];
+      vals.forEach(function(v, i){ if (v === years) btns[i].classList.add('is-active'); });
+      updateBtns();
+      applyRange();
+    };
+
+    function initYearPicker() {
+      document.getElementById('fromYrBtn').addEventListener('click', function(e){
+        e.stopPropagation(); openPicker('from');
+      });
+      document.getElementById('toYrBtn').addEventListener('click', function(e){
+        e.stopPropagation(); openPicker('to');
+      });
+      document.getElementById('yrPrev').addEventListener('click', function(e){
+        e.stopPropagation(); decadeStart -= 10; renderPickerGrid();
+      });
+      document.getElementById('yrNext').addEventListener('click', function(e){
+        e.stopPropagation(); decadeStart += 10; renderPickerGrid();
+      });
+      document.addEventListener('click', function(e){
+        var wrap = document.getElementById('slPickerWrap');
+        if (wrap && !wrap.contains(e.target)) closePicker();
+      });
+      updateBtns();
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       VISTA TABLA / GRÁFICO
+    ───────────────────────────────────────────────────────── */
+    window.setView = function(v) {
+      VIEW = v;
+      document.getElementById('btnViewTable').classList.toggle('is-active', v==='table');
+      document.getElementById('btnViewChart').classList.toggle('is-active', v==='chart');
+      renderAll();
+    };
+
+    /* ─────────────────────────────────────────────────────────
+       RENDER PRINCIPAL
+    ───────────────────────────────────────────────────────── */
+    function renderAll() {
+      var acc = document.getElementById('slAccordion');
+      var openCats = {};
+      acc.querySelectorAll('.sl-cat-body.open').forEach(function(el){
+        openCats[el.dataset.catId] = true;
+      });
+
+      var html = '';
+      D.categories.forEach(function(cat, ci){
+        var isOpen = openCats[cat.id] !== undefined ? openCats[cat.id] : (ci === 0);
+        html += renderCat(cat, ci, isOpen);
+      });
+      acc.innerHTML = html;
+    }
+
+    function renderCat(cat, ci, isOpen) {
+      var bodyContent = VIEW === 'table' ? renderTableBody(cat) : renderChartBody(cat);
+      return (
+        '<div class="sl-cat">' +
+          '<div class="sl-cat-hdr" onclick="toggleCat(\'' + cat.id + '\')">' +
+            '<div class="sl-cat-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>' +
+            '<span class="sl-cat-title">' + cat.label + '</span>' +
+            '<span class="sl-cat-count">' + cat.variables.length + ' variables</span>' +
+            '<svg class="sl-cat-chevron' + (isOpen?' open':'') + '" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>' +
+          '</div>' +
+          '<div class="sl-cat-body' + (isOpen?' open':'') + '" data-cat-id="' + cat.id + '">' +
+            bodyContent +
+          '</div>' +
+        '</div>'
+      );
+    }
+
+    /* ─── Tabla ─────────────────────────────────────────────── */
+    function renderTableBody(cat) {
+      var idxs = visYears.map(function(y){ return ALL_YEARS.indexOf(y); });
+      var hdr = '<thead><tr><th>Variable</th>';
+      visYears.forEach(function(y){ hdr += '<th>' + y + '</th>'; });
+      hdr += '</tr></thead>';
+
+      var body = '<tbody>';
+      cat.variables.forEach(function(v){
+        var isSel = selectedVars.indexOf(v.id) >= 0;
+        body += '<tr class="' + (isSel?'sl-selected':'') + '" onclick="toggleVar(\'' + v.id + '\')" title="Clic para seleccionar / ver gráfico">';
+        body += '<td>' + v.label + '</td>';
+        idxs.forEach(function(idx){
+          var val = v.values[idx];
+          body += '<td>' + fmt(val, v) + '</td>';
+        });
+        body += '</tr>';
+      });
+      body += '</tbody>';
+
+      return '<div class="sl-tbl-wrap"><table class="sl-tbl">' + hdr + body + '</table></div>';
+    }
+
+    /* ─── Gráfico ───────────────────────────────────────────── */
+    function renderChartBody(cat) {
+      var hint = '<p class="sl-hint">Hacé clic en una variable para verla en gráfico (hasta 4 a la vez)</p>';
+      var varRows = '<div class="sl-var-list">';
+      cat.variables.forEach(function(v){
+        var isSel = selectedVars.indexOf(v.id) >= 0;
+        var lv = lastVal(v.values);
+        var lvStr = lv !== null ? fmt(lv, v) + ' (' + ALL_YEARS[v.values.map(function(_,i){return v.values[i];}).reduce(function(best,val,i){return val!==null?i:best;},-1)] + ')' : '—';
+        varRows += (
+          '<div class="sl-var-row' + (isSel?' sl-selected':'') + '" onclick="toggleVar(\'' + v.id + '\')">' +
+            '<div class="sl-var-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>' +
+            '<span class="sl-var-name">' + v.label + '</span>' +
+            '<span class="sl-var-last">' + lvStr + '</span>' +
+          '</div>'
+        );
+      });
+      varRows += '</div>';
+
+      // Charts de variables seleccionadas de esta categoría
+      var charts = '';
+      selectedVars.forEach(function(vid){
+        var loc = varMap[vid];
+        if (!loc) return;
+        var catOfVar = D.categories[loc.ci];
+        if (catOfVar.id !== cat.id) return;
+        var v = catOfVar.variables[loc.vi];
+        charts += (
+          '<div class="sl-chart-block" id="blk-' + vid + '">' +
+            '<div class="sl-chart-lbl">' +
+              '<span>' + v.label + '</span>' +
+              '<button class="sl-chart-rm" onclick="removeVar(\'' + vid + '\')" title="Quitar">✕</button>' +
+            '</div>' +
+            '<div class="sl-chart-box"><canvas id="cv-' + vid + '"></canvas></div>' +
+          '</div>'
+        );
+      });
+
+      return hint + (charts ? '<div class="sl-charts-area">' + charts + '</div>' : '') + varRows;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       INTERACCIONES
+    ───────────────────────────────────────────────────────── */
+    window.toggleCat = function(catId) {
+      var body = document.querySelector('.sl-cat-body[data-cat-id="' + catId + '"]');
+      var chevron = body.previousElementSibling.querySelector('.sl-cat-chevron');
+      body.classList.toggle('open');
+      chevron.classList.toggle('open');
+    };
+
+    window.toggleVar = function(vid) {
+      var idx = selectedVars.indexOf(vid);
+      if (idx >= 0) {
+        selectedVars.splice(idx, 1);
+        if (chartInstances[vid]) { try{chartInstances[vid].destroy();}catch(e){} delete chartInstances[vid]; }
+      } else {
+        if (selectedVars.length >= 4) {
+          var old = selectedVars.shift();
+          if (chartInstances[old]) { try{chartInstances[old].destroy();}catch(e){} delete chartInstances[old]; }
+        }
+        selectedVars.push(vid);
+      }
+      renderAll();
+      if (VIEW === 'chart') {
+        selectedVars.forEach(function(v){ setTimeout(function(){ drawChart(v); }, 50); });
+      }
+    };
+
+    window.removeVar = function(vid) {
+      toggleVar(vid);
+    };
+
+    /* ─────────────────────────────────────────────────────────
+       CHART.JS
+    ───────────────────────────────────────────────────────── */
+    var COLORS = ['#27AE60','#1B5F5E','#DA4531','#2890A4'];
+
+    function drawChart(vid) {
+      var canvas = document.getElementById('cv-' + vid);
+      if (!canvas) return;
+      if (chartInstances[vid]) { try{chartInstances[vid].destroy();}catch(e){} }
+
+      var loc = varMap[vid];
+      if (!loc) return;
+      var v = D.categories[loc.ci].variables[loc.vi];
+      var idxs = visYears.map(function(y){ return ALL_YEARS.indexOf(y); });
+      var labels = visYears.map(String);
+      var data   = idxs.map(function(i){ return v.values[i]; });
+      var color  = COLORS[selectedVars.indexOf(vid) % COLORS.length];
+
+      chartInstances[vid] = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: v.label,
+            data: data,
+            borderColor: color,
+            backgroundColor: color.replace(')', ',.08)').replace('rgb','rgba'),
+            borderWidth: 2,
+            pointRadius: data.length <= 20 ? 3 : 0,
+            pointHoverRadius: 5,
+            tension: 0.25,
+            spanGaps: true,
+            fill: false
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: {duration:300},
+          plugins: {
+            legend: {display:false},
+            tooltip: {callbacks:{label:function(c){ return ' ' + fmt(c.raw, v); }}}
+          },
+          scales: {
+            x: {ticks:{color:'#6E7679',font:{size:10},maxRotation:0,maxTicksLimit:12},grid:{color:'rgba(0,0,0,.04)'}},
+            y: {ticks:{color:'#6E7679',font:{size:10},callback:function(val){ return fmt(val, v); }},grid:{color:'rgba(0,0,0,.05)'}}
+          }
+        }
+      });
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       INIT
+    ───────────────────────────────────────────────────────── */
+    document.addEventListener('DOMContentLoaded', function(){
+      // Subtítulo y tag dinámicos según rango real de años
+      var y0 = ALL_YEARS[0], y1 = ALL_YEARS[ALL_YEARS.length-1];
+      var sub = document.getElementById('slSubtitle');
+      if (sub) sub.textContent = 'Variables macroeconómicas históricas · ' + y0 + '–' + y1 + ' · Fuente: Anexo EcoGo';
+      initYearPicker();
+      renderAll();
+    });
+
+  })();
+  </script>
+</body>
+</html>
