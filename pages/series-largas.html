@@ -194,7 +194,8 @@
       // Excel guarda % como decimal (0.947 = 94.7%). Hay dos excepciones que
       // ya vienen como número entero en %: "resultado primario" y "resultado financiero".
       var hasPctLabel = varObj && (varObj.label.indexOf('%') >= 0 ||
-                                   varObj.label.toLowerCase().indexOf('tasa') >= 0);
+                                   varObj.label.toLowerCase().indexOf('tasa') >= 0 ||
+                                   /var\.?\s*i\.a/i.test(varObj.label));
       if (hasPctLabel) {
         var p = Math.round(n * 10000) / 100;
         return p.toLocaleString('es-AR',{minimumFractionDigits:1,maximumFractionDigits:1}) + '%';
