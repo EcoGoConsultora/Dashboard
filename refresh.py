@@ -61,6 +61,10 @@ MONITOR_MUNDIAL_JS = os.path.join(BASE_EXCEL, "Internacional", "Monitor mundial"
 
 DATA_DIR = os.path.join(DASHBOARD_DIR, "assets", "data")
 
+# Carpeta local del repo clonado de GitHub (EcoGoConsultora/Dashboard).
+# Ahí se copian los .js/.json actualizados y se hace commit + push automático.
+GIT_REPO_DIR = r"C:\Users\fscalise\Documents\GitHub\Dashboard"
+
 # =====================================================================
 #  Helpers
 # =====================================================================
@@ -978,6 +982,71 @@ def extract_reservas(status):
     return data if data else None
 
 # =====================================================================
+#  GITHUB — copiar datos actualizados al repo clonado y hacer push
+# =====================================================================
+def push_to_github(status):
+    """
+    Copia los .js/.json regenerados en DATA_DIR hacia la carpeta del repo
+    clonado de GitHub (GIT_REPO_DIR) y hace git add + commit + push.
+    No falla el refresh si git no está disponible o no hay cambios: solo
+    deja un WARN/FAIL en el resumen.
+    """
+    import shutil
+    import subprocess
+
+    if not os.path.isdir(GIT_REPO_DIR):
+        status.warn("GitHub", f"no se encontró el repo clonado en {GIT_REPO_DIR}")
+        return
+
+    dest_data_dir = os.path.join(GIT_REPO_DIR, "assets", "data")
+    if not os.path.isdir(dest_data_dir):
+        status.warn("GitHub", f"no se encontró assets/data en {GIT_REPO_DIR}")
+        return
+
+    copiados = 0
+    for fname in os.listdir(DATA_DIR):
+        if fname.endswith((".js", ".json")):
+            try:
+                shutil.copy2(os.path.join(DATA_DIR, fname), os.path.join(dest_data_dir, fname))
+                copiados += 1
+            except Exception as e:
+                status.warn("GitHub - copia", f"{fname}: {e}")
+
+    def _run(cmd):
+        return subprocess.run(cmd, cwd=GIT_REPO_DIR, capture_output=True, text=True)
+
+    try:
+        r = _run(["git", "--version"])
+        if r.returncode != 0:
+            status.warn("GitHub", "git no está disponible en PATH; instalar Git for Windows")
+            return
+    except FileNotFoundError:
+        status.warn("GitHub", "git no está instalado o no está en PATH")
+        return
+
+    r = _run(["git", "add", "-A"])
+    if r.returncode != 0:
+        status.fail("GitHub - git add", (r.stderr or r.stdout).strip())
+        return
+
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+    r = _run(["git", "commit", "-m", f"Actualizacion automatica de datos - {ts}"])
+    if r.returncode != 0:
+        out = (r.stdout + r.stderr).lower()
+        if "nothing to commit" in out:
+            status.ok("GitHub", f"{copiados} archivos copiados, sin cambios para subir")
+        else:
+            status.fail("GitHub - git commit", (r.stdout + r.stderr).strip())
+        return
+
+    r = _run(["git", "push"])
+    if r.returncode != 0:
+        status.fail("GitHub - git push", (r.stderr or r.stdout).strip())
+    else:
+        status.ok("GitHub", f"{copiados} archivos subidos a GitHub")
+
+
+# =====================================================================
 #  MAIN
 # =====================================================================
 def main():
@@ -1132,6 +1201,42 @@ def main():
         status.ok("Mercados", f"{sz:,} bytes - {ts}")
     except Exception as e:
         status.warn("Mercados", f"no se pudo actualizar desde la API: {e}")
+
+    # ---- Actividad IPI (Indicadores de actividad) ----
+    print("\n[9/10] Actualizando Indicadores de Actividad (IPI - Todos.xlsx)...")
+    try:
+        from extract_actividad_ipi import run_extraction as run_ipi
+        ipi_path = os.path.join(BASE_EXCEL, "Actividad", "IPI - Todos.xlsx")
+        result = run_ipi(ipi_path, DASHBOARD_DIR)
+        if result["ok"]:
+            status.ok("Actividad IPI", result["msg"])
+        else:
+            status.fail("Actividad IPI", result["msg"])
+    except Exception as e:
+        status.fail("Actividad IPI", str(e))
+        traceback.print_exc()
+
+    # ---- Series Largas (Anexo histórico) ----
+    print("\n[10/10] Actualizando Series Largas (Anexo.xlsx)...")
+    try:
+        from extract_series_largas import run_extraction
+        anexo_path = os.path.join(BASE_EXCEL, "Anexo.xlsx")
+        result = run_extraction(anexo_path, DASHBOARD_DIR)
+        if result["ok"]:
+            status.ok("Series Largas", result["msg"])
+        else:
+            status.fail("Series Largas", result["msg"])
+    except Exception as e:
+        status.fail("Series Largas", str(e))
+        traceback.print_exc()
+
+    # ---- Subir cambios a GitHub ----
+    print("\nSubiendo cambios a GitHub...")
+    try:
+        push_to_github(status)
+    except Exception as e:
+        status.fail("GitHub", str(e))
+        traceback.print_exc()
 
     # ---- Resumen ----
     print()

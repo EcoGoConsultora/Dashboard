@@ -35,3 +35,16 @@ Abrí `refresh.py` con cualquier editor, buscá la sección **CONFIGURACIÓN** y
 ## Si una hoja cambia de nombre o estructura
 
 Eso requiere que yo (Claude) ajuste el script. Avisame y lo arreglamos.
+
+## Publicación automática en GitHub
+
+Al final de `refresh.py` (y de los notebooks `Actualizar_Dashboard_Clientes.ipynb` / `Actualizar_Dashboard_EcoGo.ipynb`) se agregó un paso que:
+
+1. Copia los `.js`/`.json` regenerados en `assets/data/` a la carpeta del repo clonado: `C:\Users\fscalise\Documents\GitHub\Dashboard`.
+2. Hace `git add`, `git commit` y `git push` automáticamente en esa carpeta.
+
+Requisitos para que funcione:
+
+- Tener **Git for Windows** instalado y `git` disponible en el PATH (verificar con `git --version` en una terminal). Si falta, el refresh sigue funcionando igual pero avisa que no pudo subir a GitHub.
+- La carpeta `C:\Users\fscalise\Documents\GitHub\Dashboard` tiene que existir (clonada una vez con GitHub Desktop) y tener acceso de escritura ya autenticado.
+- Si cambia la ubicación de esa carpeta, actualizar `GIT_REPO_DIR` en `refresh.py`.
