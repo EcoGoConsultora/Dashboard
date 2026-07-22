@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mercado Laboral — EcoGo</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<style>
+:root{
+  --t0:#8FCCCA;--t1:#3C9794;--t2:#1B5F5E;
+  --gd:#333333;--gl:#F1F1F1;
+  --grn:#84BF84;--red:#DA4531;--lim:#89C442;
+  --org:#FEB15F;--sal:#FE8B5F;--dkg:#70A134;
+  --wh:#ffffff;--r:8px;--gap:12px;
+  --sh:0 1px 6px rgba(27,95,94,.10);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'HK Grotesk','Segoe UI',Calibri,Arial,sans-serif;background:var(--gl);color:var(--gd);font-size:13px}
+
+/* ── HEADER ── */
+header{background:var(--t2);color:var(--wh);padding:10px 22px;display:flex;justify-content:space-between;align-items:center}
+.h-title{font-size:17px;font-weight:800;letter-spacing:-.2px}
+.h-sub{font-size:11px;color:var(--t0);margin-top:1px}
+.h-logo{display:flex;align-items:center}
+
+/* ── TABS ── */
+.tab-bar{background:var(--t2);padding:0 22px;display:flex;gap:1px;border-top:1px solid rgba(255,255,255,.1);flex-wrap:wrap}
+.tab-btn{padding:7px 16px;cursor:pointer;border:none;background:transparent;color:rgba(255,255,255,.6);font-size:12px;font-weight:700;border-bottom:3px solid transparent;transition:.15s;font-family:inherit;white-space:nowrap}
+.tab-btn.active,.tab-btn:hover{color:var(--wh);border-bottom-color:var(--t0)}
+.tab-pane{display:none}.tab-pane.active{display:block}
+
+/* ── LAYOUT ── */
+.wrap{max-width:1380px;margin:0 auto;padding:var(--gap)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);margin-bottom:var(--gap)}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--gap);margin-bottom:var(--gap)}
+.g2w{display:grid;grid-template-columns:2fr 1fr;gap:var(--gap);margin-bottom:var(--gap)}
+.g3w{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:var(--gap);margin-bottom:var(--gap)}
+@media(max-width:900px){.g2,.g3,.g2w,.g3w{grid-template-columns:1fr}}
+
+/* ── KPIS ── */
+.krow{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap);margin-bottom:var(--gap)}
+@media(max-width:800px){.krow{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--wh);border-radius:var(--r);padding:12px 16px;box-shadow:var(--sh);border-top:3px solid var(--t1)}
+.kpi.red{border-top-color:var(--red)}.kpi.org{border-top-color:var(--org)}.kpi.grn{border-top-color:var(--grn)}.kpi.t0{border-top-color:var(--t0)}
+.kl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#999;margin-bottom:3px}
+.kv{font-size:28px;font-weight:800;color:var(--t2);line-height:1}
+.kpi.red .kv{color:var(--red)}.kpi.org .kv{color:#a06800}.kpi.grn .kv{color:var(--dkg)}.kpi.t0 .kv{color:var(--t1)}
+.km{font-size:10.5px;color:#aaa;margin-top:3px}
+.kd{font-size:11px;font-weight:700;margin-top:1px}
+.up{color:var(--red)}.down{color:var(--dkg)}.neu{color:#aaa}
+
+/* ── CARDS ── */
+.card{background:var(--wh);border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh)}
+.ct{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--t2);margin-bottom:2px}
+.cs{font-size:10.5px;color:#bbb;margin-bottom:10px}
+.cw{position:relative}.h140{height:140px}.h160{height:160px}.h200{height:200px}.h220{height:220px}.h240{height:240px}.h260{height:260px}.h300{height:300px}.h340{height:340px}
+
+/* ── FILTERS ── */
+.fbar{background:var(--wh);border-radius:var(--r);padding:8px 16px;margin-bottom:var(--gap);display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:var(--sh)}
+.fbar label{font-size:10.5px;font-weight:700;text-transform:uppercase;color:#999;letter-spacing:.3px}
+.fbar select{padding:4px 8px;border:1.5px solid var(--t0);border-radius:5px;background:var(--wh);color:var(--gd);font-size:12px;cursor:pointer;font-family:inherit}
+.fbar select:focus{outline:none;border-color:var(--t1)}
+.fg{display:flex;align-items:center;gap:6px}.fsep{width:1px;height:20px;background:#ddd}.fnote{font-size:11px;color:#ccc;margin-left:auto}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+thead th{background:var(--t2);color:var(--wh);padding:8px 10px;text-align:left;font-weight:700;font-size:11px;white-space:nowrap;cursor:pointer;user-select:none}
+thead th:hover{background:var(--t1)}
+tbody tr:hover{background:#eef7f7}
+tbody tr:nth-child(even){background:#f9fdfd}
+tbody tr:nth-child(even):hover{background:#eef7f7}
+tbody td{padding:7px 10px;border-bottom:1px solid #eee}
+tbody td:first-child{font-weight:600}
+.r{text-align:right;font-variant-numeric:tabular-nums}
+.hi{color:var(--red);font-weight:700}.lo{color:var(--dkg);font-weight:700}
+
+/* ── BARRA PROGRESS ── */
+.bw{display:flex;flex-direction:column;gap:5px}
+.br{display:flex;align-items:center;gap:7px;font-size:11px}
+.bl{width:170px;flex-shrink:0;text-align:right;color:#555}
+.bt{flex:1;height:12px;background:#eee;border-radius:6px;overflow:hidden}
+.bf{height:100%;border-radius:6px}
+.bp{width:38px;text-align:left;font-weight:700;color:var(--t2);font-size:11px}
+.sec-ttl{font-size:10.5px;font-weight:800;text-transform:uppercase;color:#999;letter-spacing:.4px;margin:10px 0 5px}
+
+/* ══ TAPA ══ */
+.cover{background:var(--t2);color:var(--wh);border-radius:var(--r);padding:28px 32px;margin-bottom:var(--gap)}
+.cover-title{font-size:22px;font-weight:800;letter-spacing:-.3px;margin-bottom:6px}
+.cover-sub{font-size:13px;color:var(--t0);margin-bottom:20px}
+.cover-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+@media(max-width:700px){.cover-kpis{grid-template-columns:repeat(2,1fr)}}
+.ck{background:rgba(255,255,255,.08);border-radius:var(--r);padding:14px 16px;border-left:3px solid var(--t0)}
+.ck.red{border-left-color:var(--red)}.ck.org{border-left-color:var(--org)}.ck.grn{border-left-color:var(--grn)}
+.ck-l{font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.6);letter-spacing:.5px;margin-bottom:4px}
+.ck-v{font-size:30px;font-weight:800;line-height:1;color:var(--wh)}
+.ck.red .ck-v{color:#f08070}.ck.org .ck-v{color:var(--org)}.ck.grn .ck-v{color:var(--grn)}
+.ck-d{font-size:11px;margin-top:3px;color:rgba(255,255,255,.55)}
+.cover-analysis{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:700px){.cover-analysis{grid-template-columns:1fr}}
+.ca-block{background:rgba(255,255,255,.06);border-radius:var(--r);padding:14px 16px}
+.ca-ttl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--t0);margin-bottom:8px}
+.ca-item{font-size:12px;color:rgba(255,255,255,.85);margin-bottom:5px;padding-left:12px;position:relative;line-height:1.5}
+.ca-item::before{content:'›';position:absolute;left:0;color:var(--t0);font-weight:700}
+.ca-item strong{color:var(--wh);font-weight:700}
+.cover-foot{font-size:11px;color:rgba(255,255,255,.4);margin-top:20px;border-top:1px solid rgba(255,255,255,.1);padding-top:12px}
+
+/* ══ ESTRUCTURA / ÁRBOL ══ */
+.tree-wrap{width:100%;overflow-x:auto}
+.tree-svg{width:100%;min-width:760px}
+
+/* ── FOOTER ── */
+footer{text-align:center;padding:10px;font-size:10.5px;color:#ccc}
+footer a{color:var(--t1);text-decoration:none}
+</style>
+</head>
+<body>
+
+<header>
+  <div><div class="h-title">Mercado Laboral Argentino</div><div class="h-sub">EPH · Total 31 aglomerados urbanos · INDEC · Datos al 4° trimestre 2025</div></div>
+  <div class="h-logo">
+    <svg viewBox="0 0 168 48" height="48" xmlns="http://www.w3.org/2000/svg" aria-label="Eco Go">
+      <!-- Círculo menta -->
+      <circle cx="24" cy="24" r="23" fill="#8FCCCA"/>
+      <!-- Letras "eg" en blanco — estilo redondeado -->
+      <!-- "e" -->
+      <text x="14" y="30" font-family="Arial Rounded MT Bold,Arial Black,Arial,sans-serif" font-size="20" font-weight="900" fill="white" letter-spacing="-1">eg</text>
+      <!-- Separador vertical -->
+      <line x1="56" y1="10" x2="56" y2="38" stroke="#8FCCCA" stroke-width="1.2" opacity="0.7"/>
+      <!-- Tagline -->
+      <text x="64" y="18" font-family="'HK Grotesk','Segoe UI',Arial,sans-serif" font-size="8.5" fill="#8FCCCA" font-weight="600" letter-spacing=".3">economía · finanzas · política</text>
+      <!-- Wordmark "eco go" -->
+      <text x="64" y="35" font-family="Arial Rounded MT Bold,'HK Grotesk','Segoe UI',Arial,sans-serif" font-size="16" font-weight="800" fill="white" letter-spacing="1.5">eco go</text>
+    </svg>
+  </div>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('tapa',this)">Análisis 4°T 2025</button>
+  <button class="tab-btn" onclick="showTab('panorama',this)">Panorama</button>
+  <button class="tab-btn" onclick="showTab('valores',this)">Empleo en valores</button>
+  <button class="tab-btn" onclick="showTab('empleo',this)">Composición</button>
+  <button class="tab-btn" onclick="showTab('estructura',this)">Estructura</button>
+  <button class="tab-btn" onclick="showTab('regional',this)">Regional</button>
+</div>
+
+<!-- ══════ TAB: TAPA ══════ -->
+<div id="tab-tapa" class="tab-pane active">
+<div class="wrap">
+  <div class="cover">
+    <div class="cover-title">Mercado laboral — 4° trimestre 2025</div>
+    <div class="cover-sub">Encuesta Permanente de Hogares · Total 31 aglomerados urbanos</div>
+    <div class="cover-kpis">
+      <div class="ck"><div class="ck-l">Tasa de actividad</div><div class="ck-v">48.6%</div><div class="ck-d">vs 4°T 2024: −0.2 p.p.</div></div>
+      <div class="ck red"><div class="ck-l">Tasa de empleo</div><div class="ck-v">45.0%</div><div class="ck-d">vs 4°T 2024: −0.7 p.p.</div></div>
+      <div class="ck red"><div class="ck-l">Desocupación</div><div class="ck-v">7.5%</div><div class="ck-d">vs 4°T 2024: +1.1 p.p.</div></div>
+      <div class="ck org"><div class="ck-l">Subocupación</div><div class="ck-v">11.3%</div><div class="ck-d">vs 4°T 2024: sin cambio</div></div>
+    </div>
+    <div class="cover-analysis">
+      <div class="ca-block">
+        <div class="ca-ttl">Principales tendencias</div>
+        <div class="ca-item">La <strong>desocupación subió al 7.5%</strong>, acumulando +1.1 p.p. interanual y marcando el nivel más alto desde el 2° trimestre de 2024.</div>
+        <div class="ca-item">El número de <strong>ocupados cayó en 93 mil personas</strong> respecto al 4° trimestre 2024 (13.503 vs. 13.596 miles).</div>
+        <div class="ca-item">Los <strong>desocupados aumentaron 156 mil</strong> en términos interanuales (1.093 vs. 937 miles en 4°T 2024).</div>
+        <div class="ca-item">La <strong>tasa de empleo bajó a 45.0%</strong>, su valor más bajo en cuatro trimestres consecutivos.</div>
+      </div>
+      <div class="ca-block">
+        <div class="ca-ttl">Composición del empleo</div>
+        <div class="ca-item">Los <strong>asalariados formales</strong> (con descuento jubilatorio) representan el 20.5% de la población, el nivel más bajo en dos años.</div>
+        <div class="ca-item">La <strong>informalidad asalariada</strong> alcanza el 11.7% de la población (11.7% sin descuento jubilatorio).</div>
+        <div class="ca-item">Los <strong>trabajadores cuenta propia</strong> llegan al 11.1% de la población total (4.0% formales, 7.0% informales).</div>
+        <div class="ca-item">La región <strong>Pampeana lidera la desocupación</strong> con 7.7%, mientras Noroeste registra el mínimo con 4.2%.</div>
+      </div>
+    </div>
+    <div class="cover-foot">Fuente: INDEC — Encuesta Permanente de Hogares (EPH) · Elaboración: EcoGo Consultores · www.ecogo.com.ar · Prohibida su distribución sin el expreso consentimiento de Eco Go Consultores.</div>
+  </div>
+
+  <!-- Mini charts en tapa -->
+  <div class="g2">
+    <div class="card">
+      <div class="ct">Evolución desocupación y empleo</div>
+      <div class="cs">Tasas % · 31 aglomerados · 2020–2025</div>
+      <div class="cw h200"><canvas id="tapa-evol"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">Variación interanual del empleo</div>
+      <div class="cs">Miles de personas · diferencia vs. mismo trimestre año anterior</div>
+      <div class="cw h200"><canvas id="tapa-yoy"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Dinámica del mercado de trabajo -->
+  <div class="card" style="margin-bottom:var(--gap)">
+    <div class="ct">Dinámica del mercado de trabajo</div>
+    <div class="cs">En miles de personas · Total urbano estimado · EcoGo en base a EPH-INDEC</div>
+    <div id="dinamica-wrap"></div>
+  </div>
+</div>
+</div>
+
+<!-- ══════ TAB: PANORAMA ══════ -->
+<div id="tab-panorama" class="tab-pane">
+<div class="wrap">
+  <div class="krow">
+    <div class="kpi"><div class="kl">Actividad</div><div class="kv">48.6%</div><div class="km">4° trim 2025</div><div class="kd neu">vs 4°2024: +48.8%</div></div>
+    <div class="kpi grn"><div class="kl">Empleo</div><div class="kv">45.0%</div><div class="km">4° trim 2025</div><div class="kd down">vs 4°2024: −0.7 p.p.</div></div>
+    <div class="kpi red"><div class="kl">Desocupación</div><div class="kv">7.5%</div><div class="km">4° trim 2025</div><div class="kd up">vs 4°2024: +1.1 p.p.</div></div>
+    <div class="kpi org"><div class="kl">Subocupación</div><div class="kv">11.3%</div><div class="km">4° trim 2025</div><div class="kd neu">vs 4°2024: 0.0 p.p.</div></div>
+  </div>
+  <div class="fbar">
+    <div class="fg"><label>Desde</label><select id="f-desde" onchange="applyFilters()"></select></div>
+    <div class="fsep"></div>
+    <div class="fg"><label>Hasta</label><select id="f-hasta" onchange="applyFilters()"></select></div>
+    <div class="fsep"></div>
+    <div class="fg"><label>Mostrar</label>
+      <select id="f-serie" onchange="applyFilters()">
+        <option value="all">Todas las tasas</option>
+        <option value="empleo">Actividad y Empleo</option>
+        <option value="desocup">Desocupación y Subocupación</option>
+      </select>
+    </div>
+    <span class="fnote">Serie trimestral · 31 aglomerados</span>
+  </div>
+  <div class="g2w">
+    <div class="card"><div class="ct">Evolución tasas principales</div><div class="cs">% sobre población total · 2016–2025</div><div class="cw h220"><canvas id="c-evol"></canvas></div></div>
+    <div class="card"><div class="ct">Presión mercado laboral</div><div class="cs">Composición · 4° trim 2025</div><div class="cw h220"><canvas id="c-presion"></canvas></div></div>
+  </div>
+</div>
+</div>
+
+<!-- ══════ TAB: EMPLEO EN VALORES ══════ -->
+<div id="tab-valores" class="tab-pane">
+<div class="wrap">
+  <div class="krow">
+    <div class="kpi t0"><div class="kl">Ocupados (miles)</div><div class="kv" style="font-size:24px">13.503</div><div class="km">4° trim 2025</div><div class="kd up">vs 4°2024: −93k</div></div>
+    <div class="kpi red"><div class="kl">Desocupados (miles)</div><div class="kv" style="font-size:24px">1.093</div><div class="km">4° trim 2025</div><div class="kd up">vs 4°2024: +156k</div></div>
+    <div class="kpi"><div class="kl">PEA (miles)</div><div class="kv" style="font-size:24px">14.596</div><div class="km">4° trim 2025</div><div class="kd up">vs 4°2024: +63k</div></div>
+    <div class="kpi grn"><div class="kl">No PEA (miles)</div><div class="kv" style="font-size:24px">15.437</div><div class="km">4° trim 2025</div><div class="km">Pob. total: 30.033k</div></div>
+  </div>
+  <div class="g2w">
+    <div class="card"><div class="ct">Niveles de empleo — en miles de personas</div><div class="cs">PEA · Ocupados · Desocupados · 2016–2025</div><div class="cw h240"><canvas id="c-niveles"></canvas></div></div>
+    <div class="card"><div class="ct">Variación trimestral (QoQ)</div><div class="cs">Diferencia vs. trimestre anterior en miles</div><div class="cw h240"><canvas id="c-qoq"></canvas></div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="ct">Variación interanual (YoY) — Ocupados</div><div class="cs">Diferencia vs. mismo trimestre año anterior (miles)</div><div class="cw h220"><canvas id="c-yoy-ocu"></canvas></div></div>
+    <div class="card"><div class="ct">Variación interanual (YoY) — Desocupados</div><div class="cs">Diferencia vs. mismo trimestre año anterior (miles)</div><div class="cw h220"><canvas id="c-yoy-des"></canvas></div></div>
+  </div>
+</div>
+</div>
+
+<!-- ══════ TAB: COMPOSICIÓN ══════ -->
+<div id="tab-empleo" class="tab-pane">
+<div class="wrap">
+  <div class="krow">
+    <div class="kpi"><div class="kl">Asal. formales</div><div class="kv" style="font-size:24px">20.5%</div><div class="km">Con desc. jubilatorio · 6.157k</div><div class="kd neu">sobre pob. total</div></div>
+    <div class="kpi red"><div class="kl">Asal. informales</div><div class="kv" style="font-size:24px">11.7%</div><div class="km">Sin desc. jubilatorio · 3.514k</div><div class="kd up">Informalidad asal.</div></div>
+    <div class="kpi org"><div class="kl">Cuenta propia</div><div class="kv" style="font-size:24px">11.1%</div><div class="km">Formal 4.0% · Informal 7.0%</div><div class="kd neu">3.334k personas</div></div>
+    <div class="kpi grn"><div class="kl">Sector público</div><div class="kv" style="font-size:24px">7.0%</div><div class="km">Empleo estatal · 2.102k</div><div class="kd neu">Privado: 37.5%</div></div>
+  </div>
+  <div class="g2w">
+    <div class="card">
+      <div class="ct">Formalidad en el empleo</div>
+      <div class="cs">Composición por condición · 4° trim 2025</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+        <div class="cw h200"><canvas id="c-formalidad"></canvas></div>
+        <div>
+          <div class="sec-ttl">Formales — 25.6% (7.688k)</div>
+          <div class="bw">
+            <div class="br"><span class="bl">Asal. formal</span><div class="bt"><div class="bf" style="width:80%;background:var(--t1)"></div></div><span class="bp">20.5%</span></div>
+            <div class="br"><span class="bl">CTA formal</span><div class="bt"><div class="bf" style="width:40%;background:var(--t0)"></div></div><span class="bp">4.0%</span></div>
+            <div class="br"><span class="bl">Patrón formal</span><div class="bt"><div class="bf" style="width:20%;background:var(--t0)"></div></div><span class="bp">1.1%</span></div>
+          </div>
+          <div class="sec-ttl" style="margin-top:12px">Informales — 19.3% (5.796k)</div>
+          <div class="bw">
+            <div class="br"><span class="bl">Asal. informal</span><div class="bt"><div class="bf" style="width:61%;background:var(--red)"></div></div><span class="bp">11.7%</span></div>
+            <div class="br"><span class="bl">CTA informal</span><div class="bt"><div class="bf" style="width:36%;background:var(--org)"></div></div><span class="bp">7.0%</span></div>
+            <div class="br"><span class="bl">Patrón informal</span><div class="bt"><div class="bf" style="width:6%;background:var(--sal)"></div></div><span class="bp">0.4%</span></div>
+            <div class="br"><span class="bl">T. fam. s/rem.</span><div class="bt"><div class="bf" style="width:2%;background:var(--sal)"></div></div><span class="bp">0.2%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card"><div class="ct">Categoría ocupacional</div><div class="cs">Composición · 4° trim 2025</div><div class="cw h200"><canvas id="c-categ"></canvas></div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="ct">Empleo por rama de actividad</div><div class="cs">% sobre pob. total · 4° trim 2025</div><div class="cw h300"><canvas id="c-rama"></canvas></div></div>
+    <div class="card"><div class="ct">Evolución por categoría — desde IV-2023</div><div class="cs">Tasas de empleo según categoría</div><div class="cw h300"><canvas id="c-categ-evol"></canvas></div></div>
+  </div>
+</div>
+</div>
+
+<!-- ══════ TAB: ESTRUCTURA ══════ -->
+<div id="tab-estructura" class="tab-pane">
+<div class="wrap">
+  <div class="card" style="margin-bottom:var(--gap)">
+    <div class="ct">Situación ocupacional de la población urbana total</div>
+    <div class="cs">Cuarto trimestre 2025 · En miles de personas · Total 31 aglomerados urbanos</div>
+    <div class="tree-wrap">
+      <svg id="tree-svg" class="tree-svg" viewBox="0 0 900 440" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="ct">Tasa de desocupación histórica</div><div class="cs">Contexto largo plazo · serie desde 1991</div><div class="cw h220"><canvas id="c-hist-des"></canvas></div></div>
+    <div class="card"><div class="ct">Tasa de empleo histórica</div><div class="cs">Contexto largo plazo · serie desde 1991</div><div class="cw h220"><canvas id="c-hist-emp"></canvas></div></div>
+  </div>
+</div>
+</div>
+
+<!-- ══════ TAB: REGIONAL ══════ -->
+<div id="tab-regional" class="tab-pane">
+<div class="wrap">
+  <div class="g2">
+    <div class="card"><div class="ct">Desocupación y Subocupación — por área geográfica</div><div class="cs">4° trim 2025 · regiones y principales aglomerados</div><div class="cw h380"><canvas id="c-reg-des"></canvas></div></div>
+    <div class="card"><div class="ct">Actividad y Empleo — por área geográfica</div><div class="cs">4° trim 2025 · regiones y principales aglomerados</div><div class="cw h380"><canvas id="c-reg-act"></canvas></div></div>
+  </div>
+
+  <!-- Selector de componente -->
+  <div class="fbar">
+    <div class="fg"><label>Componente</label>
+      <select id="f-comp" onchange="buildCompView()">
+        <option value="des" selected>Desocupación</option>
+        <option value="act">Actividad</option>
+        <option value="emp">Empleo</option>
+        <option value="ocd">Ocup. dem. de empleo</option>
+        <option value="sub">Subocupación</option>
+        <option value="sd">Subocupación dem.</option>
+        <option value="snd">Subocupación no dem.</option>
+      </select>
+    </div>
+    <span class="fnote">Nivel IV-25 y variación en p.p. respecto a IV-24 e IV-23</span>
+  </div>
+
+  <div class="g2w">
+    <div class="card">
+      <div class="ct" id="comp-ttl">Desocupación — nivel por área</div>
+      <div class="cs">IV-2025 · en % de la población</div>
+      <div class="cw h380"><canvas id="c-comp"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">Variaciones en puntos porcentuales</div>
+      <div class="cs">Respecto a IV-2024 e IV-2023 · (+) sube · (−) baja</div>
+      <div id="comp-var-tbl" class="tbl-wrap"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">Indicadores por área geográfica</div><div class="cs">4° trim 2025 · click en columna para ordenar</div>
+    <div class="tbl-wrap">
+      <table><thead><tr>
+        <th onclick="sortT(0)">Área ↕</th><th onclick="sortT(1)" class="r">Actividad ↕</th><th onclick="sortT(2)" class="r">Empleo ↕</th>
+        <th onclick="sortT(3)" class="r">Desocupación ↕</th><th onclick="sortT(4)" class="r">Ocup. Dem. ↕</th>
+        <th onclick="sortT(5)" class="r">Subocupación ↕</th><th onclick="sortT(6)" class="r">Suboc. Dem. ↕</th><th onclick="sortT(7)" class="r">Suboc. No Dem. ↕</th>
+      </tr></thead><tbody id="geo-tbody"></tbody></table>
+    </div>
+  </div>
+</div>
+</div>
+
+<footer>Fuente: INDEC — Encuesta Permanente de Hogares (EPH) &nbsp;|&nbsp; Elaboración: <a href="https://www.ecogo.com.ar" target="_blank">www.ecogo.com.ar</a> &nbsp;|&nbsp; Prohibida su distribución sin el expreso consentimiento de Eco Go Consultores.</footer>
+
+<script>
+/* ─── PALETA ─── */
+const C={t0:'#8FCCCA',t1:'#3C9794',t2:'#1B5F5E',grn:'#84BF84',red:'#DA4531',lim:'#89C442',org:'#FEB15F',sal:'#FE8B5F',dkg:'#70A134',wh:'#ffffff',gd:'#333333'};
+const PAL=[C.t1,C.t0,C.t2,C.grn,C.org,C.red,C.lim,C.sal,C.dkg];
+
+/* ─── DATOS TASAS (%) ─── */
+const LBLS=["II-16","III-16","IV-16","I-17","II-17","III-17","IV-17","I-18","II-18","III-18","IV-18","I-19","II-19","III-19","IV-19","I-20","II-20","III-20","IV-20","I-21","II-21","III-21","IV-21","I-22","II-22","III-22","IV-22","I-23","II-23","III-23","IV-23","I-24","II-24","III-24","IV-24","I-25","II-25","III-25","IV-25"];
+const ACT=[46.0,46.0,45.3,45.5,45.4,46.3,46.4,46.7,46.4,46.7,46.5,47.0,47.7,47.2,47.2,47.1,38.4,42.3,45.0,46.3,45.9,46.7,46.9,46.5,47.9,47.6,47.6,48.3,47.6,48.2,48.6,48.0,48.5,48.3,48.8,48.2,48.1,48.6,48.6];
+const EMP=[41.7,42.1,41.9,41.3,41.5,42.4,43.0,42.4,41.9,42.5,42.2,42.3,42.6,42.6,43.0,42.2,33.4,37.4,40.1,41.6,41.5,42.9,43.6,43.3,44.6,44.2,44.6,45.0,44.6,45.5,45.8,44.3,44.8,45.0,45.7,44.4,44.5,45.4,45.0];
+const DES=[9.3,8.5,7.6,9.2,8.7,8.3,7.2,9.1,9.6,9.0,9.1,10.1,10.6,9.7,8.9,10.4,13.1,11.7,11.0,10.2,9.6,8.2,7.0,7.0,6.9,7.1,6.3,6.9,6.2,5.7,5.7,7.7,7.6,6.9,6.4,7.9,7.6,6.6,7.5];
+const SUB=[11.2,10.2,10.3,9.9,11.0,10.8,10.2,9.8,11.2,11.8,12.0,11.8,13.1,12.8,13.1,11.7,9.6,13.4,15.1,11.9,12.4,12.2,12.1,10.0,11.1,11.0,10.9,9.4,10.6,10.3,10.5,10.2,11.8,11.4,11.3,10.0,11.6,10.9,11.3];
+const OCD=[15.7,14.2,14.6,14.1,14.7,15.4,14.7,15.3,16.0,16.7,17.3,17.5,18.3,18.6,19.0,17.9,11.6,14.8,18.4,16.5,17.0,16.5,17.4,15.5,16.3,16.0,15.4,14.8,16.2,15.2,15.5,16.0,16.0,17.6,16.6,16.1,17.1,16.1,16.5];
+
+/* ─── DATOS NIVELES (miles) ─── */
+const NV={
+  lbl:["II-16","III-16","IV-16","I-17","II-17","III-17","IV-17","I-18","II-18","III-18","IV-18","I-19","II-19","III-19","IV-19","I-20","II-20","III-20","IV-20","I-21","II-21","III-21","IV-21","I-22","II-22","III-22","IV-22","I-23","II-23","III-23","IV-23","I-24","II-24","III-24","IV-24","I-25","II-25","III-25","IV-25"],
+  pea: [12503,12546,12397,12478,12483,12752,12818,12932,12881,12990,12979,13285,13511,13221,13436,13439,10983,12131,12942,13337,13254,13517,13590,13527,13950,13911,13937,14165,13980,14210,14340,14202,14386,14362,14533,14394,14395,14564,14596],
+  ocu: [11338,11477,11459,11328,11395,11694,11892,11749,11642,11822,11793,11947,12073,11934,12240,12045,9546,10716,11524,11982,11981,12404,12644,12584,12993,12922,13061,13191,13108,13396,13518,13114,13298,13368,13596,13259,13304,13606,13503],
+  des: [1165,1069,937,1149,1088,1058,926,1183,1239,1168,1185,1338,1438,1287,1196,1394,1437,1415,1418,1355,1273,1113,947,943,957,989,875,974,872,814,822,1088,1088,994,937,1136,1091,958,1093]
+};
+
+/* YoY (desde I-17, que tiene mismo trimestre año anterior) */
+function calcYoY(arr){ return arr.map((_,i)=>i<4?null:Math.round(arr[i]-arr[i-4])); }
+const YOY_OCU=calcYoY(NV.ocu);
+const YOY_DES=calcYoY(NV.des);
+function calcQoQ(arr){ return arr.map((_,i)=>i===0?null:Math.round(arr[i]-arr[i-1])); }
+const QOQ_OCU=calcQoQ(NV.ocu);
+const QOQ_PEA=calcQoQ(NV.pea);
+
+/* ─── DATOS CATEGORÍAS ─── */
+const CAT_LBL=["IV-23","I-24","II-24","III-24","IV-24","I-25","II-25","III-25","IV-25"];
+const CAT_AF=[21.4,21.3,21.0,21.2,21.1,20.6,20.0,20.7,20.5];
+const CAT_AI=[12.3,12.0,12.8,12.2,11.9,11.7,12.1,12.0,11.7];
+const CAT_CF=[4.1,4.3,4.2,4.1,4.0,4.0,3.9,3.9,4.0];
+const CAT_CI=[7.1,6.7,7.2,7.3,6.8,6.4,6.6,7.2,7.0];
+
+/* ─── DATOS HISTÓRICOS (desde 1991, semianuales hasta 2003, luego trimestral) ─── */
+const HIST_LBL=["1991-5","1991-10","1992-5","1992-10","1993-5","1993-10","1994-5","1994-10","1995-5","1995-10","1996-5","1996-10","1997-5","1997-10","1998-5","1998-10","1999-5","1999-10","2000-5","2000-10","2001-5","2001-10","2002-5","2002-10","I-03","II-03","III-03","IV-03","I-04","II-04","III-04","IV-04","I-05","II-05","III-05","IV-05","I-06","II-06","III-06","IV-06","I-07","II-07","III-07","IV-07","I-08","II-08","III-08","IV-08","I-09","II-09","III-09","IV-09","I-10","II-10","III-10","IV-10","I-11","II-11","I-12","II-12","III-12","IV-12","I-13","II-13","III-13","IV-13","I-14","II-14","III-14","IV-14","I-15","II-15","III-15","IV-15","II-16","III-16","IV-16","I-17","II-17","III-17","IV-17","I-18","II-18","III-18","IV-18","I-19","II-19","III-19","IV-19","I-20","II-20","III-20","IV-20","I-21","II-21","III-21","IV-21","I-22","II-22","III-22","IV-22","I-23","II-23","III-23","IV-23","I-24","II-24","III-24","IV-24","I-25","II-25","III-25","IV-25"];
+const HIST_DES=[6.9,6,6.9,7,9.9,9.3,10.7,12.2,18.4,16.4,17.1,17.3,13.7,13.1,12.4,12.4,13.8,13.8,14.7,14.7,16.4,18.3,21.5,17.8,20.4,15.6,14.5,14.5,14.4,14.4,13.2,12.1,13.0,11.7,11.1,10.1,11.4,10.4,10.2,8.7,9.8,8.5,8.1,7.5,8.4,8.0,7.8,7.3,8.7,8.8,9.1,8.4,8.4,7.9,7.5,7.3,7.1,7.2,7.2,7.1,7.0,6.9,7.9,7.2,6.8,6.4,7.1,7.3,7.5,6.9,6.4,6.6,5.9,5.7,9.3,8.5,7.6,9.2,8.7,8.3,7.2,9.1,9.6,9.0,9.1,10.1,10.6,9.7,8.9,10.4,13.1,11.7,11.0,10.2,9.6,8.2,7.0,7.0,6.9,7.1,6.3,6.9,6.2,5.7,5.7,7.7,7.6,6.9,6.4,7.9,7.6,6.6,7.5];
+const HIST_EMP=[36.8,37.1,37.1,37.4,37.4,37.1,36.7,35.8,28.6,29.7,29.7,30.0,34.0,34.6,36.0,36.1,35.6,35.4,34.4,34.2,34.0,32.7,31.0,33.0,34.0,35.4,36.8,37.4,38.1,38.6,39.7,40.4,40.3,41.0,41.4,41.9,41.7,42.1,42.4,43.1,43.2,44.2,43.6,44.0,43.4,43.0,43.2,43.5,42.1,41.8,42.1,42.3,42.7,44.5,44.4,44.5,43.6,44.7,44.2,44.2,44.4,44.5,43.7,44.5,44.6,45.5,42.2,43.5,43.9,43.8,43.3,43.6,43.7,43.9,41.7,42.1,41.9,41.3,41.5,42.4,43.0,42.4,41.9,42.5,42.2,42.3,42.6,42.6,43.0,42.2,33.4,37.4,40.1,41.6,41.5,42.9,43.6,43.3,44.6,44.2,44.6,45.0,44.6,45.5,45.8,44.3,44.8,45.0,45.7,44.4,44.5,45.4,45.0];
+
+/* ─── GEOGRAFÍA ─── */
+// h:[act,emp,des,ocd,sub,sd,snd] → [IV-23, IV-24, IV-25]
+const GEO=[
+  {a:"Total 31 aglom.",  act:48.6,emp:45.0,des:7.5,ocdem:16.5,sub:11.3,sd:7.8,snd:3.6,tipo:"total",
+   h:{act:[48.6,48.8,48.6],emp:[45.8,45.7,45.0],des:[5.7,6.4,7.5],ocd:[15.5,16.6,16.5],sub:[10.5,11.3,11.3],sd:[6.8,7.6,7.8],snd:[3.7,3.6,3.6]}},
+  {a:"Gran Buenos Aires",act:49.3,emp:45.1,des:8.6,ocdem:16.0,sub:11.1,sd:7.0,snd:4.0,tipo:"region",
+   h:{act:[49.4,49.9,49.3],emp:[46.2,46.4,45.1],des:[6.5,7.1,8.6],ocd:[15.4,16.8,16.0],sub:[10.2,11.3,11.1],sd:[5.9,7.1,7.0],snd:[4.3,4.3,4.0]}},
+  {a:"CABA",             act:54.6,emp:52.0,des:4.8,ocdem:13.8,sub:8.4,sd:5.4,snd:3.0,tipo:"aglom",
+   h:{act:[54.7,55.0,54.6],emp:[52.9,53.0,52.0],des:[3.2,3.7,4.8],ocd:[11.5,12.6,13.8],sub:[6.0,6.5,8.4],sd:[2.4,4.3,5.4],snd:[3.6,2.2,3.0]}},
+  {a:"Partidos del GBA", act:48.1,emp:43.5,des:9.5,ocdem:16.5,sub:11.8,sd:7.5,snd:4.3,tipo:"aglom",
+   h:{act:[48.2,48.7,48.1],emp:[44.6,44.8,43.5],des:[7.4,8.0,9.5],ocd:[16.4,17.8,16.5],sub:[11.3,12.6,11.8],sd:[6.9,7.8,7.5],snd:[4.4,4.8,4.3]}},
+  {a:"Cuyo",             act:47.2,emp:44.9,des:4.9,ocdem:19.5,sub:13.8,sd:10.3,snd:3.5,tipo:"region",
+   h:{act:[47.9,47.6,47.2],emp:[46.0,45.7,44.9],des:[3.9,4.1,4.9],ocd:[16.9,17.7,19.5],sub:[12.8,13.6,13.8],sd:[9.0,10.4,10.3],snd:[3.7,3.1,3.5]}},
+  {a:"Gran Mendoza",     act:48.5,emp:45.2,des:6.7,ocdem:20.8,sub:14.8,sd:12.4,snd:2.4,tipo:"aglom",
+   h:{act:[49.8,48.6,48.5],emp:[47.7,46.3,45.2],des:[4.3,4.8,6.7],ocd:[15.7,19.5,20.8],sub:[12.7,13.6,14.8],sd:[9.5,11.7,12.4],snd:[3.2,1.9,2.4]}},
+  {a:"Noreste",          act:44.3,emp:41.8,des:5.6,ocdem:5.7,sub:4.9,sd:3.3,snd:1.7,tipo:"region",
+   h:{act:[44.3,44.0,44.3],emp:[42.6,42.1,41.8],des:[3.9,4.5,5.6],ocd:[9.2,7.9,5.7],sub:[7.3,7.2,4.9],sd:[4.9,4.8,3.3],snd:[2.4,2.4,1.7]}},
+  {a:"Noroeste",         act:46.7,emp:44.7,des:4.2,ocdem:19.0,sub:11.6,sd:8.5,snd:3.1,tipo:"region",
+   h:{act:[47.4,46.6,46.7],emp:[45.3,44.3,44.7],des:[4.4,5.0,4.2],ocd:[20.5,21.1,19.0],sub:[13.5,13.0,11.6],sd:[9.4,8.9,8.5],snd:[4.1,4.0,3.1]}},
+  {a:"Gran Tucumán",     act:49.2,emp:46.5,des:5.6,ocdem:28.6,sub:17.5,sd:12.4,snd:5.1,tipo:"aglom",
+   h:{act:[47.9,47.9,49.2],emp:[45.3,45.1,46.5],des:[5.6,5.7,5.6],ocd:[22.2,29.1,28.6],sub:[17.4,17.5,17.5],sd:[11.0,11.8,12.4],snd:[6.4,5.6,5.1]}},
+  {a:"Salta",            act:45.9,emp:43.2,des:5.9,ocdem:16.8,sub:10.9,sd:7.6,snd:3.3,tipo:"aglom",
+   h:{act:[48.4,46.9,45.9],emp:[46.1,43.8,43.2],des:[4.9,6.7,5.9],ocd:[18.3,16.0,16.8],sub:[12.8,11.2,10.9],sd:[7.3,5.5,7.6],snd:[5.5,5.7,3.3]}},
+  {a:"Pampeana",         act:49.8,emp:46.0,des:7.7,ocdem:19.3,sub:13.5,sd:10.2,snd:3.3,tipo:"region",
+   h:{act:[48.6,49.1,49.8],emp:[45.9,45.7,46.0],des:[5.6,6.9,7.7],ocd:[15.6,17.2,19.3],sub:[10.7,11.5,13.5],sd:[8.0,8.9,10.2],snd:[2.7,2.6,3.3]}},
+  {a:"Gran Córdoba",     act:50.8,emp:46.3,des:8.8,ocdem:28.3,sub:13.9,sd:12.5,snd:1.4,tipo:"aglom",
+   h:{act:[50.6,50.7,50.8],emp:[47.8,46.6,46.3],des:[5.5,8.0,8.8],ocd:[28.1,27.8,28.3],sub:[14.9,13.9,13.9],sd:[12.2,12.0,12.5],snd:[2.7,1.9,1.4]}},
+  {a:"Gran Rosario",     act:52.5,emp:49.1,des:6.5,ocdem:17.5,sub:12.9,sd:9.6,snd:3.3,tipo:"aglom",
+   h:{act:[48.7,50.1,52.5],emp:[46.4,47.1,49.1],des:[4.7,6.0,6.5],ocd:[10.4,14.6,17.5],sub:[9.6,8.4,12.9],sd:[7.4,7.5,9.6],snd:[2.2,0.9,3.3]}},
+  {a:"Gran La Plata",    act:49.7,emp:44.9,des:9.5,ocdem:24.6,sub:19.9,sd:15.3,snd:4.6,tipo:"aglom",
+   h:{act:[49.1,50.3,49.7],emp:[46.3,46.3,44.9],des:[5.6,8.1,9.5],ocd:[14.5,15.7,24.6],sub:[10.0,13.3,19.9],sd:[8.1,10.7,15.3],snd:[1.9,2.6,4.6]}},
+  {a:"Mar del Plata",    act:52.1,emp:47.2,des:9.5,ocdem:11.8,sub:12.2,sd:7.2,snd:5.0,tipo:"aglom",
+   h:{act:[52.6,51.0,52.1],emp:[47.8,46.7,47.2],des:[9.3,8.6,9.5],ocd:[11.1,11.0,11.8],sub:[9.5,9.9,12.2],sd:[4.1,5.7,7.2],snd:[5.4,4.2,5.0]}},
+  {a:"Patagonia",        act:44.5,emp:42.3,des:4.8,ocdem:8.9,sub:5.3,sd:3.7,snd:1.5,tipo:"region",
+   h:{act:[46.1,45.3,44.5],emp:[44.6,43.5,42.3],des:[3.4,4.0,4.8],ocd:[10.1,9.4,8.9],sub:[5.4,6.5,5.3],sd:[3.6,4.5,3.7],snd:[1.8,2.0,1.5]}},
+  {a:"Neuquén-Plottier", act:45.6,emp:44.6,des:2.3,ocdem:3.2,sub:4.5,sd:1.4,snd:3.0,tipo:"aglom",
+   h:{act:[50.2,49.4,45.6],emp:[48.4,47.5,44.6],des:[3.6,3.9,2.3],ocd:[11.3,8.9,3.2],sub:[4.3,6.5,4.5],sd:[3.0,4.2,1.4],snd:[1.2,2.3,3.0]}},
+];
+const REG=GEO.filter(d=>d.tipo!=="total");
+
+/* ─── HELPERS ─── */
+const ln=(label,data,color,dash)=>({label,data,borderColor:color,backgroundColor:color+'18',borderWidth:2,fill:false,tension:.3,pointRadius:2,pointHoverRadius:5,...(dash?{borderDash:[5,3]}:{})});
+const bar=(label,data,colors)=>({label,data,backgroundColor:Array.isArray(colors)?colors:colors+'CC',borderColor:Array.isArray(colors)?colors.map(c=>c):colors,borderWidth:1,borderRadius:3});
+
+function mkLine(id,labels,datasets,yMin,yMax,mt){
+  return new Chart(document.getElementById(id),{type:'line',data:{labels,datasets},options:{
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{position:'top',labels:{usePointStyle:true,padding:10,font:{size:11}}},
+      tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y?.toFixed(c.parsed.y>100?0:1)}${c.parsed.y>100?'k':'%'}`}}},
+    scales:{x:{grid:{display:false},ticks:{maxTicksLimit:mt||12,font:{size:10}}},
+      y:{min:yMin,max:yMax,ticks:{callback:v=>v>100?v+'k':v+'%',font:{size:10}},grid:{color:'#eee'}}}
+  }});
+}
+function mkBar(id,labels,datasets,h,yMin,yMax){
+  return new Chart(document.getElementById(id),{type:'bar',data:{labels,datasets},options:{
+    responsive:true,maintainAspectRatio:false,indexAxis:h?'y':'x',
+    plugins:{legend:{position:'top',labels:{usePointStyle:true,padding:10,font:{size:11}}},
+      tooltip:{callbacks:{label:c=>{const v=c.parsed[h?'x':'y'];return `${c.dataset.label}: ${v>100?v+'k':v.toFixed?v.toFixed(1)+'%':v}`;  }}}},
+    scales:{x:{beginAtZero:!(!h&&yMin!==undefined),grid:{display:!!h},ticks:{font:{size:10}},min:!h&&yMin!==undefined?yMin:undefined,max:!h&&yMax!==undefined?yMax:undefined},
+      y:{beginAtZero:!(!h||yMin!==undefined),grid:{display:!h},ticks:{font:{size:10}},min:h&&yMin!==undefined?yMin:undefined,max:h&&yMax!==undefined?yMax:undefined}}
+  }});
+}
+function mkBarMixed(id,labels,datasets){
+  return new Chart(document.getElementById(id),{type:'bar',data:{labels,datasets},options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{usePointStyle:true,padding:10,font:{size:11}}},
+      tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y>0?'+':''}${c.parsed.y}k`}}},
+    scales:{x:{grid:{display:false},ticks:{maxTicksLimit:14,font:{size:10}}},
+      y:{ticks:{callback:v=>(v>0?'+':'')+v+'k',font:{size:10}},grid:{color:'#eee'}}}
+  }});
+}
+function mkDonut(id,labels,data,colors){
+  return new Chart(document.getElementById(id),{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderColor:'#fff',borderWidth:3}]},options:{
+    responsive:true,maintainAspectRatio:false,cutout:'55%',
+    plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:8,font:{size:10.5}}},
+      tooltip:{callbacks:{label:c=>` ${c.label}: ${c.parsed.toFixed(1)}%`}}}
+  }});
+}
+
+/* ─── TAB ROUTING ─── */
+const _inited={};
+function showTab(id,btn){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(!_inited[id]){_inited[id]=true;({tapa:buildTapa,panorama:buildPanorama,valores:buildValores,empleo:buildEmpleo,estructura:buildEstructura,regional:buildRegional}[id])();}
+}
+
+/* ─── TAPA ─── */
+function buildTapa(){
+  // Mini línea desde 2020
+  const s=LBLS.indexOf('I-20');
+  mkLine('tapa-evol',LBLS.slice(s),[
+    ln('Empleo',EMP.slice(s),C.t1),
+    ln('Desocupación',DES.slice(s),C.red)
+  ],0,55,10);
+  // YoY barras
+  const yoyLbl=LBLS.slice(4), yoyOcu=YOY_OCU.slice(4);
+  const barColors=yoyOcu.map(v=>v===null?'#ccc':v>=0?C.grn+'CC':C.red+'CC');
+  const barEdge=yoyOcu.map(v=>v===null?'#ccc':v>=0?C.dkg:C.red);
+  mkBarMixed('tapa-yoy',yoyLbl,[{label:'Var. YoY Ocupados (miles)',data:yoyOcu,backgroundColor:barColors,borderColor:barEdge,borderWidth:1,borderRadius:3}]);
+  buildDinamica();
+}
+
+/* ─── PANORAMA ─── */
+let evolChart;
+function applyFilters(){
+  const s=+document.getElementById('f-desde').value;
+  const e=Math.max(s,+document.getElementById('f-hasta').value);
+  const ser=document.getElementById('f-serie').value;
+  const lbls=LBLS.slice(s,e+1), ds=[];
+  if(ser==='all'||ser==='empleo'){ds.push(ln('Actividad',ACT.slice(s,e+1),C.t1),ln('Empleo',EMP.slice(s,e+1),C.t2));}
+  if(ser==='all'||ser==='desocup'){ds.push(ln('Desocupación',DES.slice(s,e+1),C.red),ln('Subocupación',SUB.slice(s,e+1),C.org,true));}
+  if(ser==='all') ds.push(ln('Ocup. dem.',OCD.slice(s,e+1),C.t0,true));
+  if(evolChart)evolChart.destroy();
+  evolChart=mkLine('c-evol',lbls,ds,5,55,14);
+}
+function buildPanorama(){
+  const fd=document.getElementById('f-desde'),fh=document.getElementById('f-hasta');
+  LBLS.forEach((l,i)=>{fd.add(new Option(l,i));fh.add(new Option(l,i));});
+  fd.value=0;fh.value=LBLS.length-1;
+  applyFilters();
+  mkDonut('c-presion',['Desocupados','Ocup. dem.','Subocup. dem.','Ocupados estables'],[7.5,16.5,7.8,68.2],[C.red,C.org,C.sal,C.t1]);
+}
+
+/* ─── VALORES ─── */
+function buildValores(){
+  // Niveles
+  mkLine('c-niveles',NV.lbl,[
+    ln('PEA',NV.pea,C.t1),
+    ln('Ocupados',NV.ocu,C.t2),
+    ln('Desocupados',NV.des,C.red)
+  ],null,null,14);
+  // QoQ (ocupados + PEA)
+  const qColors=QOQ_OCU.map(v=>v===null?'transparent':v>=0?C.grn+'CC':C.red+'CC');
+  const qEdge=QOQ_OCU.map(v=>v===null?'transparent':v>=0?C.dkg:C.red);
+  mkBarMixed('c-qoq',NV.lbl,[
+    {label:'Var. trim. Ocupados',data:QOQ_OCU,backgroundColor:qColors,borderColor:qEdge,borderWidth:1,borderRadius:3},
+    {label:'Var. trim. PEA',data:QOQ_PEA,backgroundColor:C.t0+'88',borderColor:C.t0,borderWidth:1,borderRadius:3,type:'bar'}
+  ]);
+  // YoY ocupados
+  const yLbl=LBLS.slice(4);
+  const yColors=YOY_OCU.slice(4).map(v=>v>=0?C.grn+'CC':C.red+'CC');
+  const yEdge=YOY_OCU.slice(4).map(v=>v>=0?C.dkg:C.red);
+  mkBarMixed('c-yoy-ocu',yLbl,[{label:'Var. YoY Ocupados (miles)',data:YOY_OCU.slice(4),backgroundColor:yColors,borderColor:yEdge,borderWidth:1,borderRadius:3}]);
+  // YoY desocupados
+  const ydColors=YOY_DES.slice(4).map(v=>v>0?C.red+'CC':C.grn+'CC');
+  const ydEdge=YOY_DES.slice(4).map(v=>v>0?C.red:C.dkg);
+  mkBarMixed('c-yoy-des',yLbl,[{label:'Var. YoY Desocupados (miles)',data:YOY_DES.slice(4),backgroundColor:ydColors,borderColor:ydEdge,borderWidth:1,borderRadius:3}]);
+}
+
+/* ─── COMPOSICIÓN ─── */
+function buildEmpleo(){
+  mkDonut('c-formalidad',['Asal. formal','CTA formal','Patrón formal','Asal. informal','CTA informal','Patrón inf.','T.fam s/rem'],[20.5,4.0,1.1,11.7,7.0,0.4,0.2],[C.t1,C.t0,C.t2,C.red,C.org,C.sal,C.grn]);
+  mkDonut('c-categ',['Asal. formal','Asal. informal','CTA','Patrón','T. fam. s/rem.'],[20.5,11.7,11.1,1.5,0.2],[C.t1,C.red,C.org,C.t0,C.grn]);
+  const ramas=['Act. primarias','Ind. manuf.','Construcción','Comercio','Hoteles y rest.','Transporte','Serv. financ.','Adm. pública','Enseñanza','Serv. soc./salud','Serv. doméstico','Otros serv.'];
+  const rVals=[0.5,4.4,4.0,8.4,2.5,3.6,5.0,3.5,3.3,3.1,3.1,2.8];
+  mkBar('c-rama',ramas,[{label:'% pob. total',data:rVals,backgroundColor:rVals.map((_,i)=>PAL[i%PAL.length]+'CC'),borderColor:rVals.map((_,i)=>PAL[i%PAL.length]),borderWidth:1,borderRadius:3}],true);
+  mkLine('c-categ-evol',CAT_LBL,[ln('Asal. formal',CAT_AF,C.t1),ln('Asal. informal',CAT_AI,C.red),ln('CTA formal',CAT_CF,C.t0,true),ln('CTA informal',CAT_CI,C.org,true)],0,25,9);
+}
+
+/* ─── DATOS DINÁMICA ─── */
+const DINF={rows:[
+  {lbl:'Activos',                  lvl:0,head:C.t2,  vals:[18916,20609,22791,22800,23160,23227],vars:[67,427,436]},
+  {lbl:'Ocupados',                 lvl:1,head:null,  vals:[18099,18627,21478,21242,21635,21506],vars:[-128,265,29]},
+  {lbl:'Asalariados',              lvl:2,head:null,  vals:[12963,13895,15831,15676,15815,15571],vars:[-244,-106,-260]},
+  {lbl:'Con desc. jubilatorio',    lvl:3,head:null,  vals:[8478,9129,10175,9970,10011,9701],   vars:[-310,-270,-474]},
+  {lbl:'Sin desc. jubilatorio',    lvl:3,head:null,  vals:[4486,4766,5656,5706,5804,5870],     vars:[66,164,214]},
+  {lbl:'No asalariados',           lvl:2,head:null,  vals:[5136,4731,5647,5565,5820,5936],     vars:[116,370,289]},
+  {lbl:'Patrón',                   lvl:3,head:null,  vals:[728,764,734,637,714,753],           vars:[39,115,19]},
+  {lbl:'Cuenta propia',            lvl:3,head:null,  vals:[3085,3970,4846,4886,5041,5097],     vars:[56,211,251]},
+  {lbl:'T. fam. sin remuneración', lvl:3,head:null,  vals:[79,126,68,64,65,86],               vars:[21,22,18]},
+  {lbl:'Desocupados',              lvl:1,head:null,  red:true,vals:[1351,1982,1299,1573,1529,1742],vars:[213,169,443]},
+  {lbl:'Inactivos',                lvl:0,head:'#777',vals:[22627,23818,24104,24235,24656,24494],vars:[-162,259,390]},
+]};
+
+/* ─── ESTRUCTURA ─── */
+function buildEstructura(){
+  drawTree();
+  mkLine('c-hist-des',HIST_LBL,[ln('Tasa desocupación',HIST_DES,C.red)],0,25,16);
+  mkLine('c-hist-emp',HIST_LBL,[ln('Tasa de empleo',HIST_EMP,C.t1)],25,50,16);
+}
+
+function buildDinamica(){
+  const fN=v=>v.toLocaleString('de-DE');
+  const fV=v=>(v>0?'+':'')+v.toLocaleString('de-DE');
+  const ind=[0,16,30,44];
+  let h=`<div class="tbl-wrap"><table>
+  <thead>
+    <tr>
+      <th rowspan="2" style="min-width:200px;text-align:left;vertical-align:bottom">Categoría</th>
+      <th colspan="6" style="background:var(--t1);color:white;text-align:center;padding:6px 10px">En miles de personas</th>
+      <th colspan="3" style="background:var(--t2);color:white;text-align:center;padding:6px 10px">Variación (en miles)</th>
+    </tr>
+    <tr>
+      <th class="r" style="font-size:10.5px">estim.-12<br><span style="font-weight:400;font-size:9.5px">(1)</span></th>
+      <th class="r" style="font-size:10.5px">II-18<br><span style="font-weight:400;font-size:9.5px">(2)</span></th>
+      <th class="r" style="font-size:10.5px">IV-23<br><span style="font-weight:400;font-size:9.5px">(3)</span></th>
+      <th class="r" style="font-size:10.5px">III-24<br><span style="font-weight:400;font-size:9.5px">(4)</span></th>
+      <th class="r" style="font-size:10.5px">III-25<br><span style="font-weight:400;font-size:9.5px">(5)</span></th>
+      <th class="r" style="font-size:10.5px">IV-25<br><span style="font-weight:400;font-size:9.5px">(6)</span></th>
+      <th class="r" style="font-size:10.5px">(6)−(5)<br><span style="font-weight:400;font-size:9.5px">vs III-25</span></th>
+      <th class="r" style="font-size:10.5px">(6)−(4)<br><span style="font-weight:400;font-size:9.5px">vs III-24</span></th>
+      <th class="r" style="font-size:10.5px">(6)−(3)<br><span style="font-weight:400;font-size:9.5px">vs IV-23</span></th>
+    </tr>
+  </thead>
+  <tbody>`;
+
+  DINF.rows.forEach(row=>{
+    let rStyle='', lStyle=`padding-left:${ind[row.lvl]+10}px`, vStyle='';
+    if(row.head){
+      rStyle=`style="background:${row.head};color:white"`;
+      lStyle='padding-left:10px;font-weight:800;color:white';
+      vStyle='color:white;font-weight:700';
+    }
+    h+=`<tr ${rStyle}><td style="${lStyle}">${row.lbl}</td>`;
+    row.vals.forEach(v=>{ h+=`<td class="r"${row.head?` style="${vStyle}"`:row.red?` style="color:var(--red)"`:''} >${fN(v)}</td>`; });
+    row.vars.forEach(v=>{
+      let vs=vStyle||( v>0?'color:var(--dkg);font-weight:700':v<0?'color:var(--red);font-weight:700':'' );
+      h+=`<td class="r" style="${vs}">${fV(v)}</td>`;
+    });
+    h+='</tr>';
+  });
+
+  h+=`</tbody></table></div>
+  <div style="font-size:10.5px;color:#aaa;margin-top:6px;text-align:right">Fuente: Eco Go en base a EPH-INDEC</div>`;
+  document.getElementById('dinamica-wrap').innerHTML=h;
+}
+
+function drawTree(){
+  const svg=document.getElementById('tree-svg');
+  const nodes=[
+    {id:'tot', lbl:'Población total',    val:'30.033k', col:C.t2,  x:20,  y:170, w:130, h:50},
+    {id:'pea', lbl:'PEA',               val:'14.596k', col:C.t1,  x:215, y:80,  w:115, h:50},
+    {id:'nop', lbl:'No PEA',            val:'15.437k', col:'#888', x:215, y:280, w:115, h:50},
+    {id:'ocu', lbl:'Ocupados',          val:'13.503k', col:C.t1,  x:395, y:40,  w:115, h:50},
+    {id:'des', lbl:'Desocupados',       val:'1.093k',  col:C.red, x:395, y:130, w:115, h:50},
+    {id:'afs', lbl:'Asal. formales',    val:'6.157k',  col:C.t1,  x:575, y:5,   w:130, h:42},
+    {id:'ais', lbl:'Asal. informales',  val:'3.514k',  col:C.red, x:575, y:57,  w:130, h:42},
+    {id:'ctf', lbl:'CTA formales',      val:'1.201k',  col:C.t0,  x:575, y:109, w:130, h:42},
+    {id:'cti', lbl:'CTA informales',    val:'2.102k',  col:C.org, x:575, y:161, w:130, h:42},
+    {id:'pat', lbl:'Patrón',            val:'450k',    col:C.t2,  x:575, y:213, w:130, h:42},
+    {id:'tfm', lbl:'T. fam s/rem.',     val:'54k',     col:'#aaa', x:575, y:265, w:130, h:42},
+    {id:'d_d', lbl:'Desoc. abiertos',   val:'1.093k',  col:C.red, x:575, y:310, w:130, h:42},
+    {id:'sub', lbl:'Subocupados',       val:'1.654k',  col:C.sal, x:765, y:161, w:115, h:42},
+    {id:'for', lbl:'Formales tot.',     val:'7.688k',  col:C.t1,  x:765, y:5,   w:115, h:42},
+    {id:'inf', lbl:'Informales tot.',   val:'5.796k',  col:C.red, x:765, y:57,  w:115, h:42},
+  ];
+  const edges=[
+    ['tot','pea'],['tot','nop'],
+    ['pea','ocu'],['pea','des'],
+    ['ocu','afs'],['ocu','ais'],['ocu','ctf'],['ocu','cti'],['ocu','pat'],['ocu','tfm'],
+    ['afs','for'],['ctf','for'],['ais','inf'],['cti','inf'],['pat','inf'],['cti','sub'],['des','d_d'],
+  ];
+  const nm={};nodes.forEach(n=>nm[n.id]=n);
+  let h='';
+  edges.forEach(([f,t])=>{
+    const a=nm[f],b=nm[t]; if(!a||!b) return;
+    const x1=a.x+a.w,y1=a.y+a.h/2,x2=b.x,y2=b.y+b.h/2,mx=(x1+x2)/2;
+    h+=`<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" stroke="#ccc" stroke-width="1.5" fill="none" opacity="0.7"/>`;
+  });
+  nodes.forEach(n=>{
+    h+=`<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="5" ry="5" fill="${n.col}" opacity="0.92"/>`;
+    h+=`<text x="${n.x+n.w/2}" y="${n.y+16}" text-anchor="middle" font-family="'Segoe UI',Arial,sans-serif" font-size="10" font-weight="700" fill="white">${n.lbl}</text>`;
+    h+=`<text x="${n.x+n.w/2}" y="${n.y+32}" text-anchor="middle" font-family="'Segoe UI',Arial,sans-serif" font-size="12" font-weight="800" fill="white">${n.val}</text>`;
+  });
+  svg.innerHTML=h;
+}
+
+/* ─── REGIONAL ─── */
+let sortCol=-1,sortDir=1,compChart;
+const COMP_LBL={act:'Tasa de actividad',emp:'Tasa de empleo',des:'Tasa de desocupación',ocd:'Ocup. dem. de empleo',sub:'Tasa de subocupación',sd:'Subocupación dem.',snd:'Subocupación no dem.'};
+
+function buildRegional(){
+  const rl=REG.map(d=>d.a);
+  mkBar('c-reg-des',rl,[bar('Desocupación',REG.map(d=>d.des),C.red),bar('Subocupación',REG.map(d=>d.sub),C.org)],true);
+  mkBar('c-reg-act',rl,[bar('Actividad',REG.map(d=>d.act),C.t1),bar('Empleo',REG.map(d=>d.emp),C.t2)],true,30,58);
+  buildCompView();
+  renderTable(GEO);
+}
+
+function buildCompView(){
+  const comp=document.getElementById('f-comp').value;
+  const lbl=COMP_LBL[comp];
+  document.getElementById('comp-ttl').textContent=lbl+' — nivel por área';
+
+  // Sort areas by IV-25 value descending
+  const sorted=[...GEO].sort((a,b)=>b.h[comp][2]-a.h[comp][2]);
+  const areas=sorted.map(d=>d.a);
+  const vals25=sorted.map(d=>d.h[comp][2]);
+
+  // Color: total gets t2, others get t1/t0 alternating
+  const bgColors=sorted.map(d=>d.tipo==='total'?C.t2+'CC':d.tipo==='region'?C.t1+'CC':C.t0+'CC');
+  const bdColors=sorted.map(d=>d.tipo==='total'?C.t2:d.tipo==='region'?C.t1:C.t0);
+
+  if(compChart) compChart.destroy();
+  compChart=new Chart(document.getElementById('c-comp'),{type:'bar',
+    data:{labels:areas,datasets:[{label:lbl+' IV-25',data:vals25,backgroundColor:bgColors,borderColor:bdColors,borderWidth:1,borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed.x.toFixed(1)}%`}}},
+      scales:{x:{grid:{color:'#eee'},ticks:{font:{size:10},callback:v=>v+'%'}},
+              y:{grid:{display:false},ticks:{font:{size:9.5}}}}}});
+
+  // Variation table
+  const fV=v=>{
+    if(v===null) return '<td class="r" style="color:#ccc">—</td>';
+    const s=(v>0?'+':'')+v.toFixed(1)+' p.p.';
+    const col=v>0?(comp==='emp'||comp==='act'?'color:var(--dkg)':'color:var(--red)'):(comp==='emp'||comp==='act'?'color:var(--red)':'color:var(--dkg)');
+    return `<td class="r" style="${col};font-weight:700">${s}</td>`;
+  };
+  let th=`<table><thead><tr>
+    <th>Área</th>
+    <th class="r">IV-25</th>
+    <th class="r">vs IV-24</th>
+    <th class="r">vs IV-23</th>
+  </tr></thead><tbody>`;
+  sorted.forEach(d=>{
+    const [v23,v24,v25]=d.h[comp];
+    const var24=v24!==null&&v25!==null?+(v25-v24).toFixed(1):null;
+    const var23=v23!==null&&v25!==null?+(v25-v23).toFixed(1):null;
+    const bold=d.tipo==='total'?'style="background:#eef7f7;font-weight:800"':'';
+    th+=`<tr ${bold}><td>${d.a}</td><td class="r">${v25!==null?v25.toFixed(1)+'%':'—'}</td>${fV(var24)}${fV(var23)}</tr>`;
+  });
+  th+='</tbody></table>';
+  document.getElementById('comp-var-tbl').innerHTML=th;
+}
+function renderTable(data){
+  const des=data.map(d=>d.des),mx=Math.max(...des),mn=Math.min(...des);
+  document.getElementById('geo-tbody').innerHTML=data.map(d=>{
+    const b=d.tipo==='total'?'style="font-weight:800;background:#eef7f7"':'';
+    const dc=d.des===mx?'hi':d.des===mn?'lo':'';
+    return `<tr ${b}><td>${d.a}</td><td class="r">${d.act.toFixed(1)}%</td><td class="r">${d.emp.toFixed(1)}%</td><td class="r ${dc}">${d.des.toFixed(1)}%</td><td class="r">${d.ocdem.toFixed(1)}%</td><td class="r">${d.sub.toFixed(1)}%</td><td class="r">${d.sd.toFixed(1)}%</td><td class="r">${d.snd.toFixed(1)}%</td></tr>`;
+  }).join('');
+}
+function sortT(col){
+  if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=1;}
+  const ks=['a','act','emp','des','ocdem','sub','sd','snd'];
+  renderTable([...GEO].sort((a,b)=>{const av=a[ks[col]],bv=b[ks[col]];return av<bv?-sortDir:av>bv?sortDir:0;}));
+}
+
+/* ─── INIT ─── */
+_inited['tapa']=true;
+buildTapa();
+</script>
+</body>
+</html>

@@ -358,8 +358,17 @@
         openCats[el.dataset.catId] = true;
       });
 
+      // Poner Actividad primero
+      var cats = D.categories.slice();
+      for (var i = 0; i < cats.length; i++) {
+        if (cats[i].label.indexOf('Actividad') >= 0) {
+          cats.unshift(cats.splice(i, 1)[0]);
+          break;
+        }
+      }
+
       var html = '';
-      D.categories.forEach(function(cat, ci){
+      cats.forEach(function(cat, ci){
         var isOpen = openCats[cat.id] !== undefined ? openCats[cat.id] : (ci === 0);
         html += renderCat(cat, ci, isOpen);
       });

@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Proyecciones Eco Go · Mar 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F1F1F1;--card:#fff;--hdr:#1B5F5E;--hdr2:#155453;
+  --e1:#3C9794;--e2:#DA4531;--e3:#84BF84;
+  --dato:#546e7a;--pos:#27ae60;--neg:#c0392b;--muted:#6b7c93;
+  --border:#dce3ed;--gap:14px;--r:10px;
+  --teal-light:#8FCCCA;--teal-dark:#1B5F5E;--orange:#FEB15F;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:#333333;font-size:13px;}
+
+/* ── HEADER ── */
+.hdr{background:var(--hdr);color:#fff;padding:14px 24px;display:flex;
+     justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
+     border-bottom:3px solid var(--teal-light);}
+.hdr-logo{display:flex;align-items:center;gap:14px;}
+.hdr-brand h1{font-size:17px;font-weight:800;letter-spacing:.3px;color:#fff;}
+.hdr-brand p{font-size:11px;color:rgba(255,255,255,.6);margin-top:2px;}
+.hdr-right{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+.fg{display:flex;align-items:center;gap:5px;}
+.fg label{font-size:10px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;}
+.fg select{padding:4px 8px;border:1px solid rgba(255,255,255,.25);border-radius:5px;
+           background:rgba(255,255,255,.12);color:#fff;font-size:12px;cursor:pointer;font-family:inherit;}
+.fg select option{background:var(--hdr);color:#fff;}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:0;background:var(--hdr2);padding:0 24px;
+      border-top:1px solid rgba(255,255,255,.08);}
+.tab{padding:10px 20px;font-size:12px;font-weight:700;color:rgba(255,255,255,.5);
+     cursor:pointer;border-bottom:3px solid transparent;transition:.2s;font-family:inherit;
+     letter-spacing:.3px;text-transform:uppercase;}
+.tab.active{color:#fff;border-bottom-color:var(--teal-light);}
+.tab:hover{color:#fff;}
+
+/* ── LAYOUT ── */
+.wrap{max-width:1440px;margin:0 auto;padding:var(--gap);}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:var(--gap);margin-bottom:var(--gap);}
+.kpi{background:var(--card);border-radius:var(--r);padding:14px 16px;
+     box-shadow:0 1px 3px rgba(0,0,0,.07);border-left:4px solid var(--e1);}
+.kpi:nth-child(2){border-left-color:var(--e2);}
+.kpi:nth-child(3){border-left-color:#8FCCCA;}
+.kpi:nth-child(4){border-left-color:var(--orange);}
+.kpi:nth-child(5){border-left-color:var(--e3);}
+.kpi:nth-child(6){border-left-color:#70A134;}
+.kpi-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;font-weight:700;}
+.kpi-val{font-size:22px;font-weight:800;line-height:1;}
+.kpi-sub{font-size:10px;color:var(--muted);margin-top:3px;}
+.pos{color:var(--pos);}.neg{color:var(--neg);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);margin-bottom:var(--gap);}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--gap);margin-bottom:var(--gap);}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:var(--gap);margin-bottom:var(--gap);}
+
+/* ── CHART CARD ── */
+.cc{background:var(--card);border-radius:var(--r);padding:14px 16px;
+    box-shadow:0 1px 3px rgba(0,0,0,.07);display:flex;flex-direction:column;}
+.cc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;gap:8px;}
+.cc-title-wrap{flex:1;min-width:0;}
+.cc-title{font-size:12px;font-weight:800;color:#333;}
+.cc-sub{font-size:10px;color:var(--muted);margin-bottom:8px;}
+.cc canvas{max-height:210px;flex:1;}
+
+/* ── RANGE BUTTONS ── */
+.cc-controls{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.rb{padding:2px 7px;border-radius:4px;border:1px solid var(--border);font-size:10px;
+    font-weight:700;cursor:pointer;background:#f8f9fb;color:var(--muted);
+    transition:.15s;font-family:inherit;line-height:1.6;}
+.rb:hover{background:var(--teal-light);color:#fff;border-color:var(--teal-light);}
+.rb.active{background:var(--e1);color:#fff;border-color:var(--e1);}
+.dl-chart{padding:2px 6px;border-radius:4px;border:1px solid var(--border);font-size:10px;
+          font-weight:700;cursor:pointer;background:#f8f9fb;color:var(--muted);
+          transition:.15s;font-family:inherit;line-height:1.6;margin-left:4px;}
+.dl-chart:hover{background:#3C9794;color:#fff;border-color:#3C9794;}
+
+/* ── TABLES ── */
+.tc{background:var(--card);border-radius:var(--r);padding:16px 18px;
+    box-shadow:0 1px 3px rgba(0,0,0,.07);overflow-x:auto;margin-bottom:var(--gap);}
+.tc h3{font-size:12px;font-weight:800;margin-bottom:12px;color:#333;}
+table{width:100%;border-collapse:collapse;font-size:11px;min-width:600px;}
+thead th{text-align:right;padding:7px 10px;border-bottom:2px solid var(--border);
+         color:var(--muted);font-weight:800;font-size:10px;text-transform:uppercase;
+         letter-spacing:.4px;white-space:nowrap;font-family:inherit;}
+thead th:first-child{text-align:left;position:sticky;left:0;background:var(--card);}
+thead th.th-dato{color:#546e7a;border-bottom-color:#546e7a;}
+thead th.th-esc1{color:var(--e1);border-bottom-color:var(--e1);}
+thead th.th-esc2{color:var(--e2);border-bottom-color:var(--e2);}
+thead .th-group{text-align:center;background:#f8f9fb;font-size:9px;text-transform:uppercase;
+                letter-spacing:.5px;padding:4px 10px;border-bottom:1px solid var(--border);}
+thead .th-group.gr-dato{color:#546e7a;background:rgba(84,110,122,.06);}
+thead .th-group.gr-esc1{color:var(--e1);background:rgba(60,151,148,.06);}
+thead .th-group.gr-esc2{color:var(--e2);background:rgba(218,69,49,.06);}
+tbody td{text-align:right;padding:6px 10px;border-bottom:1px solid #f0f3f7;}
+tbody td:first-child{text-align:left;font-weight:700;position:sticky;left:0;background:var(--card);white-space:nowrap;}
+tbody tr:hover td{background:#f8fafb;}
+.vp{color:var(--pos);}.vn{color:var(--neg);}
+.sep-row td{background:#f5f7fa!important;font-weight:800;font-size:10px;color:var(--muted);
+            text-transform:uppercase;letter-spacing:.4px;}
+
+/* ── BUTTONS ── */
+.dl-bar{display:flex;justify-content:flex-end;gap:8px;margin-bottom:var(--gap);align-items:center;}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:6px;
+     border:none;font-size:12px;font-weight:800;cursor:pointer;transition:.15s;font-family:inherit;}
+.btn-dl{background:var(--e1);color:#fff;}
+.btn-dl:hover{background:var(--teal-dark);}
+.btn-sm{background:#f0f2f5;color:#333;border:1px solid var(--border);}
+.btn-sm:hover{background:#e4e7ed;}
+.btn-sm.active{background:var(--e1);color:#fff;border-color:var(--e1);}
+
+/* ── LEGEND / MISC ── */
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
+.lbadge{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;}
+.dot{width:10px;height:10px;border-radius:50%;}
+.panel{display:none;}.panel.active{display:block;}
+.sec-title{font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;
+           letter-spacing:.6px;margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid var(--teal-light);}
+.dato-note{display:inline-block;font-size:9px;color:var(--dato);background:rgba(84,110,122,.1);
+           border:1px solid rgba(84,110,122,.25);padding:2px 7px;border-radius:10px;
+           margin-left:8px;font-weight:800;}
+
+/* ── FOOTER ── */
+footer{text-align:center;padding:16px;font-size:11px;color:var(--muted);
+       border-top:2px solid var(--teal-light);background:var(--card);margin-top:var(--gap);}
+.footer-inner{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;}
+
+@media(max-width:900px){.g2,.g3,.g4{grid-template-columns:1fr;}.kpi-row{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-logo">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140" width="48" height="56" style="flex-shrink:0">
+  <circle cx="60" cy="58" r="56" fill="#8FCCCA"/>
+  <text x="60" y="78" text-anchor="middle" fill="white" font-family="Nunito,Arial,sans-serif"
+        font-weight="800" font-size="54" letter-spacing="-3">eg</text>
+  <text x="60" y="132" text-anchor="middle" fill="#3C9794" font-family="Nunito,Arial,sans-serif"
+        font-weight="600" font-size="20" letter-spacing="2">eco go</text>
+</svg>
+    <div class="hdr-brand">
+      <h1>Proyecciones Macroeconómicas</h1>
+      <p>Escenarios 1, 2 y 3 · 2024–2029 · Fuente: Eco Go Consultores</p>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="fg">
+      <label>Período global</label>
+      <select id="periodSel" onchange="app.refresh()">
+        <option value="all">2021–2029</option>
+        <option value="2023" selected>2023–2029</option>
+        <option value="2024">2024–2029</option>
+        <option value="2025">2025–2029</option>
+      </select>
+    </div>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="app.tab('macro',this)">📈 Macro Anual</div>
+  <div class="tab" onclick="app.tab('series',this)">📋 Series Mensuales</div>
+  <div class="tab" onclick="app.tab('fin',this)">🏦 Sistema Financiero</div>
+</div>
+
+<!-- ══════════════ PANEL MACRO ══════════════ -->
+<div id="pMacro" class="panel active">
+<div class="wrap">
+  <div class="kpi-row" id="kpis"></div>
+  <div class="dl-bar">
+    <button class="btn btn-dl" onclick="app.dlAnnual()">⬇ Descargar Series Anuales (CSV)</button>
+  </div>
+  <p class="sec-title">Actividad y Precios <span class="dato-note">Dato hasta 2025 · Escenarios 2026–2027</span></p>
+  <div class="g2">
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">PIB – Variación i.a.</div><div class="cc-sub">Crecimiento real anual (%)</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('cPIB',12)">1A</button><button class="rb" onclick="app.setRange('cPIB',36)">3A</button><button class="rb" onclick="app.setRange('cPIB',60)">5A</button><button class="rb" onclick="app.setRange('cPIB',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('cPIB')">⬇ PNG</button></div></div><canvas id="cPIB"></canvas></div>
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">Inflación – Variación i.a.</div><div class="cc-sub">IPC, variación dic-dic (%)</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('cInfl',12)">1A</button><button class="rb" onclick="app.setRange('cInfl',36)">3A</button><button class="rb" onclick="app.setRange('cInfl',60)">5A</button><button class="rb" onclick="app.setRange('cInfl',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('cInfl')">⬇ PNG</button></div></div><canvas id="cInfl"></canvas></div>
+  </div>
+  <div class="g2">
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">Salarios – Variación i.a.</div><div class="cc-sub">Sector privado registrado (%)</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('cSal',12)">1A</button><button class="rb" onclick="app.setRange('cSal',36)">3A</button><button class="rb" onclick="app.setRange('cSal',60)">5A</button><button class="rb" onclick="app.setRange('cSal',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('cSal')">⬇ PNG</button></div></div><canvas id="cSal"></canvas></div>
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">Desempleo (IV trimestre)</div><div class="cc-sub">Tasa de desocupación (%)</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('cDesem',12)">1A</button><button class="rb" onclick="app.setRange('cDesem',36)">3A</button><button class="rb" onclick="app.setRange('cDesem',60)">5A</button><button class="rb" onclick="app.setRange('cDesem',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('cDesem')">⬇ PNG</button></div></div><canvas id="cDesem"></canvas></div>
+  </div>
+  <p class="sec-title" style="margin-top:4px">Sector Externo y Fiscal <span class="dato-note">Dato hasta 2025 · Escenarios 2026–2027</span></p>
+  <div class="g2">
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">Tipo de Cambio (fin de período)</div><div class="cc-sub">Pesos por dólar</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('cTC',12)">1A</button><button class="rb" onclick="app.setRange('cTC',36)">3A</button><button class="rb" onclick="app.setRange('cTC',60)">5A</button><button class="rb" onclick="app.setRange('cTC',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('cTC')">⬇ PNG</button></div></div><canvas id="cTC"></canvas></div>
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">Resultado Primario (% PIB)</div><div class="cc-sub">Superávit / déficit primario</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('cFiscal',12)">1A</button><button class="rb" onclick="app.setRange('cFiscal',36)">3A</button><button class="rb" onclick="app.setRange('cFiscal',60)">5A</button><button class="rb" onclick="app.setRange('cFiscal',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('cFiscal')">⬇ PNG</button></div></div><canvas id="cFiscal"></canvas></div>
+  </div>
+  <div class="g2">
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">Balanza Comercial</div><div class="cc-sub">Exportaciones, Importaciones y Saldo (miles mill. USD)</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('cComercio',12)">1A</button><button class="rb" onclick="app.setRange('cComercio',36)">3A</button><button class="rb" onclick="app.setRange('cComercio',60)">5A</button><button class="rb" onclick="app.setRange('cComercio',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('cComercio')">⬇ PNG</button></div></div><canvas id="cComercio"></canvas></div>
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">Reservas Netas y Riesgo País</div><div class="cc-sub">Reservas netas FMI (mill. USD, eje izq.) · Riesgo País (eje der.)</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('cReservas',12)">1A</button><button class="rb" onclick="app.setRange('cReservas',36)">3A</button><button class="rb" onclick="app.setRange('cReservas',60)">5A</button><button class="rb" onclick="app.setRange('cReservas',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('cReservas')">⬇ PNG</button></div></div><canvas id="cReservas"></canvas></div>
+  </div>
+  <div class="tc">
+    <h3>Resumen Macro Anual</h3>
+    <div id="tblMacro"></div>
+  </div>
+</div></div>
+
+<!-- ══════════════ PANEL FINANCIERO ══════════════ -->
+<div id="pFin" class="panel">
+<div class="wrap">
+  <div class="dl-bar">
+    <div style="display:flex;gap:6px;align-items:center;margin-right:auto;">
+      <span style="font-size:11px;color:var(--muted);font-weight:600;">Escenarios 2026+:</span>
+      <button class="btn btn-sm active" id="btnE1" onclick="app.toggleEsc(1,this)">Esc. 1</button>
+      <button class="btn btn-sm active" id="btnE2" onclick="app.toggleEsc(2,this)">Esc. 2</button>
+      <button class="btn btn-sm active" id="btnE3" onclick="app.toggleEsc(3,this)">Esc. 3</button>
+    </div>
+    <button class="btn btn-dl" onclick="app.dlMonthly()">⬇ Descargar Series Mensuales (CSV)</button>
+  </div>
+  <p class="sec-title">Crédito y Depósitos – Variación Interanual <span class="dato-note">Dato hasta 2025 · Escenarios 2026–2027</span></p>
+  <div class="g2">
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">Préstamos en Pesos – Var. i.a.</div><div class="cc-sub">Variación interanual %</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('cPrestPesos',12)">1A</button><button class="rb" onclick="app.setRange('cPrestPesos',36)">3A</button><button class="rb" onclick="app.setRange('cPrestPesos',60)">5A</button><button class="rb" onclick="app.setRange('cPrestPesos',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('cPrestPesos')">⬇ PNG</button></div></div><canvas id="cPrestPesos"></canvas></div>
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">Depósitos en Pesos – Var. i.a.</div><div class="cc-sub">Variación interanual %</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('cDepPesos',12)">1A</button><button class="rb" onclick="app.setRange('cDepPesos',36)">3A</button><button class="rb" onclick="app.setRange('cDepPesos',60)">5A</button><button class="rb" onclick="app.setRange('cDepPesos',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('cDepPesos')">⬇ PNG</button></div></div><canvas id="cDepPesos"></canvas></div>
+  </div>
+  <div class="g2">
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">Préstamos en Dólares (ME) – Var. i.a.</div><div class="cc-sub">Variación interanual %</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('cPrestUSD',12)">1A</button><button class="rb" onclick="app.setRange('cPrestUSD',36)">3A</button><button class="rb" onclick="app.setRange('cPrestUSD',60)">5A</button><button class="rb" onclick="app.setRange('cPrestUSD',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('cPrestUSD')">⬇ PNG</button></div></div><canvas id="cPrestUSD"></canvas></div>
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">Depósitos en Dólares (ME) – Var. i.a.</div><div class="cc-sub">Variación interanual %</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('cDepUSD',12)">1A</button><button class="rb" onclick="app.setRange('cDepUSD',36)">3A</button><button class="rb" onclick="app.setRange('cDepUSD',60)">5A</button><button class="rb" onclick="app.setRange('cDepUSD',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('cDepUSD')">⬇ PNG</button></div></div><canvas id="cDepUSD"></canvas></div>
+  </div>
+  <div class="g2">
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">Préstamos Totales – Índice Nivel (2023=100)</div><div class="cc-sub">Índice encadenado a partir de variaciones i.a.</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('cPrestIdx',12)">1A</button><button class="rb" onclick="app.setRange('cPrestIdx',36)">3A</button><button class="rb" onclick="app.setRange('cPrestIdx',60)">5A</button><button class="rb" onclick="app.setRange('cPrestIdx',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('cPrestIdx')">⬇ PNG</button></div></div><canvas id="cPrestIdx"></canvas></div>
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">Depósitos Totales – Índice Nivel (2023=100)</div><div class="cc-sub">Índice encadenado a partir de variaciones i.a.</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('cDepIdx',12)">1A</button><button class="rb" onclick="app.setRange('cDepIdx',36)">3A</button><button class="rb" onclick="app.setRange('cDepIdx',60)">5A</button><button class="rb" onclick="app.setRange('cDepIdx',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('cDepIdx')">⬇ PNG</button></div></div><canvas id="cDepIdx"></canvas></div>
+  </div>
+  <div class="tc">
+    <h3>Series Financieras Mensuales – <span id="tblFinTitle">Escenario 1</span></h3>
+    <div id="tblFin"></div>
+  </div>
+</div></div>
+
+<!-- ══════════════ PANEL SERIES MENSUALES ══════════════ -->
+<div id="pSeries" class="panel">
+<div class="wrap">
+  <div class="dl-bar">
+    <div style="display:flex;gap:6px;align-items:center;margin-right:auto;">
+      <span style="font-size:11px;color:var(--muted);font-weight:600;">Escenarios 2026+:</span>
+      <button class="btn btn-sm active" id="stnE1" onclick="app.toggleEscSer(1,this)">Esc. 1</button>
+      <button class="btn btn-sm active" id="stnE2" onclick="app.toggleEscSer(2,this)">Esc. 2</button>
+    </div>
+    <button class="btn btn-dl" onclick="app.dlSeries()">⬇ Descargar Series (CSV)</button>
+  </div>
+
+  <p class="sec-title">Tipo de Cambio Nominal <span class="dato-note">Dato hasta dic'25 · Escenarios desde ene'26</span></p>
+  <div class="g2">
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">TCN Promedio – Nivel</div><div class="cc-sub">Pesos por dólar (promedio mensual)</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('sTCNprom',12)">1A</button><button class="rb" onclick="app.setRange('sTCNprom',36)">3A</button><button class="rb" onclick="app.setRange('sTCNprom',60)">5A</button><button class="rb" onclick="app.setRange('sTCNprom',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('sTCNprom')">⬇ PNG</button></div></div><canvas id="sTCNprom"></canvas></div>
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">TCN Fin de Período – Nivel</div><div class="cc-sub">Pesos por dólar (último día del mes)</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('sTCNfdp',12)">1A</button><button class="rb" onclick="app.setRange('sTCNfdp',36)">3A</button><button class="rb" onclick="app.setRange('sTCNfdp',60)">5A</button><button class="rb" onclick="app.setRange('sTCNfdp',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('sTCNfdp')">⬇ PNG</button></div></div><canvas id="sTCNfdp"></canvas></div>
+  </div>
+  <div class="g2">
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">TCN Promedio – Variación Mensual</div><div class="cc-sub">Var. m/m %</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('sTCNmes',12)">1A</button><button class="rb" onclick="app.setRange('sTCNmes',36)">3A</button><button class="rb" onclick="app.setRange('sTCNmes',60)">5A</button><button class="rb" onclick="app.setRange('sTCNmes',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('sTCNmes')">⬇ PNG</button></div></div><canvas id="sTCNmes"></canvas></div>
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">TCN Promedio – Variación i.a.</div><div class="cc-sub">Var. año contra año %</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('sTCNia',12)">1A</button><button class="rb" onclick="app.setRange('sTCNia',36)">3A</button><button class="rb" onclick="app.setRange('sTCNia',60)">5A</button><button class="rb" onclick="app.setRange('sTCNia',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('sTCNia')">⬇ PNG</button></div></div><canvas id="sTCNia"></canvas></div>
+  </div>
+
+  <p class="sec-title" style="margin-top:4px">Inflación (IPC) <span class="dato-note">Dato hasta dic'25 · Escenarios desde ene'26</span></p>
+  <div class="g2">
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">IPC – Índice de Nivel</div><div class="cc-sub">Índice base Ene'21 = 100</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('sIPCidx',12)">1A</button><button class="rb" onclick="app.setRange('sIPCidx',36)">3A</button><button class="rb" onclick="app.setRange('sIPCidx',60)">5A</button><button class="rb" onclick="app.setRange('sIPCidx',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('sIPCidx')">⬇ PNG</button></div></div><canvas id="sIPCidx"></canvas></div>
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">IPC – Variación Mensual</div><div class="cc-sub">Var. m/m %</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('sIPCmes',12)">1A</button><button class="rb" onclick="app.setRange('sIPCmes',36)">3A</button><button class="rb" onclick="app.setRange('sIPCmes',60)">5A</button><button class="rb" onclick="app.setRange('sIPCmes',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('sIPCmes')">⬇ PNG</button></div></div><canvas id="sIPCmes"></canvas></div>
+  </div>
+  <div class="g2">
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">IPC – Variación Interanual</div><div class="cc-sub">Var. año contra año %</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('sIPCia',12)">1A</button><button class="rb" onclick="app.setRange('sIPCia',36)">3A</button><button class="rb" onclick="app.setRange('sIPCia',60)">5A</button><button class="rb" onclick="app.setRange('sIPCia',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('sIPCia')">⬇ PNG</button></div></div><canvas id="sIPCia"></canvas></div>
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">Tasas de Interés (TNA %)</div><div class="cc-sub">Tipo de Política Monetaria · Badlar</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('sTasas',12)">1A</button><button class="rb" onclick="app.setRange('sTasas',36)">3A</button><button class="rb" onclick="app.setRange('sTasas',60)">5A</button><button class="rb" onclick="app.setRange('sTasas',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('sTasas')">⬇ PNG</button></div></div><canvas id="sTasas"></canvas></div>
+  </div>
+
+  <p class="sec-title" style="margin-top:4px">Salarios y Tipo de Cambio Real <span class="dato-note">Dato hasta dic'25 · Escenarios desde ene'26</span></p>
+  <div class="g2">
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">Salario Nominal – Índice</div><div class="cc-sub">Índice base Ene'21 = 100 (sector privado registrado)</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('sSalIdx',12)">1A</button><button class="rb" onclick="app.setRange('sSalIdx',36)">3A</button><button class="rb" onclick="app.setRange('sSalIdx',60)">5A</button><button class="rb" onclick="app.setRange('sSalIdx',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('sSalIdx')">⬇ PNG</button></div></div><canvas id="sSalIdx"></canvas></div>
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">Salario Nominal – Variación i.a.</div><div class="cc-sub">Var. año contra año %</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('sSalIA',12)">1A</button><button class="rb" onclick="app.setRange('sSalIA',36)">3A</button><button class="rb" onclick="app.setRange('sSalIA',60)">5A</button><button class="rb" onclick="app.setRange('sSalIA',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('sSalIA')">⬇ PNG</button></div></div><canvas id="sSalIA"></canvas></div>
+  </div>
+  <div class="g2">
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">Salario Real – Índice</div><div class="cc-sub">Salario nominal deflactado por IPC · Base Ene'21 = 100</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('sSalReal',12)">1A</button><button class="rb" onclick="app.setRange('sSalReal',36)">3A</button><button class="rb" onclick="app.setRange('sSalReal',60)">5A</button><button class="rb" onclick="app.setRange('sSalReal',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('sSalReal')">⬇ PNG</button></div></div><canvas id="sSalReal"></canvas></div>
+    <div class="cc"><div class="cc-header"><div class="cc-title-wrap"><div class="cc-title">Tipo de Cambio Real – Índice</div><div class="cc-sub">TCN prom / (IPC / IPC_Ene'21) · Base Ene'21 = 100</div></div><div class="cc-controls"><button class="rb active" onclick="app.setRange('sTCR',12)">1A</button><button class="rb" onclick="app.setRange('sTCR',36)">3A</button><button class="rb" onclick="app.setRange('sTCR',60)">5A</button><button class="rb" onclick="app.setRange('sTCR',null)">Todo</button><button class="dl-chart" title="Descargar PNG" onclick="app.dlPng('sTCR')">⬇ PNG</button></div></div><canvas id="sTCR"></canvas></div>
+  </div>
+
+  <div class="tc">
+    <h3>Series Mensuales Detalle – mostrando <span id="tblSerTitle">Escenario 1</span></h3>
+    <div id="tblSer"></div>
+  </div>
+</div></div>
+
+<footer>
+  <div class="footer-inner">
+    <span>© Eco Go Consultores · Proyecciones Macroeconómicas · Marzo 2026</span>
+    <span style="color:var(--border)">|</span>
+    <span>Generado con inteligencia artificial · Datos actualizados a Feb 2026</span>
+    <span style="color:var(--border)">|</span>
+    <a href="https://www.ecogo.com.ar" style="color:var(--e1);font-weight:700;text-decoration:none;">www.ecogo.com.ar</a>
+  </div>
+</footer>
+
+<script>
+
+// ── DATA (injected) ───────────────────────────────────────────────────────────
+
+const D1_MONTHLY = [{"f": "2021-01", "y": 2021, "m": 1, "tcn": 85.970835, "tcn_fdp": 87.2983, "ipc_mes": 0.04049, "ipc_ia": 0.38532, "sal_ia": 0.28778, "tpm": 0.38, "badlar": 0.341219, "ccl": 147.0285, "ccl_fdp": 150.52, "brecha": 0.710214, "rp": 1422.125632}, {"f": "2021-02", "y": 2021, "m": 2, "tcn": 88.674622, "tcn_fdp": 89.825, "ipc_mes": 0.035746, "ipc_ia": 0.406518, "sal_ia": 0.294174, "tpm": 0.38, "badlar": 0.341007, "ccl": 148.823278, "ccl_fdp": 145.32, "brecha": 0.678307, "rp": 1471.595947}, {"f": "2021-03", "y": 2021, "m": 3, "tcn": 91.066368, "tcn_fdp": 91.985, "ipc_mes": 0.048108, "ipc_ia": 0.426488, "sal_ia": 0.315223, "tpm": 0.38, "badlar": 0.340682, "ccl": 147.954545, "ccl_fdp": 147.16, "brecha": 0.624689, "rp": 1568.11487}, {"f": "2021-04", "y": 2021, "m": 4, "tcn": 92.863845, "tcn_fdp": 93.555, "ipc_mes": 0.040803, "ipc_ia": 0.462802, "sal_ia": 0.380766, "tpm": 0.38, "badlar": 0.340969, "ccl": 151.9585, "ccl_fdp": 155.64, "brecha": 0.636358, "rp": 1583.908333}, {"f": "2021-05", "y": 2021, "m": 5, "tcn": 94.104826, "tcn_fdp": 94.685, "ipc_mes": 0.03323, "ipc_ia": 0.488447, "sal_ia": 0.432611, "tpm": 0.38, "badlar": 0.341151, "ccl": 160.128421, "ccl_fdp": 165.72, "brecha": 0.701596, "rp": 1547.93315}, {"f": "2021-06", "y": 2021, "m": 6, "tcn": 95.25429, "tcn_fdp": 95.7267, "ipc_mes": 0.031745, "ipc_ia": 0.502001, "sal_ia": 0.455823, "tpm": 0.38, "badlar": 0.34119, "ccl": 165.094286, "ccl_fdp": 165.92, "brecha": 0.733195, "rp": 1514.253409}, {"f": "2021-07", "y": 2021, "m": 7, "tcn": 96.262505, "tcn_fdp": 96.685, "ipc_mes": 0.02997, "ipc_ia": 0.517662, "sal_ia": 0.511117, "tpm": 0.38, "badlar": 0.34131, "ccl": 167.031429, "ccl_fdp": 168.85, "brecha": 0.735166, "rp": 1596.668381}, {"f": "2021-08", "y": 2021, "m": 8, "tcn": 97.213814, "tcn_fdp": 97.7517, "ipc_mes": 0.024685, "ipc_ia": 0.514239, "sal_ia": 0.530309, "tpm": 0.38, "badlar": 0.341577, "ccl": 169.542857, "ccl_fdp": 170.4, "brecha": 0.74402, "rp": 1566.825636}, {"f": "2021-09", "y": 2021, "m": 9, "tcn": 98.284995, "tcn_fdp": 98.735, "ipc_mes": 0.035468, "ipc_ia": 0.524712, "sal_ia": 0.551734, "tpm": 0.38, "badlar": 0.341591, "ccl": 172.294091, "ccl_fdp": 175.12, "brecha": 0.753005, "rp": 1543.657}, {"f": "2021-10", "y": 2021, "m": 10, "tcn": 99.249126, "tcn_fdp": 99.7217, "ipc_mes": 0.035163, "ipc_ia": 0.521117, "sal_ia": 0.527703, "tpm": 0.38, "badlar": 0.341414, "ccl": 177.947778, "ccl_fdp": 179.32, "brecha": 0.79294, "rp": 1636.9419}, {"f": "2021-11", "y": 2021, "m": 11, "tcn": 100.310071, "tcn_fdp": 100.925, "ipc_mes": 0.025295, "ipc_ia": 0.511823, "sal_ia": 0.555024, "tpm": 0.38, "badlar": 0.341756, "ccl": 196.992857, "ccl_fdp": 214.15, "brecha": 0.963839, "rp": 1763.5622}, {"f": "2021-12", "y": 2021, "m": 12, "tcn": 101.8885, "tcn_fdp": 102.75, "ipc_mes": 0.0384, "ipc_ia": 0.509416, "sal_ia": 0.552678, "tpm": 0.38, "badlar": 0.342, "ccl": 208.4035, "ccl_fdp": 202.13, "brecha": 1.045407, "rp": 1728.903818}, {"f": "2022-01", "y": 2022, "m": 1, "tcn": 103.9846, "tcn_fdp": 105.015, "ipc_mes": 0.038757, "ipc_ia": 0.506902, "sal_ia": 0.561678, "tpm": 0.397143, "badlar": 0.369256, "ccl": 215.763333, "ccl_fdp": 244.61, "brecha": 1.074955, "rp": 1838.01245}, {"f": "2022-02", "y": 2022, "m": 2, "tcn": 106.307111, "tcn_fdp": 107.4417, "ipc_mes": 0.046944, "ipc_ia": 0.523193, "sal_ia": 0.54282, "tpm": 0.409211, "badlar": 0.383158, "ccl": 214.466842, "ccl_fdp": 200.47, "brecha": 1.017427, "rp": 1764.322421}, {"f": "2022-03", "y": 2022, "m": 3, "tcn": 109.4585, "tcn_fdp": 110.9783, "ipc_mes": 0.067288, "ipc_ia": 0.551066, "sal_ia": 0.564484, "tpm": 0.431667, "badlar": 0.405417, "ccl": 196.278, "ccl_fdp": 190.28, "brecha": 0.793173, "rp": 1819.187391}, {"f": "2022-04", "y": 2022, "m": 4, "tcn": 113.334474, "tcn_fdp": 115.3117, "ipc_mes": 0.060473, "ipc_ia": 0.58038, "sal_ia": 0.577255, "tpm": 0.459474, "badlar": 0.43273, "ccl": 197.214018, "ccl_fdp": 206.961, "brecha": 0.740106, "rp": 1728.30415}, {"f": "2022-05", "y": 2022, "m": 5, "tcn": 117.77367, "tcn_fdp": 120.1617, "ipc_mes": 0.050502, "ipc_ia": 0.606799, "sal_ia": 0.630001, "tpm": 0.482, "badlar": 0.455219, "ccl": 210.386956, "ccl_fdp": 210.51, "brecha": 0.786367, "rp": 1881.78319}, {"f": "2022-06", "y": 2022, "m": 6, "tcn": 122.73574, "tcn_fdp": 125.215, "ipc_mes": 0.052952, "ipc_ia": 0.639826, "sal_ia": 0.682974, "tpm": 0.5035, "badlar": 0.482062, "ccl": 230.55445, "ccl_fdp": 252.708, "brecha": 0.878462, "rp": 2150.381571}, {"f": "2022-07", "y": 2022, "m": 7, "tcn": 128.44539, "tcn_fdp": 131.2267, "ipc_mes": 0.074062, "ipc_ia": 0.710025, "sal_ia": 0.686522, "tpm": 0.527619, "badlar": 0.510714, "ccl": 302.504476, "ccl_fdp": 288.285, "brecha": 1.355121, "rp": 2701.9711}, {"f": "2022-08", "y": 2022, "m": 8, "tcn": 135.290295, "tcn_fdp": 138.7133, "ipc_mes": 0.069703, "ipc_ia": 0.785153, "sal_ia": 0.764768, "tpm": 0.660455, "badlar": 0.604886, "ccl": 289.691909, "ccl_fdp": 292.83, "brecha": 1.141262, "rp": 2417.345043}, {"f": "2022-09", "y": 2022, "m": 9, "tcn": 143.625233, "tcn_fdp": 147.315, "ipc_mes": 0.061655, "ipc_ia": 0.8303, "sal_ia": 0.802483, "tpm": 0.726429, "badlar": 0.664881, "ccl": 295.717952, "ccl_fdp": 308.955, "brecha": 1.058955, "rp": 2450.371238}, {"f": "2022-10", "y": 2022, "m": 10, "tcn": 152.592895, "tcn_fdp": 156.895, "ipc_mes": 0.063474, "ipc_ia": 0.880357, "sal_ia": 0.83004, "tpm": 0.75, "badlar": 0.690625, "ccl": 306.898474, "ccl_fdp": 307.3, "brecha": 1.011224, "rp": 2707.6944}, {"f": "2022-11", "y": 2022, "m": 11, "tcn": 162.118333, "tcn_fdp": 167.255, "ipc_mes": 0.049161, "ipc_ia": 0.924128, "sal_ia": 0.880355, "tpm": 0.75, "badlar": 0.691786, "ccl": 316.234238, "ccl_fdp": 322.75, "brecha": 0.950638, "rp": 2443.5202}, {"f": "2022-12", "y": 2022, "m": 12, "tcn": 172.90316, "tcn_fdp": 177.1283, "ipc_mes": 0.051246, "ipc_ia": 0.947932, "sal_ia": 0.937668, "tpm": 0.75, "badlar": 0.693, "ccl": 333.8268, "ccl_fdp": 344.13, "brecha": 0.930715, "rp": 2218.813714}, {"f": "2023-01", "y": 2023, "m": 1, "tcn": 182.244091, "tcn_fdp": 186.875, "ipc_mes": 0.060279, "ipc_ia": 0.988291, "sal_ia": 0.936879, "tpm": 0.75, "badlar": 0.694688, "ccl": 352.694545, "ccl_fdp": 367.42, "brecha": 0.935287, "rp": 1951.939263}, {"f": "2023-02", "y": 2023, "m": 2, "tcn": 191.892394, "tcn_fdp": 197.1533, "ipc_mes": 0.066277, "ipc_ia": 1.025008, "sal_ia": 0.993363, "tpm": 0.75, "badlar": 0.697743, "ccl": 367.644889, "ccl_fdp": 366.41, "brecha": 0.915891, "rp": 1968.202579}, {"f": "2023-03", "y": 2023, "m": 3, "tcn": 203.105536, "tcn_fdp": 208.9883, "ipc_mes": 0.076752, "ipc_ia": 1.042965, "sal_ia": 1.039809, "tpm": 0.765, "badlar": 0.709801, "ccl": 390.362273, "ccl_fdp": 406.54, "brecha": 0.921968, "rp": 2294.676739}, {"f": "2023-04", "y": 2023, "m": 4, "tcn": 216.555917, "tcn_fdp": 222.575, "ipc_mes": 0.084027, "ipc_ia": 1.088341, "sal_ia": 1.064263, "tpm": 0.802778, "badlar": 0.742361, "ccl": 427.546111, "ccl_fdp": 453.16, "brecha": 0.974299, "rp": 2508.151474}, {"f": "2023-05", "y": 2023, "m": 5, "tcn": 231.190835, "tcn_fdp": 239.325, "ipc_mes": 0.077728, "ipc_ia": 1.142463, "sal_ia": 1.087011, "tpm": 0.943, "badlar": 0.900469, "ccl": 474.1355, "ccl_fdp": 492.42, "brecha": 1.05084, "rp": 2577.1155}, {"f": "2023-06", "y": 2023, "m": 6, "tcn": 248.76167, "tcn_fdp": 256.675, "ipc_mes": 0.059508, "ipc_ia": 1.155803, "sal_ia": 1.099748, "tpm": 0.97, "badlar": 0.924469, "ccl": 503.5505, "ccl_fdp": 512.04, "brecha": 1.024229, "rp": 2312.1905}, {"f": "2023-07", "y": 2023, "m": 7, "tcn": 266.464686, "tcn_fdp": 275.2833, "ipc_mes": 0.063449, "ipc_ia": 1.1345, "sal_ia": 1.207311, "tpm": 0.97, "badlar": 0.926012, "ccl": 528.0, "ccl_fdp": 551.27, "brecha": 0.981501, "rp": 2013.8958}, {"f": "2023-08", "y": 2023, "m": 8, "tcn": 322.1341, "tcn_fdp": 350.0167, "ipc_mes": 0.124416, "ipc_ia": 1.243675, "sal_ia": 1.211257, "tpm": 1.094091, "badlar": 1.04017, "ccl": 683.58, "ccl_fdp": 778.62, "brecha": 1.122036, "rp": 2046.70719}, {"f": "2023-09", "y": 2023, "m": 9, "tcn": 349.998014, "tcn_fdp": 350.0083, "ipc_mes": 0.127498, "ipc_ia": 1.382824, "sal_ia": 1.366113, "tpm": 1.18, "badlar": 1.137351, "ccl": 758.307143, "ccl_fdp": 822.53, "brecha": 1.166604, "rp": 2247.5088}, {"f": "2023-10", "y": 2023, "m": 10, "tcn": 350.020415, "tcn_fdp": 350.0083, "ipc_mes": 0.083017, "ipc_ia": 1.426615, "sal_ia": 1.443205, "tpm": 1.27, "badlar": 1.220812, "ccl": 912.3515, "ccl_fdp": 864.84, "brecha": 1.606567, "rp": 2540.277952}, {"f": "2023-11", "y": 2023, "m": 11, "tcn": 353.84041, "tcn_fdp": 360.525, "ipc_mes": 0.128107, "ipc_ia": 1.609208, "sal_ia": 1.502308, "tpm": 1.33, "badlar": 1.2935, "ccl": 875.9295, "ccl_fdp": 839.14, "brecha": 1.475493, "rp": 2327.432286}, {"f": "2023-12", "y": 2023, "m": 12, "tcn": 641.994732, "tcn_fdp": 808.4833, "ipc_mes": 0.254657, "ipc_ia": 2.114076, "sal_ia": 1.657854, "tpm": 1.173684, "badlar": 1.211711, "ccl": 950.762632, "ccl_fdp": 973.15, "brecha": 0.480951, "rp": 1888.6987}, {"f": "2024-01", "y": 2024, "m": 1, "tcn": 818.345455, "tcn_fdp": 826.25, "ipc_mes": 0.206133, "ipc_ia": 2.542456, "sal_ia": 2.04909, "tpm": 1.0, "badlar": 1.091676, "ccl": 1207.440909, "ccl_fdp": 1248.95, "brecha": 0.475466, "rp": 1948.95581}, {"f": "2024-02", "y": 2024, "m": 2, "tcn": 834.914037, "tcn_fdp": 842.25, "ipc_mes": 0.132415, "ipc_ia": 2.762184, "sal_ia": 2.253511, "tpm": 1.0, "badlar": 1.088947, "ccl": 1169.818947, "ccl_fdp": 1076.81, "brecha": 0.401125, "rp": 1856.470053}, {"f": "2024-03", "y": 2024, "m": 3, "tcn": 850.337721, "tcn_fdp": 857.4167, "ipc_mes": 0.110097, "ipc_ia": 2.878691, "sal_ia": 2.317159, "tpm": 0.873684, "badlar": 0.854145, "ccl": 1067.61, "ccl_fdp": 1085.7, "brecha": 0.255513, "rp": 1563.461579}, {"f": "2024-04", "y": 2024, "m": 4, "tcn": 868.958335, "tcn_fdp": 876.75, "ipc_mes": 0.088319, "ipc_ia": 2.894049, "sal_ia": 2.47556, "tpm": 0.71, "badlar": 0.626687, "ccl": 1062.8735, "ccl_fdp": 1091.95, "brecha": 0.223158, "rp": 1291.9633}, {"f": "2024-05", "y": 2024, "m": 5, "tcn": 886.863636, "tcn_fdp": 895.25, "ipc_mes": 0.041763, "ipc_ia": 2.764103, "sal_ia": 2.46041, "tpm": 0.436364, "badlar": 0.355852, "ccl": 1153.181364, "ccl_fdp": 1247.42, "brecha": 0.300292, "rp": 1286.651238}, {"f": "2024-06", "y": 2024, "m": 6, "tcn": 903.779418, "tcn_fdp": 911.75, "ipc_mes": 0.045771, "ipc_ia": 2.715297, "sal_ia": 2.492754, "tpm": 0.4, "badlar": 0.334265, "ccl": 1305.784118, "ccl_fdp": 1350.08, "brecha": 0.444804, "rp": 1456.131053}, {"f": "2024-07", "y": 2024, "m": 7, "tcn": 923.765155, "tcn_fdp": 932.75, "ipc_mes": 0.040309, "ipc_ia": 2.634457, "sal_ia": 2.350594, "tpm": 0.4, "badlar": 0.369063, "ccl": 1350.359545, "ccl_fdp": 1284.84, "brecha": 0.4618, "rp": null}, {"f": "2024-08", "y": 2024, "m": 8, "tcn": 942.920445, "tcn_fdp": 952.8333, "ipc_mes": 0.041723, "ipc_ia": 2.367166, "sal_ia": 2.248516, "tpm": 0.4, "badlar": 0.388437, "ccl": 1296.611364, "ccl_fdp": 1299.94, "brecha": 0.375102, "rp": null}, {"f": "2024-09", "y": 2024, "m": 9, "tcn": 961.825405, "tcn_fdp": 970.9167, "ipc_mes": 0.034692, "ipc_ia": 2.090011, "sal_ia": 1.977094, "tpm": 0.4, "badlar": 0.39381, "ccl": 1248.201857, "ccl_fdp": 1243.74, "brecha": 0.297743, "rp": null}, {"f": "2024-10", "y": 2024, "m": 10, "tcn": 981.568177, "tcn_fdp": 990.75, "ipc_mes": 0.026917, "ipc_ia": 1.92995, "sal_ia": 1.846226, "tpm": 0.4, "badlar": 0.405085, "ccl": 1192.148209, "ccl_fdp": 1157.94, "brecha": 0.214534, "rp": null}, {"f": "2024-11", "y": 2024, "m": 11, "tcn": 1001.837718, "tcn_fdp": 1011.75, "ipc_mes": 0.024266, "ipc_ia": 1.66025, "sal_ia": 1.673736, "tpm": 0.35, "badlar": 0.361711, "ccl": 1138.6685, "ccl_fdp": 1109.33, "brecha": 0.13658, "rp": null}, {"f": "2024-12", "y": 2024, "m": 12, "tcn": 1020.706142, "tcn_fdp": 1032.5, "ipc_mes": 0.027041, "ipc_ia": 1.177636, "sal_ia": 1.475195, "tpm": 0.326316, "badlar": 0.32875, "ccl": 1122.856842, "ccl_fdp": 1186.93, "brecha": 0.100078, "rp": null}, {"f": "2025-01", "y": 2025, "m": 1, "tcn": 1043.564395, "tcn_fdp": 1053.5, "ipc_mes": 0.02211, "ipc_ia": 0.845389, "sal_ia": 1.110355, "tpm": 0.318636, "badlar": 0.314972, "ccl": 1184.644091, "ccl_fdp": 1185.41, "brecha": 0.13519, "rp": null}, {"f": "2025-02", "y": 2025, "m": 2, "tcn": 1058.4625, "tcn_fdp": 1064.375, "ipc_mes": 0.024016, "ipc_ia": 0.668741, "sal_ia": 0.892782, "tpm": 0.29, "badlar": 0.284781, "ccl": 1204.1825, "ccl_fdp": 1219.98, "brecha": 0.137671, "rp": null}, {"f": "2025-03", "y": 2025, "m": 3, "tcn": 1069.033335, "tcn_fdp": 1073.875, "ipc_mes": 0.037293, "ipc_ia": 0.5593, "sal_ia": 0.758134, "tpm": 0.29, "badlar": 0.295069, "ccl": 1266.151111, "ccl_fdp": 1319.46, "brecha": 0.184389, "rp": null}, {"f": "2025-04", "y": 2025, "m": 4, "tcn": 1121.567984, "tcn_fdp": 1172.0, "ipc_mes": 0.027808, "ipc_ia": 0.472603, "sal_ia": 0.609987, "tpm": 0.29, "badlar": 0.331546, "ccl": 1255.431053, "ccl_fdp": 1195.73, "brecha": 0.119354, "rp": null}, {"f": "2025-05", "y": 2025, "m": 5, "tcn": 1147.52916, "tcn_fdp": 1195.3333, "ipc_mes": 0.015011, "ipc_ia": 0.434787, "sal_ia": 0.52475, "tpm": 0.29, "badlar": 0.327531, "ccl": 1171.89, "ccl_fdp": 1204.92, "brecha": 0.021229, "rp": null}, {"f": "2025-06", "y": 2025, "m": 6, "tcn": 1181.355263, "tcn_fdp": 1194.0833, "ipc_mes": 0.016189, "ipc_ia": 0.394201, "sal_ia": 0.453882, "tpm": 0.29, "badlar": 0.321612, "ccl": 1193.635789, "ccl_fdp": 1210.25, "brecha": 0.010395, "rp": null}, {"f": "2025-07", "y": 2025, "m": 7, "tcn": 1267.022732, "tcn_fdp": 1351.8333, "ipc_mes": 0.019017, "ipc_ia": 0.365665, "sal_ia": 0.397783, "tpm": 0.29, "badlar": 0.324972, "ccl": 1279.487273, "ccl_fdp": 1358.82, "brecha": 0.009838, "rp": null}, {"f": "2025-08", "y": 2025, "m": 8, "tcn": 1329.537495, "tcn_fdp": 1323.8333, "ipc_mes": 0.018758, "ipc_ia": 0.335559, "sal_ia": 0.360598, "tpm": null, "badlar": 0.480312, "ccl": 1335.8085, "ccl_fdp": 1358.89, "brecha": 0.004717, "rp": null}, {"f": "2025-09", "y": 2025, "m": 9, "tcn": 1399.897736, "tcn_fdp": 1366.5833, "ipc_mes": 0.02076, "ipc_ia": 0.317576, "sal_ia": 0.329214, "tpm": null, "badlar": 0.48429, "ccl": 1451.03, "ccl_fdp": 1541.77, "brecha": 0.036526, "rp": null}, {"f": "2025-10", "y": 2025, "m": 10, "tcn": 1432.022727, "tcn_fdp": 1443.0, "ipc_mes": 0.023419, "ipc_ia": 0.313088, "sal_ia": 0.30528, "tpm": null, "badlar": 0.461676, "ccl": 1521.422273, "ccl_fdp": 1506.53, "brecha": 0.062429, "rp": null}, {"f": "2025-11", "y": 2025, "m": 11, "tcn": 1427.617647, "tcn_fdp": 1450.75, "ipc_mes": 0.024729, "ipc_ia": 0.313682, "sal_ia": 0.263828, "tpm": null, "badlar": 0.320257, "ccl": 1496.917059, "ccl_fdp": 1518.74, "brecha": 0.048542, "rp": null}, {"f": "2025-12", "y": 2025, "m": 12, "tcn": 1447.837721, "tcn_fdp": 1459.4167, "ipc_mes": 0.028453, "ipc_ia": 0.315488, "sal_ia": 0.229489, "tpm": null, "badlar": 0.264605, "ccl": 1522.873684, "ccl_fdp": 1521.34, "brecha": 0.051826, "rp": null}, {"f": "2026-01", "y": 2026, "m": 1, "tcn": 1449.334662, "tcn_fdp": 1447.6657, "ipc_mes": 0.028816, "ipc_ia": 0.324118, "sal_ia": 0.236037, "tpm": null, "badlar": 0.312024, "ccl": 1519.89619, "ccl_fdp": 1493.78, "brecha": 0.048685, "rp": null}, {"f": "2026-02", "y": 2026, "m": 2, "tcn": 1409.6571, "tcn_fdp": 1408.9662, "ipc_mes": 0.028963, "ipc_ia": 0.330515, "sal_ia": 0.242963, "tpm": null, "badlar": 0.307917, "ccl": 1471.301667, "ccl_fdp": 1460.27, "brecha": 0.04373, "rp": 550.0}, {"f": "2026-03", "y": 2026, "m": 3, "tcn": 1416.578278, "tcn_fdp": 1444.190355, "ipc_mes": 0.030297, "ipc_ia": 0.321541, "sal_ia": 0.251888, "tpm": null, "badlar": 0.2775, "ccl": 1468.159251, "ccl_fdp": 1496.77675, "brecha": 0.036412, "rp": 500.0}, {"f": "2026-04", "y": 2026, "m": 4, "tcn": 1455.021783, "tcn_fdp": 1465.85321, "ipc_mes": 0.011308, "ipc_ia": 0.300325, "sal_ia": 0.257981, "tpm": null, "badlar": 0.25, "ccl": 1508.002576, "ccl_fdp": 1519.228401, "brecha": 0.036412, "rp": 450.0}, {"f": "2026-05", "y": 2026, "m": 5, "tcn": 1473.182476, "tcn_fdp": 1480.511742, "ipc_mes": 0.006792, "ipc_ia": 0.289795, "sal_ia": 0.249404, "tpm": null, "badlar": 0.23, "ccl": 1526.824543, "ccl_fdp": 1534.420685, "brecha": 0.036412, "rp": 450.0}, {"f": "2026-06", "y": 2026, "m": 6, "tcn": 1487.914301, "tcn_fdp": 1495.31686, "ipc_mes": 0.004541, "ipc_ia": 0.27501, "sal_ia": 0.238304, "tpm": null, "badlar": 0.23, "ccl": 1542.092789, "ccl_fdp": 1549.764892, "brecha": 0.036412, "rp": 450.0}, {"f": "2026-07", "y": 2026, "m": 7, "tcn": 1510.270028, "tcn_fdp": 1525.223197, "ipc_mes": 0.006296, "ipc_ia": 0.259094, "sal_ia": 0.219297, "tpm": null, "badlar": 0.24, "ccl": 1565.262541, "ccl_fdp": 1580.76019, "brecha": 0.036412, "rp": 450.0}, {"f": "2026-08", "y": 2026, "m": 8, "tcn": 1540.475429, "tcn_fdp": 1555.727661, "ipc_mes": 0.004534, "ipc_ia": 0.241514, "sal_ia": 0.20184, "tpm": null, "badlar": 0.235, "ccl": 1596.567792, "ccl_fdp": 1612.375394, "brecha": 0.036412, "rp": 450.0}, {"f": "2026-09", "y": 2026, "m": 9, "tcn": 1567.395618, "tcn_fdp": 1579.063576, "ipc_mes": 0.006425, "ipc_ia": 0.22408, "sal_ia": 0.193308, "tpm": null, "badlar": 0.225, "ccl": 1624.468209, "ccl_fdp": 1636.561025, "brecha": 0.036412, "rp": 450.0}, {"f": "2026-10", "y": 2026, "m": 10, "tcn": 1590.906553, "tcn_fdp": 1602.74953, "ipc_mes": 0.004071, "ipc_ia": 0.200938, "sal_ia": 0.17768, "tpm": null, "badlar": 0.215, "ccl": 1648.835232, "ccl_fdp": 1661.10944, "brecha": 0.036412, "rp": 450.0}, {"f": "2026-11", "y": 2026, "m": 11, "tcn": 1614.770151, "tcn_fdp": 1626.790772, "ipc_mes": 0.002371, "ipc_ia": 0.174736, "sal_ia": 0.183652, "tpm": null, "badlar": 0.215, "ccl": 1673.567761, "ccl_fdp": 1686.026082, "brecha": 0.036412, "rp": 450.0}, {"f": "2026-12", "y": 2026, "m": 12, "tcn": 1638.991703, "tcn_fdp": 1651.192634, "ipc_mes": 0.001663, "ipc_ia": 0.144136, "sal_ia": 0.187643, "tpm": 0.25285, "badlar": 0.225, "ccl": 1698.671277, "ccl_fdp": 1711.316473, "brecha": 0.036412, "rp": 450.0}, {"f": "2027-01", "y": 2027, "m": 1, "tcn": 1663.576579, "tcn_fdp": 1675.960524, "ipc_mes": 0.007064, "ipc_ia": 0.119946, "sal_ia": 0.159016, "tpm": null, "badlar": 0.23, "ccl": 1724.151346, "ccl_fdp": 1736.98622, "brecha": 0.036412, "rp": 450.0}, {"f": "2027-02", "y": 2027, "m": 2, "tcn": 1688.530228, "tcn_fdp": 1701.099931, "ipc_mes": 0.010845, "ipc_ia": 0.100225, "sal_ia": 0.136764, "tpm": null, "badlar": 0.23, "ccl": 1750.013617, "ccl_fdp": 1763.041013, "brecha": 0.036412, "rp": 450.0}, {"f": "2027-03", "y": 2027, "m": 3, "tcn": 1713.858181, "tcn_fdp": 1726.61643, "ipc_mes": 0.012491, "ipc_ia": 0.081211, "sal_ia": 0.118958, "tpm": null, "badlar": 0.225, "ccl": 1776.263821, "ccl_fdp": 1789.486628, "brecha": 0.036412, "rp": 450.0}, {"f": "2027-04", "y": 2027, "m": 4, "tcn": 1739.566054, "tcn_fdp": 1752.515677, "ipc_mes": 0.014644, "ipc_ia": 0.084778, "sal_ia": 0.101792, "tpm": null, "badlar": 0.22, "ccl": 1802.907778, "ccl_fdp": 1816.328928, "brecha": 0.036412, "rp": 400.0}, {"f": "2027-05", "y": 2027, "m": 5, "tcn": 1765.659544, "tcn_fdp": 1778.803412, "ipc_mes": 0.016151, "ipc_ia": 0.094862, "sal_ia": 0.105965, "tpm": null, "badlar": 0.22, "ccl": 1829.951395, "ccl_fdp": 1843.573862, "brecha": 0.036412, "rp": 400.0}, {"f": "2027-06", "y": 2027, "m": 6, "tcn": 1792.144438, "tcn_fdp": 1805.485463, "ipc_mes": 0.016206, "ipc_ia": 0.107576, "sal_ia": 0.116779, "tpm": null, "badlar": 0.22, "ccl": 1857.400666, "ccl_fdp": 1871.22747, "brecha": 0.036412, "rp": 400.0}, {"f": "2027-07", "y": 2027, "m": 7, "tcn": 1827.783209, "tcn_fdp": 1850.080954, "ipc_mes": 0.01801, "ipc_ia": 0.120468, "sal_ia": 0.129173, "tpm": null, "badlar": 0.23, "ccl": 1894.337129, "ccl_fdp": 1917.446788, "brecha": 0.036412, "rp": 400.0}, {"f": "2027-08", "y": 2027, "m": 8, "tcn": 1872.472484, "tcn_fdp": 1894.864014, "ipc_mes": 0.020642, "ipc_ia": 0.138435, "sal_ia": 0.141737, "tpm": null, "badlar": 0.255, "ccl": 1940.653647, "ccl_fdp": 1963.860505, "brecha": 0.036412, "rp": 400.0}, {"f": "2027-09", "y": 2027, "m": 9, "tcn": 1917.338882, "tcn_fdp": 1939.81375, "ipc_mes": 0.022338, "ipc_ia": 0.156434, "sal_ia": 0.158874, "tpm": null, "badlar": 0.285, "ccl": 1987.153737, "ccl_fdp": 2010.446968, "brecha": 0.036412, "rp": 400.0}, {"f": "2027-10", "y": 2027, "m": 10, "tcn": 1952.662536, "tcn_fdp": 1965.511321, "ipc_mes": 0.021863, "ipc_ia": 0.176926, "sal_ia": 0.177179, "tpm": null, "badlar": 0.3, "ccl": 2023.763609, "ccl_fdp": 2037.080249, "brecha": 0.036412, "rp": 400.0}, {"f": "2027-11", "y": 2027, "m": 11, "tcn": 1978.26994, "tcn_fdp": 1991.028559, "ipc_mes": 0.019939, "ipc_ia": 0.197553, "sal_ia": 0.198017, "tpm": null, "badlar": 0.285, "ccl": 2050.303439, "ccl_fdp": 2063.52663, "brecha": 0.036412, "rp": 400.0}, {"f": "2027-12", "y": 2027, "m": 12, "tcn": 2003.694332, "tcn_fdp": 2016.360105, "ipc_mes": 0.018513, "ipc_ia": 0.217697, "sal_ia": 0.218992, "tpm": null, "badlar": 0.27, "ccl": 2076.653593, "ccl_fdp": 2089.780557, "brecha": 0.036412, "rp": 400.0}, {"f": "2028-01", "y": 2028, "m": 1, "tcn": 2028.545676, "tcn_fdp": 2040.731247, "ipc_mes": 0.01738, "ipc_ia": 0.23017, "sal_ia": 0.238242, "tpm": null, "badlar": 0.2575, "ccl": 2102.409834, "ccl_fdp": 2115.039111, "brecha": 0.036412, "rp": null}, {"f": "2028-02", "y": 2028, "m": 2, "tcn": 2052.447459, "tcn_fdp": 2064.163671, "ipc_mes": 0.016401, "ipc_ia": 0.236931, "sal_ia": 0.249673, "tpm": null, "badlar": 0.245, "ccl": 2127.181938, "ccl_fdp": 2139.324765, "brecha": 0.036412, "rp": null}, {"f": "2028-03", "y": 2028, "m": 3, "tcn": 2075.421876, "tcn_fdp": 2086.680081, "ipc_mes": 0.016238, "ipc_ia": 0.241509, "sal_ia": 0.256528, "tpm": null, "badlar": 0.245, "ccl": 2150.992907, "ccl_fdp": 2162.66105, "brecha": 0.036412, "rp": null}, {"f": "2028-04", "y": 2028, "m": 4, "tcn": 2097.492042, "tcn_fdp": 2108.304003, "ipc_mes": 0.015957, "ipc_ia": 0.243115, "sal_ia": 0.261169, "tpm": null, "badlar": 0.245, "ccl": 2173.8667, "ccl_fdp": 2185.072351, "brecha": 0.036412, "rp": null}, {"f": "2028-05", "y": 2028, "m": 5, "tcn": 2118.681807, "tcn_fdp": 2129.059611, "ipc_mes": 0.015601, "ipc_ia": 0.242442, "sal_ia": 0.262798, "tpm": null, "badlar": 0.245, "ccl": 2195.828035, "ccl_fdp": 2206.58372, "brecha": 0.036412, "rp": null}, {"f": "2028-06", "y": 2028, "m": 6, "tcn": 2139.015583, "tcn_fdp": 2148.971554, "ipc_mes": 0.0145, "ipc_ia": 0.240357, "sal_ia": 0.260875, "tpm": null, "badlar": 0.245, "ccl": 2216.902212, "ccl_fdp": 2227.220704, "brecha": 0.036412, "rp": null}, {"f": "2028-07", "y": 2028, "m": 7, "tcn": 2158.518184, "tcn_fdp": 2168.064815, "ipc_mes": 0.013585, "ipc_ia": 0.234966, "sal_ia": 0.258761, "tpm": null, "badlar": 0.245, "ccl": 2237.114949, "ccl_fdp": 2247.009195, "brecha": 0.036412, "rp": null}, {"f": "2028-08", "y": 2028, "m": 8, "tcn": 2177.214693, "tcn_fdp": 2186.36457, "ipc_mes": 0.012808, "ipc_ia": 0.225487, "sal_ia": 0.253295, "tpm": null, "badlar": 0.245, "ccl": 2256.492242, "ccl_fdp": 2265.975288, "brecha": 0.036412, "rp": null}, {"f": "2028-09", "y": 2028, "m": 9, "tcn": 2195.130323, "tcn_fdp": 2203.896076, "ipc_mes": 0.012134, "ipc_ia": 0.213256, "sal_ia": 0.243685, "tpm": null, "badlar": 0.245, "ccl": 2275.060223, "ccl_fdp": 2284.145158, "brecha": 0.036412, "rp": null}, {"f": "2028-10", "y": 2028, "m": 10, "tcn": 2212.290316, "tcn_fdp": 2220.684555, "ipc_mes": 0.011539, "ipc_ia": 0.200998, "sal_ia": 0.231285, "tpm": null, "badlar": 0.2375, "ccl": 2292.845052, "ccl_fdp": 2301.544945, "brecha": 0.036412, "rp": null}, {"f": "2028-11", "y": 2028, "m": 11, "tcn": 2228.71983, "tcn_fdp": 2236.755105, "ipc_mes": 0.011005, "ipc_ia": 0.190479, "sal_ia": 0.218857, "tpm": null, "badlar": 0.23, "ccl": 2309.872803, "ccl_fdp": 2318.200661, "brecha": 0.036412, "rp": null}, {"f": "2028-12", "y": 2028, "m": 12, "tcn": 2244.443857, "tcn_fdp": 2252.13261, "ipc_mes": 0.01052, "ipc_ia": 0.181138, "sal_ia": 0.208192, "tpm": null, "badlar": 0.23, "ccl": 2326.16938, "ccl_fdp": 2334.138098, "brecha": 0.036412, "rp": null}, {"f": "2029-01", "y": 2029, "m": 1, "tcn": 2259.874223, "tcn_fdp": 2267.615835, "ipc_mes": 0.010127, "ipc_ia": 0.172717, "sal_ia": 0.198721, "tpm": null, "badlar": 0.23, "ccl": 2342.161601, "ccl_fdp": 2350.185104, "brecha": 0.036412, "rp": null}, {"f": "2029-02", "y": 2029, "m": 2, "tcn": 2275.41067, "tcn_fdp": 2283.205505, "ipc_mes": 0.009851, "ipc_ia": 0.165161, "sal_ia": 0.190183, "tpm": null, "badlar": 0.23, "ccl": 2358.263768, "ccl_fdp": 2366.342431, "brecha": 0.036412, "rp": null}, {"f": "2029-03", "y": 2029, "m": 3, "tcn": 2291.053929, "tcn_fdp": 2298.902354, "ipc_mes": 0.009658, "ipc_ia": 0.157616, "sal_ia": 0.181361, "tpm": null, "badlar": 0.225, "ccl": 2374.476635, "ccl_fdp": 2382.610839, "brecha": 0.036412, "rp": null}, {"f": "2029-04", "y": 2029, "m": 4, "tcn": 2306.804735, "tcn_fdp": 2314.707116, "ipc_mes": 0.009523, "ipc_ia": 0.150285, "sal_ia": 0.172566, "tpm": null, "badlar": 0.215, "ccl": 2390.800965, "ccl_fdp": 2398.991091, "brecha": 0.036412, "rp": null}, {"f": "2029-05", "y": 2029, "m": 5, "tcn": 2322.663826, "tcn_fdp": 2330.620535, "ipc_mes": 0.009429, "ipc_ia": 0.143295, "sal_ia": 0.164003, "tpm": null, "badlar": 0.21, "ccl": 2407.237523, "ccl_fdp": 2415.483955, "brecha": 0.036412, "rp": null}, {"f": "2029-06", "y": 2029, "m": 6, "tcn": 2338.631947, "tcn_fdp": 2346.643358, "ipc_mes": 0.009363, "ipc_ia": 0.137506, "sal_ia": 0.156936, "tpm": null, "badlar": 0.21, "ccl": 2423.787081, "ccl_fdp": 2432.090206, "brecha": 0.036412, "rp": null}, {"f": "2029-07", "y": 2029, "m": 7, "tcn": 2354.709847, "tcn_fdp": 2362.776336, "ipc_mes": 0.009316, "ipc_ia": 0.132715, "sal_ia": 0.151084, "tpm": null, "badlar": 0.21, "ccl": 2440.450416, "ccl_fdp": 2448.810625, "brecha": 0.036412, "rp": null}, {"f": "2029-08", "y": 2029, "m": 8, "tcn": 2370.898282, "tcn_fdp": 2379.020227, "ipc_mes": 0.009284, "ipc_ia": 0.128774, "sal_ia": 0.146241, "tpm": null, "badlar": 0.21, "ccl": 2457.228309, "ccl_fdp": 2465.645994, "brecha": 0.036412, "rp": null}, {"f": "2029-09", "y": 2029, "m": 9, "tcn": 2387.19801, "tcn_fdp": 2395.375794, "ipc_mes": 0.009261, "ipc_ia": 0.125569, "sal_ia": 0.142256, "tpm": null, "badlar": 0.21, "ccl": 2474.12155, "ccl_fdp": 2482.597106, "brecha": 0.036412, "rp": null}, {"f": "2029-10", "y": 2029, "m": 10, "tcn": 2403.609798, "tcn_fdp": 2411.843803, "ipc_mes": 0.009245, "ipc_ia": 0.123017, "sal_ia": 0.139017, "tpm": null, "badlar": 0.21, "ccl": 2491.13093, "ccl_fdp": 2499.664754, "brecha": 0.036412, "rp": null}, {"f": "2029-11", "y": 2029, "m": 11, "tcn": 2420.134416, "tcn_fdp": 2428.425029, "ipc_mes": 0.009234, "ipc_ia": 0.12105, "sal_ia": 0.136436, "tpm": null, "badlar": 0.21, "ccl": 2508.257248, "ccl_fdp": 2516.849742, "brecha": 0.036412, "rp": null}, {"f": "2029-12", "y": 2029, "m": 12, "tcn": 2436.772639, "tcn_fdp": 2445.120249, "ipc_mes": 0.009226, "ipc_ia": 0.119614, "sal_ia": 0.134447, "tpm": null, "badlar": 0.21, "ccl": 2525.501308, "ccl_fdp": 2534.152875, "brecha": 0.036412, "rp": null}];
+const D2_MONTHLY = [{"f": "2021-01", "y": 2021, "m": 1, "tcn": 85.970835, "tcn_fdp": 87.2983, "ipc_mes": 0.04049, "ipc_ia": 0.38532, "sal_ia": 0.28778, "tpm": 0.38, "badlar": 0.341219, "ccl": 147.0285, "ccl_fdp": 150.52, "brecha": 0.710214, "rp": 1422.125632}, {"f": "2021-02", "y": 2021, "m": 2, "tcn": 88.674622, "tcn_fdp": 89.825, "ipc_mes": 0.035746, "ipc_ia": 0.406518, "sal_ia": 0.294174, "tpm": 0.38, "badlar": 0.341007, "ccl": 148.823278, "ccl_fdp": 145.32, "brecha": 0.678307, "rp": 1471.595947}, {"f": "2021-03", "y": 2021, "m": 3, "tcn": 91.066368, "tcn_fdp": 91.985, "ipc_mes": 0.048108, "ipc_ia": 0.426488, "sal_ia": 0.315223, "tpm": 0.38, "badlar": 0.340682, "ccl": 147.954545, "ccl_fdp": 147.16, "brecha": 0.624689, "rp": 1568.11487}, {"f": "2021-04", "y": 2021, "m": 4, "tcn": 92.863845, "tcn_fdp": 93.555, "ipc_mes": 0.040803, "ipc_ia": 0.462802, "sal_ia": 0.380766, "tpm": 0.38, "badlar": 0.340969, "ccl": 151.9585, "ccl_fdp": 155.64, "brecha": 0.636358, "rp": 1583.908333}, {"f": "2021-05", "y": 2021, "m": 5, "tcn": 94.104826, "tcn_fdp": 94.685, "ipc_mes": 0.03323, "ipc_ia": 0.488447, "sal_ia": 0.432611, "tpm": 0.38, "badlar": 0.341151, "ccl": 160.128421, "ccl_fdp": 165.72, "brecha": 0.701596, "rp": 1547.93315}, {"f": "2021-06", "y": 2021, "m": 6, "tcn": 95.25429, "tcn_fdp": 95.7267, "ipc_mes": 0.031745, "ipc_ia": 0.502001, "sal_ia": 0.455823, "tpm": 0.38, "badlar": 0.34119, "ccl": 165.094286, "ccl_fdp": 165.92, "brecha": 0.733195, "rp": 1514.253409}, {"f": "2021-07", "y": 2021, "m": 7, "tcn": 96.262505, "tcn_fdp": 96.685, "ipc_mes": 0.02997, "ipc_ia": 0.517662, "sal_ia": 0.511117, "tpm": 0.38, "badlar": 0.34131, "ccl": 167.031429, "ccl_fdp": 168.85, "brecha": 0.735166, "rp": 1596.668381}, {"f": "2021-08", "y": 2021, "m": 8, "tcn": 97.213814, "tcn_fdp": 97.7517, "ipc_mes": 0.024685, "ipc_ia": 0.514239, "sal_ia": 0.530309, "tpm": 0.38, "badlar": 0.341577, "ccl": 169.542857, "ccl_fdp": 170.4, "brecha": 0.74402, "rp": 1566.825636}, {"f": "2021-09", "y": 2021, "m": 9, "tcn": 98.284995, "tcn_fdp": 98.735, "ipc_mes": 0.035468, "ipc_ia": 0.524712, "sal_ia": 0.551734, "tpm": 0.38, "badlar": 0.341591, "ccl": 172.294091, "ccl_fdp": 175.12, "brecha": 0.753005, "rp": 1543.657}, {"f": "2021-10", "y": 2021, "m": 10, "tcn": 99.249126, "tcn_fdp": 99.7217, "ipc_mes": 0.035163, "ipc_ia": 0.521117, "sal_ia": 0.527703, "tpm": 0.38, "badlar": 0.341414, "ccl": 177.947778, "ccl_fdp": 179.32, "brecha": 0.79294, "rp": 1636.9419}, {"f": "2021-11", "y": 2021, "m": 11, "tcn": 100.310071, "tcn_fdp": 100.925, "ipc_mes": 0.025295, "ipc_ia": 0.511823, "sal_ia": 0.555024, "tpm": 0.38, "badlar": 0.341756, "ccl": 196.992857, "ccl_fdp": 214.15, "brecha": 0.963839, "rp": 1763.5622}, {"f": "2021-12", "y": 2021, "m": 12, "tcn": 101.8885, "tcn_fdp": 102.75, "ipc_mes": 0.0384, "ipc_ia": 0.509416, "sal_ia": 0.552678, "tpm": 0.38, "badlar": 0.342, "ccl": 208.4035, "ccl_fdp": 202.13, "brecha": 1.045407, "rp": 1728.903818}, {"f": "2022-01", "y": 2022, "m": 1, "tcn": 103.9846, "tcn_fdp": 105.015, "ipc_mes": 0.038757, "ipc_ia": 0.506902, "sal_ia": 0.561678, "tpm": 0.397143, "badlar": 0.369256, "ccl": 215.763333, "ccl_fdp": 244.61, "brecha": 1.074955, "rp": 1838.01245}, {"f": "2022-02", "y": 2022, "m": 2, "tcn": 106.307111, "tcn_fdp": 107.4417, "ipc_mes": 0.046944, "ipc_ia": 0.523193, "sal_ia": 0.54282, "tpm": 0.409211, "badlar": 0.383158, "ccl": 214.466842, "ccl_fdp": 200.47, "brecha": 1.017427, "rp": 1764.322421}, {"f": "2022-03", "y": 2022, "m": 3, "tcn": 109.4585, "tcn_fdp": 110.9783, "ipc_mes": 0.067288, "ipc_ia": 0.551066, "sal_ia": 0.564484, "tpm": 0.431667, "badlar": 0.405417, "ccl": 196.278, "ccl_fdp": 190.28, "brecha": 0.793173, "rp": 1819.187391}, {"f": "2022-04", "y": 2022, "m": 4, "tcn": 113.334474, "tcn_fdp": 115.3117, "ipc_mes": 0.060473, "ipc_ia": 0.58038, "sal_ia": 0.577255, "tpm": 0.459474, "badlar": 0.43273, "ccl": 197.214018, "ccl_fdp": 206.961, "brecha": 0.740106, "rp": 1728.30415}, {"f": "2022-05", "y": 2022, "m": 5, "tcn": 117.77367, "tcn_fdp": 120.1617, "ipc_mes": 0.050502, "ipc_ia": 0.606799, "sal_ia": 0.630001, "tpm": 0.482, "badlar": 0.455219, "ccl": 210.386956, "ccl_fdp": 210.51, "brecha": 0.786367, "rp": 1881.78319}, {"f": "2022-06", "y": 2022, "m": 6, "tcn": 122.73574, "tcn_fdp": 125.215, "ipc_mes": 0.052952, "ipc_ia": 0.639826, "sal_ia": 0.682974, "tpm": 0.5035, "badlar": 0.482062, "ccl": 230.55445, "ccl_fdp": 252.708, "brecha": 0.878462, "rp": 2150.381571}, {"f": "2022-07", "y": 2022, "m": 7, "tcn": 128.44539, "tcn_fdp": 131.2267, "ipc_mes": 0.074062, "ipc_ia": 0.710025, "sal_ia": 0.686522, "tpm": 0.527619, "badlar": 0.510714, "ccl": 302.504476, "ccl_fdp": 288.285, "brecha": 1.355121, "rp": 2701.9711}, {"f": "2022-08", "y": 2022, "m": 8, "tcn": 135.290295, "tcn_fdp": 138.7133, "ipc_mes": 0.069703, "ipc_ia": 0.785153, "sal_ia": 0.764768, "tpm": 0.660455, "badlar": 0.604886, "ccl": 289.691909, "ccl_fdp": 292.83, "brecha": 1.141262, "rp": 2417.345043}, {"f": "2022-09", "y": 2022, "m": 9, "tcn": 143.625233, "tcn_fdp": 147.315, "ipc_mes": 0.061655, "ipc_ia": 0.8303, "sal_ia": 0.802483, "tpm": 0.726429, "badlar": 0.664881, "ccl": 295.717952, "ccl_fdp": 308.955, "brecha": 1.058955, "rp": 2450.371238}, {"f": "2022-10", "y": 2022, "m": 10, "tcn": 152.592895, "tcn_fdp": 156.895, "ipc_mes": 0.063474, "ipc_ia": 0.880357, "sal_ia": 0.83004, "tpm": 0.75, "badlar": 0.690625, "ccl": 306.898474, "ccl_fdp": 307.3, "brecha": 1.011224, "rp": 2707.6944}, {"f": "2022-11", "y": 2022, "m": 11, "tcn": 162.118333, "tcn_fdp": 167.255, "ipc_mes": 0.049161, "ipc_ia": 0.924128, "sal_ia": 0.880355, "tpm": 0.75, "badlar": 0.691786, "ccl": 316.234238, "ccl_fdp": 322.75, "brecha": 0.950638, "rp": 2443.5202}, {"f": "2022-12", "y": 2022, "m": 12, "tcn": 172.90316, "tcn_fdp": 177.1283, "ipc_mes": 0.051246, "ipc_ia": 0.947932, "sal_ia": 0.937668, "tpm": 0.75, "badlar": 0.693, "ccl": 333.8268, "ccl_fdp": 344.13, "brecha": 0.930715, "rp": 2218.813714}, {"f": "2023-01", "y": 2023, "m": 1, "tcn": 182.244091, "tcn_fdp": 186.875, "ipc_mes": 0.060279, "ipc_ia": 0.988291, "sal_ia": 0.936879, "tpm": 0.75, "badlar": 0.694688, "ccl": 352.694545, "ccl_fdp": 367.42, "brecha": 0.935287, "rp": 1951.939263}, {"f": "2023-02", "y": 2023, "m": 2, "tcn": 191.892394, "tcn_fdp": 197.1533, "ipc_mes": 0.066277, "ipc_ia": 1.025008, "sal_ia": 0.993363, "tpm": 0.75, "badlar": 0.697743, "ccl": 367.644889, "ccl_fdp": 366.41, "brecha": 0.915891, "rp": 1968.202579}, {"f": "2023-03", "y": 2023, "m": 3, "tcn": 203.105536, "tcn_fdp": 208.9883, "ipc_mes": 0.076752, "ipc_ia": 1.042965, "sal_ia": 1.039809, "tpm": 0.765, "badlar": 0.709801, "ccl": 390.362273, "ccl_fdp": 406.54, "brecha": 0.921968, "rp": 2294.676739}, {"f": "2023-04", "y": 2023, "m": 4, "tcn": 216.555917, "tcn_fdp": 222.575, "ipc_mes": 0.084027, "ipc_ia": 1.088341, "sal_ia": 1.064263, "tpm": 0.802778, "badlar": 0.742361, "ccl": 427.546111, "ccl_fdp": 453.16, "brecha": 0.974299, "rp": 2508.151474}, {"f": "2023-05", "y": 2023, "m": 5, "tcn": 231.190835, "tcn_fdp": 239.325, "ipc_mes": 0.077728, "ipc_ia": 1.142463, "sal_ia": 1.087011, "tpm": 0.943, "badlar": 0.900469, "ccl": 474.1355, "ccl_fdp": 492.42, "brecha": 1.05084, "rp": 2577.1155}, {"f": "2023-06", "y": 2023, "m": 6, "tcn": 248.76167, "tcn_fdp": 256.675, "ipc_mes": 0.059508, "ipc_ia": 1.155803, "sal_ia": 1.099748, "tpm": 0.97, "badlar": 0.924469, "ccl": 503.5505, "ccl_fdp": 512.04, "brecha": 1.024229, "rp": 2312.1905}, {"f": "2023-07", "y": 2023, "m": 7, "tcn": 266.464686, "tcn_fdp": 275.2833, "ipc_mes": 0.063449, "ipc_ia": 1.1345, "sal_ia": 1.207311, "tpm": 0.97, "badlar": 0.926012, "ccl": 528.0, "ccl_fdp": 551.27, "brecha": 0.981501, "rp": 2013.8958}, {"f": "2023-08", "y": 2023, "m": 8, "tcn": 322.1341, "tcn_fdp": 350.0167, "ipc_mes": 0.124416, "ipc_ia": 1.243675, "sal_ia": 1.211257, "tpm": 1.094091, "badlar": 1.04017, "ccl": 683.58, "ccl_fdp": 778.62, "brecha": 1.122036, "rp": 2046.70719}, {"f": "2023-09", "y": 2023, "m": 9, "tcn": 349.998014, "tcn_fdp": 350.0083, "ipc_mes": 0.127498, "ipc_ia": 1.382824, "sal_ia": 1.366113, "tpm": 1.18, "badlar": 1.137351, "ccl": 758.307143, "ccl_fdp": 822.53, "brecha": 1.166604, "rp": 2247.5088}, {"f": "2023-10", "y": 2023, "m": 10, "tcn": 350.020415, "tcn_fdp": 350.0083, "ipc_mes": 0.083017, "ipc_ia": 1.426615, "sal_ia": 1.443205, "tpm": 1.27, "badlar": 1.220812, "ccl": 912.3515, "ccl_fdp": 864.84, "brecha": 1.606567, "rp": 2540.277952}, {"f": "2023-11", "y": 2023, "m": 11, "tcn": 353.84041, "tcn_fdp": 360.525, "ipc_mes": 0.128107, "ipc_ia": 1.609208, "sal_ia": 1.502308, "tpm": 1.33, "badlar": 1.2935, "ccl": 875.9295, "ccl_fdp": 839.14, "brecha": 1.475493, "rp": 2327.432286}, {"f": "2023-12", "y": 2023, "m": 12, "tcn": 641.994732, "tcn_fdp": 808.4833, "ipc_mes": 0.254657, "ipc_ia": 2.114076, "sal_ia": 1.657854, "tpm": 1.173684, "badlar": 1.211711, "ccl": 950.762632, "ccl_fdp": 973.15, "brecha": 0.480951, "rp": 1888.6987}, {"f": "2024-01", "y": 2024, "m": 1, "tcn": 818.345455, "tcn_fdp": 826.25, "ipc_mes": 0.206133, "ipc_ia": 2.542456, "sal_ia": 2.04909, "tpm": 1.0, "badlar": 1.091676, "ccl": 1207.440909, "ccl_fdp": 1248.95, "brecha": 0.475466, "rp": 1948.95581}, {"f": "2024-02", "y": 2024, "m": 2, "tcn": 834.914037, "tcn_fdp": 842.25, "ipc_mes": 0.132415, "ipc_ia": 2.762184, "sal_ia": 2.253511, "tpm": 1.0, "badlar": 1.088947, "ccl": 1169.818947, "ccl_fdp": 1076.81, "brecha": 0.401125, "rp": 1856.470053}, {"f": "2024-03", "y": 2024, "m": 3, "tcn": 850.337721, "tcn_fdp": 857.4167, "ipc_mes": 0.110097, "ipc_ia": 2.878691, "sal_ia": 2.317159, "tpm": 0.873684, "badlar": 0.854145, "ccl": 1067.61, "ccl_fdp": 1085.7, "brecha": 0.255513, "rp": 1563.461579}, {"f": "2024-04", "y": 2024, "m": 4, "tcn": 868.958335, "tcn_fdp": 876.75, "ipc_mes": 0.088319, "ipc_ia": 2.894049, "sal_ia": 2.47556, "tpm": 0.71, "badlar": 0.626687, "ccl": 1062.8735, "ccl_fdp": 1091.95, "brecha": 0.223158, "rp": 1291.9633}, {"f": "2024-05", "y": 2024, "m": 5, "tcn": 886.863636, "tcn_fdp": 895.25, "ipc_mes": 0.041763, "ipc_ia": 2.764103, "sal_ia": 2.46041, "tpm": 0.436364, "badlar": 0.355852, "ccl": 1153.181364, "ccl_fdp": 1247.42, "brecha": 0.300292, "rp": 1286.651238}, {"f": "2024-06", "y": 2024, "m": 6, "tcn": 903.779418, "tcn_fdp": 911.75, "ipc_mes": 0.045771, "ipc_ia": 2.715297, "sal_ia": 2.492754, "tpm": 0.4, "badlar": 0.334265, "ccl": 1305.784118, "ccl_fdp": 1350.08, "brecha": 0.444804, "rp": 1456.131053}, {"f": "2024-07", "y": 2024, "m": 7, "tcn": 923.765155, "tcn_fdp": 932.75, "ipc_mes": 0.040309, "ipc_ia": 2.634457, "sal_ia": 2.350594, "tpm": 0.4, "badlar": 0.369063, "ccl": 1350.359545, "ccl_fdp": 1284.84, "brecha": 0.4618, "rp": 1535.540864}, {"f": "2024-08", "y": 2024, "m": 8, "tcn": 942.920445, "tcn_fdp": 952.8333, "ipc_mes": 0.041723, "ipc_ia": 2.367166, "sal_ia": 2.248516, "tpm": 0.4, "badlar": 0.388437, "ccl": 1296.611364, "ccl_fdp": 1299.94, "brecha": 0.375102, "rp": 1529.616864}, {"f": "2024-09", "y": 2024, "m": 9, "tcn": 961.825405, "tcn_fdp": 970.9167, "ipc_mes": 0.034692, "ipc_ia": 2.090011, "sal_ia": 1.977094, "tpm": 0.4, "badlar": 0.39381, "ccl": 1248.201857, "ccl_fdp": 1243.74, "brecha": 0.297743, "rp": 1377.2731}, {"f": "2024-10", "y": 2024, "m": 10, "tcn": 981.568177, "tcn_fdp": 990.75, "ipc_mes": 0.026917, "ipc_ia": 1.92995, "sal_ia": 1.846226, "tpm": 0.4, "badlar": 0.405085, "ccl": 1192.148209, "ccl_fdp": 1157.94, "brecha": 0.214534, "rp": 1101.882045}, {"f": "2024-11", "y": 2024, "m": 11, "tcn": 1001.837718, "tcn_fdp": 1011.75, "ipc_mes": 0.024266, "ipc_ia": 1.66025, "sal_ia": 1.673736, "tpm": 0.35, "badlar": 0.361711, "ccl": 1138.6685, "ccl_fdp": 1109.33, "brecha": 0.13658, "rp": null}, {"f": "2024-12", "y": 2024, "m": 12, "tcn": 1020.706142, "tcn_fdp": 1032.5, "ipc_mes": 0.027041, "ipc_ia": 1.177636, "sal_ia": 1.475195, "tpm": 0.326316, "badlar": 0.32875, "ccl": 1122.856842, "ccl_fdp": 1186.93, "brecha": 0.100078, "rp": null}, {"f": "2025-01", "y": 2025, "m": 1, "tcn": 1043.564395, "tcn_fdp": 1053.5, "ipc_mes": 0.02211, "ipc_ia": 0.845389, "sal_ia": 1.110355, "tpm": 0.318636, "badlar": 0.314972, "ccl": 1184.644091, "ccl_fdp": 1185.41, "brecha": 0.13519, "rp": null}, {"f": "2025-02", "y": 2025, "m": 2, "tcn": 1058.4625, "tcn_fdp": 1064.375, "ipc_mes": 0.024016, "ipc_ia": 0.668741, "sal_ia": 0.892782, "tpm": 0.29, "badlar": 0.284781, "ccl": 1204.1825, "ccl_fdp": 1219.98, "brecha": 0.137671, "rp": null}, {"f": "2025-03", "y": 2025, "m": 3, "tcn": 1069.033335, "tcn_fdp": 1073.875, "ipc_mes": 0.037293, "ipc_ia": 0.5593, "sal_ia": 0.758134, "tpm": 0.29, "badlar": 0.295069, "ccl": 1266.151111, "ccl_fdp": 1319.46, "brecha": 0.184389, "rp": null}, {"f": "2025-04", "y": 2025, "m": 4, "tcn": 1121.567984, "tcn_fdp": 1172.0, "ipc_mes": 0.027808, "ipc_ia": 0.472603, "sal_ia": 0.609987, "tpm": 0.29, "badlar": 0.331546, "ccl": 1255.431053, "ccl_fdp": 1195.73, "brecha": 0.119354, "rp": null}, {"f": "2025-05", "y": 2025, "m": 5, "tcn": 1147.52916, "tcn_fdp": 1195.3333, "ipc_mes": 0.015011, "ipc_ia": 0.434787, "sal_ia": 0.52475, "tpm": 0.29, "badlar": 0.327531, "ccl": 1171.89, "ccl_fdp": 1204.92, "brecha": 0.021229, "rp": null}, {"f": "2025-06", "y": 2025, "m": 6, "tcn": 1181.355263, "tcn_fdp": 1194.0833, "ipc_mes": 0.016189, "ipc_ia": 0.394201, "sal_ia": 0.453882, "tpm": 0.29, "badlar": 0.321612, "ccl": 1193.635789, "ccl_fdp": 1210.25, "brecha": 0.010395, "rp": null}, {"f": "2025-07", "y": 2025, "m": 7, "tcn": 1267.022732, "tcn_fdp": 1351.8333, "ipc_mes": 0.019017, "ipc_ia": 0.365665, "sal_ia": 0.397783, "tpm": 0.29, "badlar": 0.324972, "ccl": 1279.487273, "ccl_fdp": 1358.82, "brecha": 0.009838, "rp": null}, {"f": "2025-08", "y": 2025, "m": 8, "tcn": 1329.537495, "tcn_fdp": 1323.8333, "ipc_mes": 0.018758, "ipc_ia": 0.335559, "sal_ia": 0.360598, "tpm": null, "badlar": 0.480312, "ccl": 1335.8085, "ccl_fdp": 1358.89, "brecha": 0.004717, "rp": null}, {"f": "2025-09", "y": 2025, "m": 9, "tcn": 1399.897736, "tcn_fdp": 1366.5833, "ipc_mes": 0.02076, "ipc_ia": 0.317576, "sal_ia": 0.329214, "tpm": null, "badlar": 0.48429, "ccl": 1451.03, "ccl_fdp": 1541.77, "brecha": 0.036526, "rp": 0.145254}, {"f": "2025-10", "y": 2025, "m": 10, "tcn": 1432.022727, "tcn_fdp": 1443.0, "ipc_mes": 0.023419, "ipc_ia": 0.313088, "sal_ia": 0.30528, "tpm": null, "badlar": 0.461676, "ccl": 1521.422273, "ccl_fdp": 1506.53, "brecha": 0.062429, "rp": null}, {"f": "2025-11", "y": 2025, "m": 11, "tcn": 1427.617647, "tcn_fdp": 1450.75, "ipc_mes": 0.024729, "ipc_ia": 0.313682, "sal_ia": 0.263828, "tpm": null, "badlar": 0.320257, "ccl": 1496.917059, "ccl_fdp": 1518.74, "brecha": 0.048542, "rp": null}, {"f": "2025-12", "y": 2025, "m": 12, "tcn": 1447.837721, "tcn_fdp": 1459.4167, "ipc_mes": 0.028453, "ipc_ia": 0.315488, "sal_ia": 0.229489, "tpm": null, "badlar": 0.264605, "ccl": 1522.873684, "ccl_fdp": 1521.34, "brecha": 0.051826, "rp": 0.107828}, {"f": "2026-01", "y": 2026, "m": 1, "tcn": 1449.334662, "tcn_fdp": 1447.6657, "ipc_mes": 0.028816, "ipc_ia": 0.324118, "sal_ia": 0.237239, "tpm": null, "badlar": 0.312024, "ccl": 1519.89619, "ccl_fdp": 1493.78, "brecha": 0.048685, "rp": null}, {"f": "2026-02", "y": 2026, "m": 2, "tcn": 1409.6571, "tcn_fdp": 1408.9662, "ipc_mes": 0.028963, "ipc_ia": 0.330515, "sal_ia": 0.24538, "tpm": null, "badlar": 0.307917, "ccl": 1471.301667, "ccl_fdp": 1460.27, "brecha": 0.04373, "rp": null}, {"f": "2026-03", "y": 2026, "m": 3, "tcn": 1416.578278, "tcn_fdp": 1444.190355, "ipc_mes": 0.030297, "ipc_ia": 0.321541, "sal_ia": 0.255542, "tpm": null, "badlar": 0.2775, "ccl": 1478.525509, "ccl_fdp": 1507.345067, "brecha": 0.04373, "rp": null}, {"f": "2026-04", "y": 2026, "m": 4, "tcn": 1458.632259, "tcn_fdp": 1473.074162, "ipc_mes": 0.011308, "ipc_ia": 0.300325, "sal_ia": 0.262878, "tpm": null, "badlar": 0.25, "ccl": 1531.563871, "ccl_fdp": 1546.72787, "brecha": 0.05, "rp": null}, {"f": "2026-05", "y": 2026, "m": 5, "tcn": 1487.804904, "tcn_fdp": 1502.535645, "ipc_mes": 0.006792, "ipc_ia": 0.289795, "sal_ia": 0.253648, "tpm": null, "badlar": 0.23, "ccl": 1562.195149, "ccl_fdp": 1577.662428, "brecha": 0.05, "rp": null}, {"f": "2026-06", "y": 2026, "m": 6, "tcn": 1517.561002, "tcn_fdp": 1532.586358, "ipc_mes": 0.004541, "ipc_ia": 0.27501, "sal_ia": 0.241894, "tpm": null, "badlar": 0.235, "ccl": 1593.439052, "ccl_fdp": 1609.215676, "brecha": 0.05, "rp": null}, {"f": "2026-07", "y": 2026, "m": 7, "tcn": 1593.889813, "tcn_fdp": 1655.193267, "ipc_mes": 0.006356, "ipc_ia": 0.259169, "sal_ia": 0.222224, "tpm": null, "badlar": 0.305, "ccl": 1673.584303, "ccl_fdp": 1737.95293, "brecha": 0.05, "rp": null}, {"f": "2026-08", "y": 2026, "m": 8, "tcn": 1671.7452, "tcn_fdp": 1688.297132, "ipc_mes": 0.007044, "ipc_ia": 0.24469, "sal_ia": 0.204199, "tpm": null, "badlar": 0.38, "ccl": 1755.33246, "ccl_fdp": 1772.711989, "brecha": 0.05, "rp": null}, {"f": "2026-09", "y": 2026, "m": 9, "tcn": 1789.59496, "tcn_fdp": 1890.892788, "ipc_mes": 5.3e-05, "ipc_ia": 0.21944, "sal_ia": 0.197444, "tpm": null, "badlar": 0.42, "ccl": 1879.074708, "ccl_fdp": 1985.437428, "brecha": 0.05, "rp": null}, {"f": "2026-10", "y": 2026, "m": 10, "tcn": 1895.62002, "tcn_fdp": 1900.347252, "ipc_mes": 0.005664, "ipc_ia": 0.198284, "sal_ia": 0.174286, "tpm": null, "badlar": 0.42, "ccl": 1990.401021, "ccl_fdp": 1995.364615, "brecha": 0.05, "rp": null}, {"f": "2026-11", "y": 2026, "m": 11, "tcn": 1905.09812, "tcn_fdp": 1909.848988, "ipc_mes": 0.003026, "ipc_ia": 0.172904, "sal_ia": 0.182111, "tpm": null, "badlar": 0.39, "ccl": 2000.353026, "ccl_fdp": 2005.341438, "brecha": 0.05, "rp": null}, {"f": "2026-12", "y": 2026, "m": 12, "tcn": 1919.398233, "tcn_fdp": 1928.947478, "ipc_mes": 0.000319, "ipc_ia": 0.140819, "sal_ia": 0.203419, "tpm": null, "badlar": 0.36, "ccl": 2015.368145, "ccl_fdp": 2025.394852, "brecha": 0.05, "rp": null}, {"f": "2027-01", "y": 2027, "m": 1, "tcn": 1953.059322, "tcn_fdp": 1977.171165, "ipc_mes": 0.004491, "ipc_ia": 0.113846, "sal_ia": 0.169373, "tpm": null, "badlar": 0.325, "ccl": 2050.712288, "ccl_fdp": 2076.029723, "brecha": 0.05, "rp": null}, {"f": "2027-02", "y": 2027, "m": 2, "tcn": 1996.942877, "tcn_fdp": 2016.714588, "ipc_mes": 0.009979, "ipc_ia": 0.093295, "sal_ia": 0.140769, "tpm": null, "badlar": 0.3, "ccl": 2096.790021, "ccl_fdp": 2117.550318, "brecha": 0.05, "rp": null}, {"f": "2027-03", "y": 2027, "m": 3, "tcn": 2031.839948, "tcn_fdp": 2046.965307, "ipc_mes": 0.010437, "ipc_ia": 0.072221, "sal_ia": 0.118967, "tpm": null, "badlar": 0.28, "ccl": 2133.431945, "ccl_fdp": 2149.313573, "brecha": 0.05, "rp": null}, {"f": "2027-04", "y": 2027, "m": 4, "tcn": 2057.200134, "tcn_fdp": 2067.43496, "ipc_mes": 0.01127, "ipc_ia": 0.072181, "sal_ia": 0.096674, "tpm": null, "badlar": 0.26, "ccl": 2160.060141, "ccl_fdp": 2170.806708, "brecha": 0.05, "rp": null}, {"f": "2027-05", "y": 2027, "m": 5, "tcn": 2077.772135, "tcn_fdp": 2088.10931, "ipc_mes": 0.011125, "ipc_ia": 0.076796, "sal_ia": 0.095915, "tpm": null, "badlar": 0.24, "ccl": 2181.660742, "ccl_fdp": 2192.514775, "brecha": 0.05, "rp": null}, {"f": "2027-06", "y": 2027, "m": 6, "tcn": 2098.549857, "tcn_fdp": 2108.990403, "ipc_mes": 0.015021, "ipc_ia": 0.088031, "sal_ia": 0.099903, "tpm": null, "badlar": 0.23, "ccl": 2203.477349, "ccl_fdp": 2214.439923, "brecha": 0.05, "rp": null}, {"f": "2027-07", "y": 2027, "m": 7, "tcn": 2130.080307, "tcn_fdp": 2151.170211, "ipc_mes": 0.015338, "ipc_ia": 0.097742, "sal_ia": 0.110767, "tpm": null, "badlar": 0.23, "ccl": 2236.584322, "ccl_fdp": 2258.728722, "brecha": 0.05, "rp": null}, {"f": "2027-08", "y": 2027, "m": 8, "tcn": 2172.681913, "tcn_fdp": 2194.193615, "ipc_mes": 0.018059, "ipc_ia": 0.109749, "sal_ia": 0.120075, "tpm": null, "badlar": 0.255, "ccl": 2281.316009, "ccl_fdp": 2303.903296, "brecha": 0.05, "rp": null}, {"f": "2027-09", "y": 2027, "m": 9, "tcn": 2238.077488, "tcn_fdp": 2281.96136, "ipc_mes": 0.02405, "ipc_ia": 0.136378, "sal_ia": 0.131805, "tpm": null, "badlar": 0.305, "ccl": 2349.981362, "ccl_fdp": 2396.059428, "brecha": 0.05, "rp": null}, {"f": "2027-10", "y": 2027, "m": 10, "tcn": 2339.010394, "tcn_fdp": 2396.059428, "ipc_mes": 0.032869, "ipc_ia": 0.16712, "sal_ia": 0.158622, "tpm": null, "badlar": 0.355, "ccl": 2455.960914, "ccl_fdp": 2515.862399, "brecha": 0.05, "rp": null}, {"f": "2027-11", "y": 2027, "m": 11, "tcn": 2420.020022, "tcn_fdp": 2443.980617, "ipc_mes": 0.034089, "ipc_ia": 0.203266, "sal_ia": 0.189919, "tpm": null, "badlar": 0.39, "ccl": 2541.021023, "ccl_fdp": 2566.179647, "brecha": 0.05, "rp": null}, {"f": "2027-12", "y": 2027, "m": 12, "tcn": 2462.310471, "tcn_fdp": 2480.640326, "ipc_mes": 0.029821, "ipc_ia": 0.238753, "sal_ia": 0.20989, "tpm": null, "badlar": 0.4, "ccl": 2585.425995, "ccl_fdp": 2604.672342, "brecha": 0.05, "rp": null}, {"f": "2028-01", "y": 2028, "m": 1, "tcn": 2498.873032, "tcn_fdp": 2517.105739, "ipc_mes": 0.025955, "ipc_ia": 0.265223, "sal_ia": 0.246643, "tpm": null, "badlar": 0.39, "ccl": 2623.816684, "ccl_fdp": 2642.961025, "brecha": 0.05, "rp": null}, {"f": "2028-02", "y": 2028, "m": 2, "tcn": 2535.236451, "tcn_fdp": 2553.367164, "ipc_mes": 0.023079, "ipc_ia": 0.281635, "sal_ia": 0.274077, "tpm": null, "badlar": 0.38, "ccl": 2661.998274, "ccl_fdp": 2681.035522, "brecha": 0.05, "rp": null}, {"f": "2028-03", "y": 2028, "m": 3, "tcn": 2571.391229, "tcn_fdp": 2589.415295, "ipc_mes": 0.020919, "ipc_ia": 0.294929, "sal_ia": 0.291094, "tpm": null, "badlar": 0.38, "ccl": 2699.960791, "ccl_fdp": 2718.88606, "brecha": 0.05, "rp": null}, {"f": "2028-04", "y": 2028, "m": 4, "tcn": 2607.328252, "tcn_fdp": 2625.241208, "ipc_mes": 0.019275, "ipc_ia": 0.30518, "sal_ia": 0.304884, "tpm": null, "badlar": 0.365, "ccl": 2737.694664, "ccl_fdp": 2756.503269, "brecha": 0.05, "rp": null}, {"f": "2028-05", "y": 2028, "m": 5, "tcn": 2643.038784, "tcn_fdp": 2660.83636, "ipc_mes": 0.018006, "ipc_ia": 0.314061, "sal_ia": 0.31552, "tpm": null, "badlar": 0.35, "ccl": 2775.190724, "ccl_fdp": 2793.878178, "brecha": 0.05, "rp": null}, {"f": "2028-06", "y": 2028, "m": 6, "tcn": 2678.514472, "tcn_fdp": 2696.192584, "ipc_mes": 0.017009, "ipc_ia": 0.316635, "sal_ia": 0.324738, "tpm": null, "badlar": 0.35, "ccl": 2812.440196, "ccl_fdp": 2831.002214, "brecha": 0.05, "rp": null}, {"f": "2028-07", "y": 2028, "m": 7, "tcn": 2713.747337, "tcn_fdp": 2731.302089, "ipc_mes": 0.01621, "ipc_ia": 0.317765, "sal_ia": 0.327408, "tpm": null, "badlar": 0.35, "ccl": 2849.434703, "ccl_fdp": 2867.867193, "brecha": 0.05, "rp": null}, {"f": "2028-08", "y": 2028, "m": 8, "tcn": 2748.72977, "tcn_fdp": 2766.157451, "ipc_mes": 0.015554, "ipc_ia": 0.314524, "sal_ia": 0.328582, "tpm": null, "badlar": 0.35, "ccl": 2886.166259, "ccl_fdp": 2904.465324, "brecha": 0.05, "rp": null}, {"f": "2028-09", "y": 2028, "m": 9, "tcn": 2783.454533, "tcn_fdp": 2800.751615, "ipc_mes": 0.015005, "ipc_ia": 0.302913, "sal_ia": 0.325217, "tpm": null, "badlar": 0.34, "ccl": 2922.62726, "ccl_fdp": 2940.789196, "brecha": 0.05, "rp": null}, {"f": "2028-10", "y": 2028, "m": 10, "tcn": 2817.91475, "tcn_fdp": 2835.077885, "ipc_mes": 0.014532, "ipc_ia": 0.279782, "sal_ia": 0.313169, "tpm": null, "badlar": 0.33, "ccl": 2958.810487, "ccl_fdp": 2976.831779, "brecha": 0.05, "rp": null}, {"f": "2028-11", "y": 2028, "m": 11, "tcn": 2852.103903, "tcn_fdp": 2869.129921, "ipc_mes": 0.014118, "ipc_ia": 0.255065, "sal_ia": 0.28918, "tpm": null, "badlar": 0.33, "ccl": 2994.709098, "ccl_fdp": 3012.586417, "brecha": 0.05, "rp": null}, {"f": "2028-12", "y": 2028, "m": 12, "tcn": 2886.015828, "tcn_fdp": 2902.901734, "ipc_mes": 0.013746, "ipc_ia": 0.235474, "sal_ia": 0.26356, "tpm": null, "badlar": 0.33, "ccl": 3030.316619, "ccl_fdp": 3048.046821, "brecha": 0.05, "rp": null}, {"f": "2029-01", "y": 2029, "m": 1, "tcn": 2919.644708, "tcn_fdp": 2936.387681, "ipc_mes": 0.013407, "ipc_ia": 0.220363, "sal_ia": 0.243263, "tpm": null, "badlar": 0.33, "ccl": 3065.626943, "ccl_fdp": 3083.207065, "brecha": 0.05, "rp": null}, {"f": "2029-02", "y": 2029, "m": 2, "tcn": 2952.985068, "tcn_fdp": 2969.582454, "ipc_mes": 0.013092, "ipc_ia": 0.208449, "sal_ia": 0.227611, "tpm": null, "badlar": 0.33, "ccl": 3100.634321, "ccl_fdp": 3118.061577, "brecha": 0.05, "rp": null}, {"f": "2029-03", "y": 2029, "m": 3, "tcn": 2986.031768, "tcn_fdp": 3002.481082, "ipc_mes": 0.012797, "ipc_ia": 0.198835, "sal_ia": 0.215276, "tpm": null, "badlar": 0.33, "ccl": 3135.333357, "ccl_fdp": 3152.605136, "brecha": 0.05, "rp": null}, {"f": "2029-04", "y": 2029, "m": 4, "tcn": 3018.779999, "tcn_fdp": 3035.078917, "ipc_mes": 0.012516, "ipc_ia": 0.190886, "sal_ia": 0.205324, "tpm": null, "badlar": 0.32, "ccl": 3169.718999, "ccl_fdp": 3186.832862, "brecha": 0.05, "rp": null}, {"f": "2029-05", "y": 2029, "m": 5, "tcn": 3051.225273, "tcn_fdp": 3067.37163, "ipc_mes": 0.012249, "ipc_ia": 0.184151, "sal_ia": 0.197096, "tpm": null, "badlar": 0.31, "ccl": 3203.786537, "ccl_fdp": 3220.740211, "brecha": 0.05, "rp": null}, {"f": "2029-06", "y": 2029, "m": 6, "tcn": 3083.363418, "tcn_fdp": 3099.355206, "ipc_mes": 0.011991, "ipc_ia": 0.178308, "sal_ia": 0.190127, "tpm": null, "badlar": 0.31, "ccl": 3237.531588, "ccl_fdp": 3254.322966, "brecha": 0.05, "rp": null}, {"f": "2029-07", "y": 2029, "m": 7, "tcn": 3115.19057, "tcn_fdp": 3131.025934, "ipc_mes": 0.011742, "ipc_ia": 0.173128, "sal_ia": 0.184081, "tpm": null, "badlar": 0.31, "ccl": 3270.950098, "ccl_fdp": 3287.57723, "brecha": 0.05, "rp": null}, {"f": "2029-08", "y": 2029, "m": 8, "tcn": 3146.703168, "tcn_fdp": 3162.380402, "ipc_mes": 0.011501, "ipc_ia": 0.168446, "sal_ia": 0.178722, "tpm": null, "badlar": 0.31, "ccl": 3304.038326, "ccl_fdp": 3320.499422, "brecha": 0.05, "rp": null}, {"f": "2029-09", "y": 2029, "m": 9, "tcn": 3177.897945, "tcn_fdp": 3193.415488, "ipc_mes": 0.011266, "ipc_ia": 0.164142, "sal_ia": 0.173879, "tpm": null, "badlar": 0.3, "ccl": 3336.792842, "ccl_fdp": 3353.086263, "brecha": 0.05, "rp": null}, {"f": "2029-10", "y": 2029, "m": 10, "tcn": 3208.771921, "tcn_fdp": 3224.128355, "ipc_mes": 0.011038, "ipc_ia": 0.160132, "sal_ia": 0.169427, "tpm": null, "badlar": 0.29, "ccl": 3369.210518, "ccl_fdp": 3385.334772, "brecha": 0.05, "rp": null}, {"f": "2029-11", "y": 2029, "m": 11, "tcn": 3239.322397, "tcn_fdp": 3254.516439, "ipc_mes": 0.010814, "ipc_ia": 0.156353, "sal_ia": 0.16528, "tpm": null, "badlar": 0.29, "ccl": 3401.288517, "ccl_fdp": 3417.242261, "brecha": 0.05, "rp": null}, {"f": "2029-12", "y": 2029, "m": 12, "tcn": 3269.546943, "tcn_fdp": 3284.577447, "ipc_mes": 0.010596, "ipc_ia": 0.15276, "sal_ia": 0.161372, "tpm": null, "badlar": 0.29, "ccl": 3433.02429, "ccl_fdp": 3448.80632, "brecha": 0.05, "rp": null}];
+const D3_MONTHLY = [{"f": "2021-01", "y": 2021, "m": 1, "tcn": 85.970835, "tcn_fdp": 87.2983, "ipc_mes": 0.04049, "ipc_ia": 0.38532, "sal_ia": 0.28778, "tpm": 0.38, "badlar": 0.341219, "ccl": 147.0285, "ccl_fdp": 150.52, "brecha": 0.710214, "rp": 1445.299}, {"f": "2021-02", "y": 2021, "m": 2, "tcn": 88.674622, "tcn_fdp": 89.825, "ipc_mes": 0.035746, "ipc_ia": 0.406518, "sal_ia": 0.294174, "tpm": 0.38, "badlar": 0.341007, "ccl": 148.823278, "ccl_fdp": 145.32, "brecha": 0.678307, "rp": 1510.769}, {"f": "2021-03", "y": 2021, "m": 3, "tcn": 91.066368, "tcn_fdp": 91.985, "ipc_mes": 0.048108, "ipc_ia": 0.426488, "sal_ia": 0.315223, "tpm": 0.38, "badlar": 0.340682, "ccl": 147.954545, "ccl_fdp": 147.16, "brecha": 0.624689, "rp": 1588.621}, {"f": "2021-04", "y": 2021, "m": 4, "tcn": 92.863845, "tcn_fdp": 93.555, "ipc_mes": 0.040803, "ipc_ia": 0.462802, "sal_ia": 0.380766, "tpm": 0.38, "badlar": 0.340969, "ccl": 151.9585, "ccl_fdp": 155.64, "brecha": 0.636358, "rp": 1551.403}, {"f": "2021-05", "y": 2021, "m": 5, "tcn": 94.104826, "tcn_fdp": 94.685, "ipc_mes": 0.03323, "ipc_ia": 0.488447, "sal_ia": 0.432611, "tpm": 0.38, "badlar": 0.341151, "ccl": 160.128421, "ccl_fdp": 165.72, "brecha": 0.701596, "rp": 1507.847}, {"f": "2021-06", "y": 2021, "m": 6, "tcn": 95.25429, "tcn_fdp": 95.7267, "ipc_mes": 0.031745, "ipc_ia": 0.502001, "sal_ia": 0.455823, "tpm": 0.38, "badlar": 0.34119, "ccl": 165.094286, "ccl_fdp": 165.92, "brecha": 0.733195, "rp": 1596.313}, {"f": "2021-07", "y": 2021, "m": 7, "tcn": 96.262505, "tcn_fdp": 96.685, "ipc_mes": 0.02997, "ipc_ia": 0.517662, "sal_ia": 0.511117, "tpm": 0.38, "badlar": 0.34131, "ccl": 167.031429, "ccl_fdp": 168.85, "brecha": 0.735166, "rp": 1590.955}, {"f": "2021-08", "y": 2021, "m": 8, "tcn": 97.213814, "tcn_fdp": 97.7517, "ipc_mes": 0.024685, "ipc_ia": 0.514239, "sal_ia": 0.530309, "tpm": 0.38, "badlar": 0.341577, "ccl": 169.542857, "ccl_fdp": 170.4, "brecha": 0.74402, "rp": 1512.623}, {"f": "2021-09", "y": 2021, "m": 9, "tcn": 98.284995, "tcn_fdp": 98.735, "ipc_mes": 0.035468, "ipc_ia": 0.524712, "sal_ia": 0.551734, "tpm": 0.38, "badlar": 0.341591, "ccl": 172.294091, "ccl_fdp": 175.12, "brecha": 0.753005, "rp": 1606.641}, {"f": "2021-10", "y": 2021, "m": 10, "tcn": 99.249126, "tcn_fdp": 99.7217, "ipc_mes": 0.035163, "ipc_ia": 0.521117, "sal_ia": 0.527703, "tpm": 0.38, "badlar": 0.341414, "ccl": 177.947778, "ccl_fdp": 179.32, "brecha": 0.79294, "rp": 1712.139}, {"f": "2021-11", "y": 2021, "m": 11, "tcn": 100.310071, "tcn_fdp": 100.925, "ipc_mes": 0.025295, "ipc_ia": 0.511823, "sal_ia": 0.555024, "tpm": 0.38, "badlar": 0.341756, "ccl": 196.992857, "ccl_fdp": 214.15, "brecha": 0.963839, "rp": 1913.611}, {"f": "2021-12", "y": 2021, "m": 12, "tcn": 101.8885, "tcn_fdp": 102.75, "ipc_mes": 0.0384, "ipc_ia": 0.509416, "sal_ia": 0.552678, "tpm": 0.38, "badlar": 0.342, "ccl": 208.4035, "ccl_fdp": 202.13, "brecha": 1.045407, "rp": 1687.795}, {"f": "2022-01", "y": 2022, "m": 1, "tcn": 103.9846, "tcn_fdp": 105.015, "ipc_mes": 0.038757, "ipc_ia": 0.506902, "sal_ia": 0.561678, "tpm": 0.397143, "badlar": 0.369256, "ccl": 215.763333, "ccl_fdp": 244.61, "brecha": 1.074955, "rp": 1722.991}, {"f": "2022-02", "y": 2022, "m": 2, "tcn": 106.307111, "tcn_fdp": 107.4417, "ipc_mes": 0.046944, "ipc_ia": 0.523193, "sal_ia": 0.54282, "tpm": 0.409211, "badlar": 0.383158, "ccl": 214.466842, "ccl_fdp": 200.47, "brecha": 1.017427, "rp": 1815.536}, {"f": "2022-03", "y": 2022, "m": 3, "tcn": 109.4585, "tcn_fdp": 110.9783, "ipc_mes": 0.067288, "ipc_ia": 0.551066, "sal_ia": 0.564484, "tpm": 0.431667, "badlar": 0.405417, "ccl": 196.278, "ccl_fdp": 190.28, "brecha": 0.793173, "rp": 1718.129}, {"f": "2022-04", "y": 2022, "m": 4, "tcn": 113.334474, "tcn_fdp": 115.3117, "ipc_mes": 0.060473, "ipc_ia": 0.58038, "sal_ia": 0.577255, "tpm": 0.459474, "badlar": 0.43273, "ccl": 197.214018, "ccl_fdp": 206.961, "brecha": 0.740106, "rp": 1801.401}, {"f": "2022-05", "y": 2022, "m": 5, "tcn": 117.77367, "tcn_fdp": 120.1617, "ipc_mes": 0.050502, "ipc_ia": 0.606799, "sal_ia": 0.630001, "tpm": 0.482, "badlar": 0.455219, "ccl": 210.386956, "ccl_fdp": 210.51, "brecha": 0.786367, "rp": 1917.539}, {"f": "2022-06", "y": 2022, "m": 6, "tcn": 122.73574, "tcn_fdp": 125.215, "ipc_mes": 0.052952, "ipc_ia": 0.639826, "sal_ia": 0.682974, "tpm": 0.5035, "badlar": 0.482062, "ccl": 230.55445, "ccl_fdp": 252.708, "brecha": 0.878462, "rp": 2428.234}, {"f": "2022-07", "y": 2022, "m": 7, "tcn": 128.44539, "tcn_fdp": 131.2267, "ipc_mes": 0.074062, "ipc_ia": 0.710025, "sal_ia": 0.686522, "tpm": 0.527619, "badlar": 0.510714, "ccl": 302.504476, "ccl_fdp": 288.285, "brecha": 1.355121, "rp": 2398.101}, {"f": "2022-08", "y": 2022, "m": 8, "tcn": 135.290295, "tcn_fdp": 138.7133, "ipc_mes": 0.069703, "ipc_ia": 0.785153, "sal_ia": 0.764768, "tpm": 0.660455, "badlar": 0.604886, "ccl": 289.691909, "ccl_fdp": 292.83, "brecha": 1.141262, "rp": 2384.897}, {"f": "2022-09", "y": 2022, "m": 9, "tcn": 143.625233, "tcn_fdp": 147.315, "ipc_mes": 0.061655, "ipc_ia": 0.8303, "sal_ia": 0.802483, "tpm": 0.726429, "badlar": 0.664881, "ccl": 295.717952, "ccl_fdp": 308.955, "brecha": 1.058955, "rp": 2800.539}, {"f": "2022-10", "y": 2022, "m": 10, "tcn": 152.592895, "tcn_fdp": 156.895, "ipc_mes": 0.063474, "ipc_ia": 0.880357, "sal_ia": 0.83004, "tpm": 0.75, "badlar": 0.690625, "ccl": 306.898474, "ccl_fdp": 307.3, "brecha": 1.011224, "rp": 2624.387}, {"f": "2022-11", "y": 2022, "m": 11, "tcn": 162.118333, "tcn_fdp": 167.255, "ipc_mes": 0.049161, "ipc_ia": 0.924128, "sal_ia": 0.880355, "tpm": 0.75, "badlar": 0.691786, "ccl": 316.234238, "ccl_fdp": 322.75, "brecha": 0.950638, "rp": 2247.963}, {"f": "2022-12", "y": 2022, "m": 12, "tcn": 172.90316, "tcn_fdp": 177.1283, "ipc_mes": 0.051246, "ipc_ia": 0.947932, "sal_ia": 0.937668, "tpm": 0.75, "badlar": 0.693, "ccl": 333.8268, "ccl_fdp": 344.13, "brecha": 0.930715, "rp": 2195.822}, {"f": "2023-01", "y": 2023, "m": 1, "tcn": 182.244091, "tcn_fdp": 186.875, "ipc_mes": 0.060279, "ipc_ia": 0.988291, "sal_ia": 0.936879, "tpm": 0.75, "badlar": 0.694688, "ccl": 352.694545, "ccl_fdp": 367.42, "brecha": 0.935287, "rp": 1821.937}, {"f": "2023-02", "y": 2023, "m": 2, "tcn": 191.892394, "tcn_fdp": 197.1533, "ipc_mes": 0.066277, "ipc_ia": 1.025008, "sal_ia": 0.993363, "tpm": 0.75, "badlar": 0.697743, "ccl": 367.644889, "ccl_fdp": 366.41, "brecha": 0.915891, "rp": 1959.619}, {"f": "2023-03", "y": 2023, "m": 3, "tcn": 203.105536, "tcn_fdp": 208.9883, "ipc_mes": 0.076752, "ipc_ia": 1.042965, "sal_ia": 1.039809, "tpm": 0.765, "badlar": 0.709801, "ccl": 390.362273, "ccl_fdp": 406.54, "brecha": 0.921968, "rp": 2301.83}, {"f": "2023-04", "y": 2023, "m": 4, "tcn": 216.555917, "tcn_fdp": 222.575, "ipc_mes": 0.084027, "ipc_ia": 1.088341, "sal_ia": 1.064263, "tpm": 0.802778, "badlar": 0.742361, "ccl": 427.546111, "ccl_fdp": 453.16, "brecha": 0.974299, "rp": 2683.58}, {"f": "2023-05", "y": 2023, "m": 5, "tcn": 231.190835, "tcn_fdp": 239.325, "ipc_mes": 0.077728, "ipc_ia": 1.142463, "sal_ia": 1.087011, "tpm": 0.943, "badlar": 0.900469, "ccl": 474.1355, "ccl_fdp": 492.42, "brecha": 1.05084, "rp": 2594.583}, {"f": "2023-06", "y": 2023, "m": 6, "tcn": 248.76167, "tcn_fdp": 256.675, "ipc_mes": 0.059508, "ipc_ia": 1.155803, "sal_ia": 1.099748, "tpm": 0.97, "badlar": 0.924469, "ccl": 503.5505, "ccl_fdp": 512.04, "brecha": 1.024229, "rp": 2060.793}, {"f": "2023-07", "y": 2023, "m": 7, "tcn": 266.464686, "tcn_fdp": 275.2833, "ipc_mes": 0.063449, "ipc_ia": 1.1345, "sal_ia": 1.207311, "tpm": 0.97, "badlar": 0.926012, "ccl": 528.0, "ccl_fdp": 551.27, "brecha": 0.981501, "rp": 1982.299}, {"f": "2023-08", "y": 2023, "m": 8, "tcn": 322.1341, "tcn_fdp": 350.0167, "ipc_mes": 0.124416, "ipc_ia": 1.243675, "sal_ia": 1.211257, "tpm": 1.094091, "badlar": 1.04017, "ccl": 683.58, "ccl_fdp": 778.62, "brecha": 1.122036, "rp": 2096.607}, {"f": "2023-09", "y": 2023, "m": 9, "tcn": 349.998014, "tcn_fdp": 350.0083, "ipc_mes": 0.127498, "ipc_ia": 1.382824, "sal_ia": 1.366113, "tpm": 1.18, "badlar": 1.137351, "ccl": 758.307143, "ccl_fdp": 822.53, "brecha": 1.166604, "rp": 2538.651}, {"f": "2023-10", "y": 2023, "m": 10, "tcn": 350.020415, "tcn_fdp": 350.0083, "ipc_mes": 0.083017, "ipc_ia": 1.426615, "sal_ia": 1.443205, "tpm": 1.27, "badlar": 1.220812, "ccl": 912.3515, "ccl_fdp": 864.84, "brecha": 1.606567, "rp": 2575.612}, {"f": "2023-11", "y": 2023, "m": 11, "tcn": 353.84041, "tcn_fdp": 360.525, "ipc_mes": 0.128107, "ipc_ia": 1.609208, "sal_ia": 1.502308, "tpm": 1.33, "badlar": 1.2935, "ccl": 875.9295, "ccl_fdp": 839.14, "brecha": 1.475493, "rp": 1984.386}, {"f": "2023-12", "y": 2023, "m": 12, "tcn": 641.994732, "tcn_fdp": 808.4833, "ipc_mes": 0.254657, "ipc_ia": 2.114076, "sal_ia": 1.657854, "tpm": 1.173684, "badlar": 1.211711, "ccl": 950.762632, "ccl_fdp": 973.15, "brecha": 0.480951, "rp": 1907.328}, {"f": "2024-01", "y": 2024, "m": 1, "tcn": 818.345455, "tcn_fdp": 826.25, "ipc_mes": 0.206133, "ipc_ia": 2.542456, "sal_ia": 2.04909, "tpm": 1.0, "badlar": 1.091676, "ccl": 1207.440909, "ccl_fdp": 1248.95, "brecha": 0.475466, "rp": 1963.584}, {"f": "2024-02", "y": 2024, "m": 2, "tcn": 834.914037, "tcn_fdp": 842.25, "ipc_mes": 0.132415, "ipc_ia": 2.762184, "sal_ia": 2.253511, "tpm": 1.0, "badlar": 1.088947, "ccl": 1169.818947, "ccl_fdp": 1076.81, "brecha": 0.401125, "rp": 1702.35}, {"f": "2024-03", "y": 2024, "m": 3, "tcn": 850.337721, "tcn_fdp": 857.4167, "ipc_mes": 0.110097, "ipc_ia": 2.878691, "sal_ia": 2.317159, "tpm": 0.873684, "badlar": 0.854145, "ccl": 1067.61, "ccl_fdp": 1085.7, "brecha": 0.255513, "rp": 1452.358}, {"f": "2024-04", "y": 2024, "m": 4, "tcn": 868.958335, "tcn_fdp": 876.75, "ipc_mes": 0.088319, "ipc_ia": 2.894049, "sal_ia": 2.47556, "tpm": 0.71, "badlar": 0.626687, "ccl": 1062.8735, "ccl_fdp": 1091.95, "brecha": 0.223158, "rp": 1215.449}, {"f": "2024-05", "y": 2024, "m": 5, "tcn": 886.863636, "tcn_fdp": 895.25, "ipc_mes": 0.041763, "ipc_ia": 2.764103, "sal_ia": 2.46041, "tpm": 0.436364, "badlar": 0.355852, "ccl": 1153.181364, "ccl_fdp": 1247.42, "brecha": 0.300292, "rp": 1340.678}, {"f": "2024-06", "y": 2024, "m": 6, "tcn": 903.779418, "tcn_fdp": 911.75, "ipc_mes": 0.045771, "ipc_ia": 2.715297, "sal_ia": 2.492754, "tpm": 0.4, "badlar": 0.334265, "ccl": 1305.784118, "ccl_fdp": 1350.08, "brecha": 0.444804, "rp": 1455.248}, {"f": "2024-07", "y": 2024, "m": 7, "tcn": 923.765155, "tcn_fdp": 932.75, "ipc_mes": 0.040309, "ipc_ia": 2.634457, "sal_ia": 2.350594, "tpm": 0.4, "badlar": 0.369063, "ccl": 1350.359545, "ccl_fdp": 1284.84, "brecha": 0.4618, "rp": 1510.413}, {"f": "2024-08", "y": 2024, "m": 8, "tcn": 942.920445, "tcn_fdp": 952.8333, "ipc_mes": 0.041723, "ipc_ia": 2.367166, "sal_ia": 2.248516, "tpm": 0.4, "badlar": 0.388437, "ccl": 1296.611364, "ccl_fdp": 1299.94, "brecha": 0.375102, "rp": 1433.209}, {"f": "2024-09", "y": 2024, "m": 9, "tcn": 961.825405, "tcn_fdp": 970.9167, "ipc_mes": 0.034692, "ipc_ia": 2.090011, "sal_ia": 1.977094, "tpm": 0.4, "badlar": 0.39381, "ccl": 1248.201857, "ccl_fdp": 1243.74, "brecha": 0.297743, "rp": null}, {"f": "2024-10", "y": 2024, "m": 10, "tcn": 981.568177, "tcn_fdp": 990.75, "ipc_mes": 0.026917, "ipc_ia": 1.92995, "sal_ia": 1.846226, "tpm": 0.4, "badlar": 0.405085, "ccl": 1192.148209, "ccl_fdp": 1157.94, "brecha": 0.214534, "rp": null}, {"f": "2024-11", "y": 2024, "m": 11, "tcn": 1001.837718, "tcn_fdp": 1011.75, "ipc_mes": 0.024266, "ipc_ia": 1.66025, "sal_ia": 1.673736, "tpm": 0.35, "badlar": 0.361711, "ccl": 1138.6685, "ccl_fdp": 1109.33, "brecha": 0.13658, "rp": null}, {"f": "2024-12", "y": 2024, "m": 12, "tcn": 1020.706142, "tcn_fdp": 1032.5, "ipc_mes": 0.027041, "ipc_ia": 1.177636, "sal_ia": 1.475195, "tpm": 0.326316, "badlar": 0.32875, "ccl": 1122.856842, "ccl_fdp": 1186.93, "brecha": 0.100078, "rp": null}, {"f": "2025-01", "y": 2025, "m": 1, "tcn": 1043.564395, "tcn_fdp": 1053.5, "ipc_mes": 0.02211, "ipc_ia": 0.845389, "sal_ia": 1.110355, "tpm": 0.318636, "badlar": 0.314972, "ccl": 1184.644091, "ccl_fdp": 1185.41, "brecha": 0.13519, "rp": null}, {"f": "2025-02", "y": 2025, "m": 2, "tcn": 1058.4625, "tcn_fdp": 1064.375, "ipc_mes": 0.024016, "ipc_ia": 0.668741, "sal_ia": 0.892782, "tpm": 0.29, "badlar": 0.284781, "ccl": 1204.1825, "ccl_fdp": 1219.98, "brecha": 0.137671, "rp": null}, {"f": "2025-03", "y": 2025, "m": 3, "tcn": 1069.033335, "tcn_fdp": 1073.875, "ipc_mes": 0.037293, "ipc_ia": 0.5593, "sal_ia": 0.758134, "tpm": 0.29, "badlar": 0.295069, "ccl": 1266.151111, "ccl_fdp": 1319.46, "brecha": 0.184389, "rp": null}, {"f": "2025-04", "y": 2025, "m": 4, "tcn": 1121.567984, "tcn_fdp": 1172.0, "ipc_mes": 0.027808, "ipc_ia": 0.472603, "sal_ia": 0.609987, "tpm": 0.29, "badlar": 0.331546, "ccl": 1255.431053, "ccl_fdp": 1195.73, "brecha": 0.119354, "rp": null}, {"f": "2025-05", "y": 2025, "m": 5, "tcn": 1147.52916, "tcn_fdp": 1195.3333, "ipc_mes": 0.015011, "ipc_ia": 0.434787, "sal_ia": 0.52475, "tpm": 0.29, "badlar": 0.327531, "ccl": 1171.89, "ccl_fdp": 1204.92, "brecha": 0.021229, "rp": null}, {"f": "2025-06", "y": 2025, "m": 6, "tcn": 1181.355263, "tcn_fdp": 1194.0833, "ipc_mes": 0.016189, "ipc_ia": 0.394201, "sal_ia": 0.453882, "tpm": 0.29, "badlar": 0.321612, "ccl": 1193.635789, "ccl_fdp": 1210.25, "brecha": 0.010395, "rp": null}, {"f": "2025-07", "y": 2025, "m": 7, "tcn": 1267.022732, "tcn_fdp": 1351.8333, "ipc_mes": 0.019017, "ipc_ia": 0.365665, "sal_ia": 0.397783, "tpm": 0.29, "badlar": 0.324972, "ccl": 1279.487273, "ccl_fdp": 1358.82, "brecha": 0.009838, "rp": null}, {"f": "2025-08", "y": 2025, "m": 8, "tcn": 1329.537495, "tcn_fdp": 1323.8333, "ipc_mes": 0.018758, "ipc_ia": 0.335559, "sal_ia": 0.360598, "tpm": null, "badlar": 0.480312, "ccl": 1335.8085, "ccl_fdp": 1358.89, "brecha": 0.004717, "rp": null}, {"f": "2025-09", "y": 2025, "m": 9, "tcn": 1399.897736, "tcn_fdp": 1366.5833, "ipc_mes": 0.02076, "ipc_ia": 0.317576, "sal_ia": 0.329214, "tpm": null, "badlar": 0.48429, "ccl": 1451.03, "ccl_fdp": 1541.77, "brecha": 0.036526, "rp": null}, {"f": "2025-10", "y": 2025, "m": 10, "tcn": 1432.022727, "tcn_fdp": 1443.0, "ipc_mes": 0.023419, "ipc_ia": 0.313088, "sal_ia": 0.30528, "tpm": null, "badlar": 0.461676, "ccl": 1521.422273, "ccl_fdp": 1506.53, "brecha": 0.062429, "rp": null}, {"f": "2025-11", "y": 2025, "m": 11, "tcn": 1427.617647, "tcn_fdp": 1450.75, "ipc_mes": 0.024729, "ipc_ia": 0.313682, "sal_ia": 0.263828, "tpm": null, "badlar": 0.320257, "ccl": 1496.917059, "ccl_fdp": 1518.74, "brecha": 0.048542, "rp": null}, {"f": "2025-12", "y": 2025, "m": 12, "tcn": 1447.837721, "tcn_fdp": 1459.4167, "ipc_mes": 0.028453, "ipc_ia": 0.315488, "sal_ia": 0.229489, "tpm": null, "badlar": 0.264605, "ccl": 1522.873684, "ccl_fdp": 1521.34, "brecha": 0.051826, "rp": null}, {"f": "2026-01", "y": 2026, "m": 1, "tcn": 1449.334662, "tcn_fdp": 1447.6657, "ipc_mes": 0.028816, "ipc_ia": 0.324118, "sal_ia": 0.236379, "tpm": null, "badlar": 0.283661, "ccl": 1519.89619, "ccl_fdp": 1493.78, "brecha": 0.048685, "rp": null}, {"f": "2026-02", "y": 2026, "m": 2, "tcn": 1409.6571, "tcn_fdp": 1408.9662, "ipc_mes": 0.030405, "ipc_ia": 0.332379, "sal_ia": 0.243655, "tpm": null, "badlar": null, "ccl": 1471.301667, "ccl_fdp": 1460.27, "brecha": 0.04373, "rp": null}, {"f": "2026-03", "y": 2026, "m": 3, "tcn": 1416.011031, "tcn_fdp": 1423.055862, "ipc_mes": 0.022848, "ipc_ia": 0.313825, "sal_ia": 0.25471, "tpm": null, "badlar": null, "ccl": 1477.933456, "ccl_fdp": 1485.286359, "brecha": 0.04373, "rp": null}, {"f": "2026-04", "y": 2026, "m": 4, "tcn": 1429.815377, "tcn_fdp": 1436.574893, "ipc_mes": 0.019078, "ipc_ia": 0.302666, "sal_ia": 0.251982, "tpm": null, "badlar": null, "ccl": 1458.411685, "ccl_fdp": 1465.306391, "brecha": 0.02, "rp": null}, {"f": "2026-05", "y": 2026, "m": 5, "tcn": 1443.057437, "tcn_fdp": 1449.539981, "ipc_mes": 0.016267, "ipc_ia": 0.304277, "sal_ia": 0.251378, "tpm": null, "badlar": null, "ccl": 1471.918586, "ccl_fdp": 1478.530781, "brecha": 0.02, "rp": null}, {"f": "2026-06", "y": 2026, "m": 6, "tcn": 1455.753978, "tcn_fdp": 1461.967975, "ipc_mes": 0.01414, "ipc_ia": 0.301647, "sal_ia": 0.25027, "tpm": null, "badlar": null, "ccl": 1484.869057, "ccl_fdp": 1491.207334, "brecha": 0.02, "rp": null}, {"f": "2026-07", "y": 2026, "m": 7, "tcn": 1467.921885, "tcn_fdp": 1473.875795, "ipc_mes": 0.012505, "ipc_ia": 0.293329, "sal_ia": 0.241164, "tpm": null, "badlar": null, "ccl": 1497.280322, "ccl_fdp": 1503.353311, "brecha": 0.02, "rp": null}, {"f": "2026-08", "y": 2026, "m": 8, "tcn": 1479.57808, "tcn_fdp": 1485.280365, "ipc_mes": 0.011223, "ipc_ia": 0.283763, "sal_ia": 0.229262, "tpm": null, "badlar": null, "ccl": 1509.169642, "ccl_fdp": 1514.985972, "brecha": 0.02, "rp": null}, {"f": "2026-09", "y": 2026, "m": 9, "tcn": 1490.739453, "tcn_fdp": 1496.19854, "ipc_mes": 0.010198, "ipc_ia": 0.27048, "sal_ia": 0.226357, "tpm": null, "badlar": null, "ccl": 1520.554242, "ccl_fdp": 1526.122511, "brecha": 0.02, "rp": null}, {"f": "2026-10", "y": 2026, "m": 10, "tcn": 1501.422797, "tcn_fdp": 1506.647053, "ipc_mes": 0.00936, "ipc_ia": 0.253026, "sal_ia": 0.213749, "tpm": null, "badlar": null, "ccl": 1531.451253, "ccl_fdp": 1536.779994, "brecha": 0.02, "rp": null}, {"f": "2026-11", "y": 2026, "m": 11, "tcn": 1511.644755, "tcn_fdp": 1516.642457, "ipc_mes": 0.00866, "ipc_ia": 0.233377, "sal_ia": 0.225223, "tpm": null, "badlar": null, "ccl": 1541.87765, "ccl_fdp": 1546.975306, "brecha": 0.02, "rp": null}, {"f": "2026-12", "y": 2026, "m": 12, "tcn": 1521.421772, "tcn_fdp": 1526.201087, "ipc_mes": 0.008063, "ipc_ia": 0.208924, "sal_ia": 0.23594, "tpm": 0.0, "badlar": null, "ccl": 1551.850208, "ccl_fdp": 1556.725109, "brecha": 0.02, "rp": null}, {"f": "2027-01", "y": 2027, "m": 1, "tcn": 1530.770052, "tcn_fdp": 1535.339017, "ipc_mes": 0.007544, "ipc_ia": 0.183928, "sal_ia": 0.211198, "tpm": null, "badlar": null, "ccl": 1561.385453, "ccl_fdp": 1566.045797, "brecha": 0.02, "rp": null}, {"f": "2027-02", "y": 2027, "m": 2, "tcn": 1539.705522, "tcn_fdp": 1544.072027, "ipc_mes": 0.007085, "ipc_ia": 0.157133, "sal_ia": 0.185911, "tpm": null, "badlar": null, "ccl": 1570.499632, "ccl_fdp": 1574.953467, "brecha": 0.02, "rp": null}, {"f": "2027-03", "y": 2027, "m": 3, "tcn": 1548.243801, "tcn_fdp": 1552.415576, "ipc_mes": 0.006672, "ipc_ia": 0.138833, "sal_ia": 0.158811, "tpm": null, "badlar": null, "ccl": 1579.208677, "ccl_fdp": 1583.463887, "brecha": 0.02, "rp": null}, {"f": "2027-04", "y": 2027, "m": 4, "tcn": 1556.400177, "tcn_fdp": 1560.384778, "ipc_mes": 0.006298, "ipc_ia": 0.124551, "sal_ia": 0.140306, "tpm": null, "badlar": null, "ccl": 1587.528181, "ccl_fdp": 1591.592474, "brecha": 0.02, "rp": null}, {"f": "2027-05", "y": 2027, "m": 5, "tcn": 1564.189581, "tcn_fdp": 1567.994384, "ipc_mes": 0.005954, "ipc_ia": 0.113139, "sal_ia": 0.125864, "tpm": null, "badlar": null, "ccl": 1595.473373, "ccl_fdp": 1599.354272, "brecha": 0.02, "rp": null}, {"f": "2027-06", "y": 2027, "m": 6, "tcn": 1571.626575, "tcn_fdp": 1575.258765, "ipc_mes": 0.005636, "ipc_ia": 0.103804, "sal_ia": 0.114327, "tpm": null, "badlar": null, "ccl": 1603.059106, "ccl_fdp": 1606.76394, "brecha": 0.02, "rp": null}, {"f": "2027-07", "y": 2027, "m": 7, "tcn": 1578.725332, "tcn_fdp": 1582.191899, "ipc_mes": 0.00534, "ipc_ia": 0.095993, "sal_ia": 0.10489, "tpm": null, "badlar": null, "ccl": 1610.299838, "ccl_fdp": 1613.835737, "brecha": 0.02, "rp": null}, {"f": "2027-08", "y": 2027, "m": 8, "tcn": 1585.499632, "tcn_fdp": 1588.807365, "ipc_mes": 0.005062, "ipc_ia": 0.089316, "sal_ia": 0.096994, "tpm": null, "badlar": null, "ccl": 1617.209624, "ccl_fdp": 1620.583512, "brecha": 0.02, "rp": null}, {"f": "2027-09", "y": 2027, "m": 9, "tcn": 1591.96285, "tcn_fdp": 1595.118335, "ipc_mes": 0.004802, "ipc_ia": 0.083498, "sal_ia": 0.090245, "tpm": null, "badlar": null, "ccl": 1623.802107, "ccl_fdp": 1627.020702, "brecha": 0.02, "rp": null}, {"f": "2027-10", "y": 2027, "m": 10, "tcn": 1598.127953, "tcn_fdp": 1601.137572, "ipc_mes": 0.004557, "ipc_ia": 0.078342, "sal_ia": 0.084364, "tpm": null, "badlar": null, "ccl": 1630.090513, "ccl_fdp": 1633.160323, "brecha": 0.02, "rp": null}, {"f": "2027-11", "y": 2027, "m": 11, "tcn": 1604.007498, "tcn_fdp": 1606.877425, "ipc_mes": 0.004325, "ipc_ia": 0.073708, "sal_ia": 0.079153, "tpm": null, "badlar": null, "ccl": 1636.087648, "ccl_fdp": 1639.014973, "brecha": 0.02, "rp": null}, {"f": "2027-12", "y": 2027, "m": 12, "tcn": 1609.613628, "tcn_fdp": 1612.349832, "ipc_mes": 0.004107, "ipc_ia": 0.069494, "sal_ia": 0.07447, "tpm": null, "badlar": null, "ccl": 1641.805901, "ccl_fdp": 1644.596829, "brecha": 0.02, "rp": null}];
+const FIN1 = [{"f": "Ene'21", "status": "R", "tpm": 0.38, "badlar": 0.341219, "ipc_idx": 401.5071, "ipc_mes": 0.04049, "ipc_ia": 0.38532, "tcn": 87.2983, "tcn_mes": 0.037475, "ccl": 147.0285}, {"f": "Feb'21", "status": "R", "tpm": 0.38, "badlar": 0.341007, "ipc_idx": 415.8595, "ipc_mes": 0.035746, "ipc_ia": 0.406518, "tcn": 89.825, "tcn_mes": 0.028943, "ccl": 148.823278}, {"f": "Mzo'21", "status": "R", "tpm": 0.38, "badlar": 0.340682, "ipc_idx": 435.8657, "ipc_mes": 0.048108, "ipc_ia": 0.426488, "tcn": 91.985, "tcn_mes": 0.024047, "ccl": 147.954545}, {"f": "Abr'21", "status": "R", "tpm": 0.38, "badlar": 0.340969, "ipc_idx": 453.6503, "ipc_mes": 0.040803, "ipc_ia": 0.462802, "tcn": 93.555, "tcn_mes": 0.017068, "ccl": 151.9585}, {"f": "May'21", "status": "R", "tpm": 0.38, "badlar": 0.341151, "ipc_idx": 468.725, "ipc_mes": 0.03323, "ipc_ia": 0.488447, "tcn": 94.685, "tcn_mes": 0.012078, "ccl": 160.128421}, {"f": "Jun'21", "status": "R", "tpm": 0.38, "badlar": 0.34119, "ipc_idx": 483.6049, "ipc_mes": 0.031745, "ipc_ia": 0.502001, "tcn": 95.7267, "tcn_mes": 0.011002, "ccl": 165.094286}, {"f": "Jul'21", "status": "R", "tpm": 0.38, "badlar": 0.34131, "ipc_idx": 498.0987, "ipc_mes": 0.02997, "ipc_ia": 0.517662, "tcn": 96.685, "tcn_mes": 0.010011, "ccl": 167.031429}, {"f": "Ago'21", "status": "R", "tpm": 0.38, "badlar": 0.341577, "ipc_idx": 510.3942, "ipc_mes": 0.024685, "ipc_ia": 0.514239, "tcn": 97.7517, "tcn_mes": 0.011033, "ccl": 169.542857}, {"f": "Sep'21", "status": "R", "tpm": 0.38, "badlar": 0.341591, "ipc_idx": 528.4968, "ipc_mes": 0.035468, "ipc_ia": 0.524712, "tcn": 98.735, "tcn_mes": 0.010059, "ccl": 172.294091}, {"f": "Oct'21", "status": "R", "tpm": 0.38, "badlar": 0.341414, "ipc_idx": 547.0802, "ipc_mes": 0.035163, "ipc_ia": 0.521117, "tcn": 99.7217, "tcn_mes": 0.009993, "ccl": 177.947778}, {"f": "Nov'21", "status": "R", "tpm": 0.38, "badlar": 0.341756, "ipc_idx": 560.9184, "ipc_mes": 0.025295, "ipc_ia": 0.511823, "tcn": 100.925, "tcn_mes": 0.012067, "ccl": 196.992857}, {"f": "Dic'21", "status": "R", "tpm": 0.38, "badlar": 0.342, "ipc_idx": 582.4575, "ipc_mes": 0.0384, "ipc_ia": 0.509416, "tcn": 102.75, "tcn_mes": 0.018083, "ccl": 208.4035}, {"f": "Ene'22", "status": "R", "tpm": 0.397143, "badlar": 0.369256, "ipc_idx": 605.0317, "ipc_mes": 0.038757, "ipc_ia": 0.506902, "tcn": 105.015, "tcn_mes": 0.022044, "ccl": 215.763333}, {"f": "Feb'22", "status": "R", "tpm": 0.409211, "badlar": 0.383158, "ipc_idx": 633.4341, "ipc_mes": 0.046944, "ipc_ia": 0.523193, "tcn": 107.4417, "tcn_mes": 0.023108, "ccl": 214.466842}, {"f": "Mzo'22", "status": "R", "tpm": 0.431667, "badlar": 0.405417, "ipc_idx": 676.0566, "ipc_mes": 0.067288, "ipc_ia": 0.551066, "tcn": 110.9783, "tcn_mes": 0.032916, "ccl": 196.278}, {"f": "Abr'22", "status": "R", "tpm": 0.459474, "badlar": 0.43273, "ipc_idx": 716.9399, "ipc_mes": 0.060473, "ipc_ia": 0.58038, "tcn": 115.3117, "tcn_mes": 0.039047, "ccl": 197.214018}, {"f": "May'22", "status": "R", "tpm": 0.482, "badlar": 0.455219, "ipc_idx": 753.147, "ipc_mes": 0.050502, "ipc_ia": 0.606799, "tcn": 120.1617, "tcn_mes": 0.04206, "ccl": 210.386956}, {"f": "Jun'22", "status": "R", "tpm": 0.5035, "badlar": 0.482062, "ipc_idx": 793.0278, "ipc_mes": 0.052952, "ipc_ia": 0.639826, "tcn": 125.215, "tcn_mes": 0.042054, "ccl": 230.55445}, {"f": "Jul'22", "status": "R", "tpm": 0.527619, "badlar": 0.510714, "ipc_idx": 851.761, "ipc_mes": 0.074062, "ipc_ia": 0.710025, "tcn": 131.2267, "tcn_mes": 0.048011, "ccl": 302.504476}, {"f": "Ago'22", "status": "R", "tpm": 0.660455, "badlar": 0.604886, "ipc_idx": 911.1316, "ipc_mes": 0.069703, "ipc_ia": 0.785153, "tcn": 138.7133, "tcn_mes": 0.057051, "ccl": 289.691909}, {"f": "Sep'22", "status": "R", "tpm": 0.726429, "badlar": 0.664881, "ipc_idx": 967.3076, "ipc_mes": 0.061655, "ipc_ia": 0.8303, "tcn": 147.315, "tcn_mes": 0.062011, "ccl": 295.717952}, {"f": "Oct'22", "status": "R", "tpm": 0.75, "badlar": 0.690625, "ipc_idx": 1028.706, "ipc_mes": 0.063474, "ipc_ia": 0.880357, "tcn": 156.895, "tcn_mes": 0.065031, "ccl": 306.898474}, {"f": "Nov'22", "status": "R", "tpm": 0.75, "badlar": 0.691786, "ipc_idx": 1079.2787, "ipc_mes": 0.049161, "ipc_ia": 0.924128, "tcn": 167.255, "tcn_mes": 0.066031, "ccl": 316.234238}, {"f": "Dic'22", "status": "R", "tpm": 0.75, "badlar": 0.693, "ipc_idx": 1134.5875, "ipc_mes": 0.051246, "ipc_ia": 0.947932, "tcn": 177.1283, "tcn_mes": 0.059031, "ccl": 333.8268}, {"f": "Ene'23", "status": "R", "tpm": 0.75, "badlar": 0.694688, "ipc_idx": 1202.979, "ipc_mes": 0.060279, "ipc_ia": 0.988291, "tcn": 186.875, "tcn_mes": 0.055026, "ccl": 352.694545}, {"f": "Feb'23", "status": "R", "tpm": 0.75, "badlar": 0.697743, "ipc_idx": 1282.7091, "ipc_mes": 0.066277, "ipc_ia": 1.025008, "tcn": 197.1533, "tcn_mes": 0.055001, "ccl": 367.644889}, {"f": "Mzo'23", "status": "R", "tpm": 0.765, "badlar": 0.709801, "ipc_idx": 1381.1601, "ipc_mes": 0.076752, "ipc_ia": 1.042965, "tcn": 208.9883, "tcn_mes": 0.060029, "ccl": 390.362273}, {"f": "Abr'23", "status": "R", "tpm": 0.802778, "badlar": 0.742361, "ipc_idx": 1497.2147, "ipc_mes": 0.084027, "ipc_ia": 1.088341, "tcn": 222.575, "tcn_mes": 0.065012, "ccl": 427.546111}, {"f": "May'23", "status": "R", "tpm": 0.943, "badlar": 0.900469, "ipc_idx": 1613.5895, "ipc_mes": 0.077728, "ipc_ia": 1.142463, "tcn": 239.325, "tcn_mes": 0.075256, "ccl": 474.1355}, {"f": "Jun'23", "status": "R", "tpm": 0.97, "badlar": 0.924469, "ipc_idx": 1709.6115, "ipc_mes": 0.059508, "ipc_ia": 1.155803, "tcn": 256.675, "tcn_mes": 0.072496, "ccl": 503.5505}, {"f": "Jul'23", "status": "R", "tpm": 0.97, "badlar": 0.926012, "ipc_idx": 1818.0838, "ipc_mes": 0.063449, "ipc_ia": 1.1345, "tcn": 275.2833, "tcn_mes": 0.072498, "ccl": 528.0}, {"f": "Ago'23", "status": "R", "tpm": 1.094091, "badlar": 1.04017, "ipc_idx": 2044.2832, "ipc_mes": 0.124416, "ipc_ia": 1.243675, "tcn": 350.0167, "tcn_mes": 0.271478, "ccl": 683.58}, {"f": "Sep'23", "status": "R", "tpm": 1.18, "badlar": 1.137351, "ipc_idx": 2304.9242, "ipc_mes": 0.127498, "ipc_ia": 1.382824, "tcn": 350.0083, "tcn_mes": -2.4e-05, "ccl": 758.307143}, {"f": "Oct'23", "status": "R", "tpm": 1.27, "badlar": 1.220812, "ipc_idx": 2496.273, "ipc_mes": 0.083017, "ipc_ia": 1.426615, "tcn": 350.0083, "tcn_mes": 0.0, "ccl": 912.3515}, {"f": "Nov'23", "status": "R", "tpm": 1.33, "badlar": 1.2935, "ipc_idx": 2816.0628, "ipc_mes": 0.128107, "ipc_ia": 1.609208, "tcn": 360.525, "tcn_mes": 0.030047, "ccl": 875.9295}, {"f": "Dic'23", "status": "R", "tpm": 1.173684, "badlar": 1.211711, "ipc_idx": 3533.1922, "ipc_mes": 0.254657, "ipc_ia": 2.114076, "tcn": 808.4833, "tcn_mes": 1.242517, "ccl": 950.762632}, {"f": "Ene'24", "status": "R", "tpm": 1.0, "badlar": 1.091676, "ipc_idx": 4261.5, "ipc_mes": 0.206133, "ipc_ia": 2.542456, "tcn": 826.25, "tcn_mes": 0.021975, "ccl": 1207.440909}, {"f": "Feb'24", "status": "R", "tpm": 1.0, "badlar": 1.088947, "ipc_idx": 4825.7881, "ipc_mes": 0.132415, "ipc_ia": 2.762184, "tcn": 842.25, "tcn_mes": 0.019365, "ccl": 1169.818947}, {"f": "Mzo'24", "status": "R", "tpm": 0.873684, "badlar": 0.854145, "ipc_idx": 5357.0929, "ipc_mes": 0.110097, "ipc_ia": 2.878691, "tcn": 857.4167, "tcn_mes": 0.018007, "ccl": 1067.61}, {"f": "Abr'24", "status": "R", "tpm": 0.71, "badlar": 0.626687, "ipc_idx": 5830.2271, "ipc_mes": 0.088319, "ipc_ia": 2.894049, "tcn": 876.75, "tcn_mes": 0.022548, "ccl": 1062.8735}, {"f": "May'24", "status": "R", "tpm": 0.436364, "badlar": 0.355852, "ipc_idx": 6073.7165, "ipc_mes": 0.041763, "ipc_ia": 2.764103, "tcn": 895.25, "tcn_mes": 0.021101, "ccl": 1153.181364}, {"f": "Jun'24", "status": "R", "tpm": 0.4, "badlar": 0.334265, "ipc_idx": 6351.7145, "ipc_mes": 0.045771, "ipc_ia": 2.715297, "tcn": 911.75, "tcn_mes": 0.018431, "ccl": 1305.784118}, {"f": "Jul'24", "status": "R", "tpm": 0.4, "badlar": 0.369063, "ipc_idx": 6607.7479, "ipc_mes": 0.040309, "ipc_ia": 2.634457, "tcn": 932.75, "tcn_mes": 0.023033, "ccl": 1350.359545}, {"f": "Ago'24", "status": "R", "tpm": 0.4, "badlar": 0.388437, "ipc_idx": 6883.4412, "ipc_mes": 0.041723, "ipc_ia": 2.367166, "tcn": 952.8333, "tcn_mes": 0.021531, "ccl": 1296.611364}, {"f": "Sep'24", "status": "R", "tpm": 0.4, "badlar": 0.39381, "ipc_idx": 7122.2421, "ipc_mes": 0.034692, "ipc_ia": 2.090011, "tcn": 970.9167, "tcn_mes": 0.018979, "ccl": 1248.201857}, {"f": "Oct'24", "status": "R", "tpm": 0.4, "badlar": 0.405085, "ipc_idx": 7313.9542, "ipc_mes": 0.026917, "ipc_ia": 1.92995, "tcn": 990.75, "tcn_mes": 0.020427, "ccl": 1192.148209}, {"f": "Nov'24", "status": "R", "tpm": 0.35, "badlar": 0.361711, "ipc_idx": 7491.4314, "ipc_mes": 0.024266, "ipc_ia": 1.66025, "tcn": 1011.75, "tcn_mes": 0.021196, "ccl": 1138.6685}, {"f": "Dic'24", "status": "R", "tpm": 0.326316, "badlar": 0.32875, "ipc_idx": 7694.0075, "ipc_mes": 0.027041, "ipc_ia": 1.177636, "tcn": 1032.5, "tcn_mes": 0.020509, "ccl": 1122.856842}, {"f": "Ene'25", "status": "R", "tpm": 0.318636, "badlar": 0.314972, "ipc_idx": 7864.1257, "ipc_mes": 0.02211, "ipc_ia": 0.845389, "tcn": 1053.5, "tcn_mes": 0.020339, "ccl": 1184.644091}, {"f": "Feb'25", "status": "R", "tpm": 0.29, "badlar": 0.284781, "ipc_idx": 8052.9927, "ipc_mes": 0.024016, "ipc_ia": 0.668741, "tcn": 1064.375, "tcn_mes": 0.010323, "ccl": 1204.1825}, {"f": "Mzo'25", "status": "R", "tpm": 0.29, "badlar": 0.295069, "ipc_idx": 8353.3158, "ipc_mes": 0.037293, "ipc_ia": 0.5593, "tcn": 1073.875, "tcn_mes": 0.008925, "ccl": 1266.151111}, {"f": "Abr'25", "status": "R", "tpm": 0.29, "badlar": 0.331546, "ipc_idx": 8585.6078, "ipc_mes": 0.027808, "ipc_ia": 0.472603, "tcn": 1172.0, "tcn_mes": 0.091375, "ccl": 1255.431053}, {"f": "May'25", "status": "R", "tpm": 0.29, "badlar": 0.327531, "ipc_idx": 8714.4871, "ipc_mes": 0.015011, "ipc_ia": 0.434787, "tcn": 1195.3333, "tcn_mes": 0.019909, "ccl": 1171.89}, {"f": "Jun'25", "status": "R", "tpm": 0.29, "badlar": 0.321612, "ipc_idx": 8855.5681, "ipc_mes": 0.016189, "ipc_ia": 0.394201, "tcn": 1194.0833, "tcn_mes": -0.001046, "ccl": 1193.635789}, {"f": "Jul'25", "status": "R", "tpm": 0.29, "badlar": 0.324972, "ipc_idx": 9023.973, "ipc_mes": 0.019017, "ipc_ia": 0.365665, "tcn": 1351.8333, "tcn_mes": 0.13211, "ccl": 1279.487273}, {"f": "Ago'25", "status": "R", "tpm": null, "badlar": 0.480312, "ipc_idx": 9193.2441, "ipc_mes": 0.018758, "ipc_ia": 0.335559, "tcn": 1323.8333, "tcn_mes": -0.020713, "ccl": 1335.8085}, {"f": "Sep'25", "status": "R", "tpm": null, "badlar": 0.48429, "ipc_idx": 9384.0922, "ipc_mes": 0.02076, "ipc_ia": 0.317576, "tcn": 1366.5833, "tcn_mes": 0.032293, "ccl": 1451.03}, {"f": "Oct'25", "status": "R", "tpm": null, "badlar": 0.461676, "ipc_idx": 9603.8623, "ipc_mes": 0.023419, "ipc_ia": 0.313088, "tcn": 1443.0, "tcn_mes": 0.055918, "ccl": 1521.422273}, {"f": "Nov'25", "status": "R", "tpm": null, "badlar": 0.320257, "ipc_idx": 9841.3581, "ipc_mes": 0.024729, "ipc_ia": 0.313682, "tcn": 1450.75, "tcn_mes": 0.005371, "ccl": 1496.917059}, {"f": "Dic'25", "status": "R", "tpm": null, "badlar": 0.264605, "ipc_idx": 10121.3715, "ipc_mes": 0.028453, "ipc_ia": 0.315488, "tcn": 1459.4167, "tcn_mes": 0.005974, "ccl": 1522.873684}, {"f": "Ene'26", "status": "R", "tpm": null, "badlar": 0.312024, "ipc_idx": 10413.0309, "ipc_mes": 0.028816, "ipc_ia": 0.324118, "tcn": 1447.6657, "tcn_mes": -0.008052, "ccl": 1519.89619}, {"f": "Feb'26", "status": "R", "tpm": null, "badlar": 0.307917, "ipc_idx": 10714.6255, "ipc_mes": 0.028963, "ipc_ia": 0.330515, "tcn": 1408.9662, "tcn_mes": -0.026732, "ccl": 1471.301667}, {"f": "Mzo'26", "status": "E", "tpm": null, "badlar": 0.2775, "ipc_idx": 11039.245283, "ipc_mes": 0.030297, "ipc_ia": 0.321541, "tcn": 1444.190355, "tcn_mes": 0.025, "ccl": 1468.159251}, {"f": "Abr'26", "status": "E", "tpm": null, "badlar": 0.25, "ipc_idx": 11164.076701, "ipc_mes": 0.011308, "ipc_ia": 0.300325, "tcn": 1465.85321, "tcn_mes": 0.015, "ccl": 1508.002576}, {"f": "May'26", "status": "E", "tpm": null, "badlar": 0.23, "ipc_idx": 11239.898518, "ipc_mes": 0.006792, "ipc_ia": 0.289795, "tcn": 1480.511742, "tcn_mes": 0.01, "ccl": 1526.824543}, {"f": "Jun'26", "status": "E", "tpm": null, "badlar": 0.23, "ipc_idx": 11290.93829, "ipc_mes": 0.004541, "ipc_ia": 0.27501, "tcn": 1495.31686, "tcn_mes": 0.01, "ccl": 1542.092789}, {"f": "Jul'26", "status": "E", "tpm": null, "badlar": 0.24, "ipc_idx": 11362.030822, "ipc_mes": 0.006296, "ipc_ia": 0.259094, "tcn": 1525.223197, "tcn_mes": 0.02, "ccl": 1565.262541}, {"f": "Ago'26", "status": "E", "tpm": null, "badlar": 0.235, "ipc_idx": 11413.54399, "ipc_mes": 0.004534, "ipc_ia": 0.241514, "tcn": 1555.727661, "tcn_mes": 0.02, "ccl": 1596.567792}, {"f": "Sep'26", "status": "E", "tpm": null, "badlar": 0.225, "ipc_idx": 11486.878642, "ipc_mes": 0.006425, "ipc_ia": 0.22408, "tcn": 1579.063576, "tcn_mes": 0.015, "ccl": 1624.468209}, {"f": "Oct'26", "status": "E", "tpm": null, "badlar": 0.215, "ipc_idx": 11533.645751, "ipc_mes": 0.004071, "ipc_ia": 0.200938, "tcn": 1602.74953, "tcn_mes": 0.015, "ccl": 1648.835232}, {"f": "Nov'26", "status": "E", "tpm": null, "badlar": 0.215, "ipc_idx": 11560.995507, "ipc_mes": 0.002371, "ipc_ia": 0.174736, "tcn": 1626.790772, "tcn_mes": 0.015, "ccl": 1673.567761}, {"f": "Dic'26", "status": "E", "tpm": 0.25285, "badlar": 0.225, "ipc_idx": 11580.223142, "ipc_mes": 0.001663, "ipc_ia": 0.144136, "tcn": 1651.192634, "tcn_mes": 0.015, "ccl": 1698.671277}, {"f": "Ene'27", "status": "E", "tpm": null, "badlar": 0.23, "ipc_idx": 11662.028187, "ipc_mes": 0.007064, "ipc_ia": 0.119946, "tcn": 1675.960524, "tcn_mes": 0.015, "ccl": 1724.151346}, {"f": "Feb'27", "status": "E", "tpm": null, "badlar": 0.23, "ipc_idx": 11788.502207, "ipc_mes": 0.010845, "ipc_ia": 0.100225, "tcn": 1701.099931, "tcn_mes": 0.015, "ccl": 1750.013617}, {"f": "Mzo'27", "status": "E", "tpm": null, "badlar": 0.225, "ipc_idx": 11935.757804, "ipc_mes": 0.012491, "ipc_ia": 0.081211, "tcn": 1726.61643, "tcn_mes": 0.015, "ccl": 1776.263821}, {"f": "Abr'27", "status": "E", "tpm": null, "badlar": 0.22, "ipc_idx": 12110.545298, "ipc_mes": 0.014644, "ipc_ia": 0.084778, "tcn": 1752.515677, "tcn_mes": 0.015, "ccl": 1802.907778}, {"f": "May'27", "status": "E", "tpm": null, "badlar": 0.22, "ipc_idx": 12306.140476, "ipc_mes": 0.016151, "ipc_ia": 0.094862, "tcn": 1778.803412, "tcn_mes": 0.015, "ccl": 1829.951395}, {"f": "Jun'27", "status": "E", "tpm": null, "badlar": 0.22, "ipc_idx": 12505.568504, "ipc_mes": 0.016206, "ipc_ia": 0.107576, "tcn": 1805.485463, "tcn_mes": 0.015, "ccl": 1857.400666}, {"f": "Jul'27", "status": "E", "tpm": null, "badlar": 0.23, "ipc_idx": 12730.790425, "ipc_mes": 0.01801, "ipc_ia": 0.120468, "tcn": 1850.080954, "tcn_mes": 0.0247, "ccl": 1894.337129}, {"f": "Ago'27", "status": "E", "tpm": null, "badlar": 0.255, "ipc_idx": 12993.57695, "ipc_mes": 0.020642, "ipc_ia": 0.138435, "tcn": 1894.864014, "tcn_mes": 0.024206, "ccl": 1940.653647}, {"f": "Sep'27", "status": "E", "tpm": null, "badlar": 0.285, "ipc_idx": 13283.822, "ipc_mes": 0.022338, "ipc_ia": 0.156434, "tcn": 1939.81375, "tcn_mes": 0.023722, "ccl": 1987.153737}, {"f": "Oct'27", "status": "E", "tpm": null, "badlar": 0.3, "ipc_idx": 13574.250006, "ipc_mes": 0.021863, "ipc_ia": 0.176926, "tcn": 1965.511321, "tcn_mes": 0.013247, "ccl": 2023.763609}, {"f": "Nov'27", "status": "E", "tpm": null, "badlar": 0.285, "ipc_idx": 13844.90059, "ipc_mes": 0.019939, "ipc_ia": 0.197553, "tcn": 1991.028559, "tcn_mes": 0.012982, "ccl": 2050.303439}, {"f": "Dic'27", "status": "E", "tpm": null, "badlar": 0.27, "ipc_idx": 14101.204589, "ipc_mes": 0.018513, "ipc_ia": 0.217697, "tcn": 2016.360105, "tcn_mes": 0.012723, "ccl": 2076.653593}];
+const FIN2 = [{"f": "Ene'21", "status": "R", "tpm": 0.38, "badlar": 0.341219, "ipc_idx": 401.5071, "ipc_mes": 0.04049, "ipc_ia": 0.38532, "tcn": 87.2983, "tcn_mes": 0.037475, "ccl": 150.52}, {"f": "Feb'21", "status": "R", "tpm": 0.38, "badlar": 0.341007, "ipc_idx": 415.8595, "ipc_mes": 0.035746, "ipc_ia": 0.406518, "tcn": 89.825, "tcn_mes": 0.028943, "ccl": 145.32}, {"f": "Mzo'21", "status": "R", "tpm": 0.38, "badlar": 0.340682, "ipc_idx": 435.8657, "ipc_mes": 0.048108, "ipc_ia": 0.426488, "tcn": 91.985, "tcn_mes": 0.024047, "ccl": 147.16}, {"f": "Abr'21", "status": "R", "tpm": 0.38, "badlar": 0.340969, "ipc_idx": 453.6503, "ipc_mes": 0.040803, "ipc_ia": 0.462802, "tcn": 93.555, "tcn_mes": 0.017068, "ccl": 155.64}, {"f": "May'21", "status": "R", "tpm": 0.38, "badlar": 0.341151, "ipc_idx": 468.725, "ipc_mes": 0.03323, "ipc_ia": 0.488447, "tcn": 94.685, "tcn_mes": 0.012078, "ccl": 165.72}, {"f": "Jun'21", "status": "R", "tpm": 0.38, "badlar": 0.34119, "ipc_idx": 483.6049, "ipc_mes": 0.031745, "ipc_ia": 0.502001, "tcn": 95.7267, "tcn_mes": 0.011002, "ccl": 165.92}, {"f": "Jul'21", "status": "R", "tpm": 0.38, "badlar": 0.34131, "ipc_idx": 498.0987, "ipc_mes": 0.02997, "ipc_ia": 0.517662, "tcn": 96.685, "tcn_mes": 0.010011, "ccl": 168.85}, {"f": "Ago'21", "status": "R", "tpm": 0.38, "badlar": 0.341577, "ipc_idx": 510.3942, "ipc_mes": 0.024685, "ipc_ia": 0.514239, "tcn": 97.7517, "tcn_mes": 0.011033, "ccl": 170.4}, {"f": "Sep'21", "status": "R", "tpm": 0.38, "badlar": 0.341591, "ipc_idx": 528.4968, "ipc_mes": 0.035468, "ipc_ia": 0.524712, "tcn": 98.735, "tcn_mes": 0.010059, "ccl": 175.12}, {"f": "Oct'21", "status": "R", "tpm": 0.38, "badlar": 0.341414, "ipc_idx": 547.0802, "ipc_mes": 0.035163, "ipc_ia": 0.521117, "tcn": 99.7217, "tcn_mes": 0.009993, "ccl": 179.32}, {"f": "Nov'21", "status": "R", "tpm": 0.38, "badlar": 0.341756, "ipc_idx": 560.9184, "ipc_mes": 0.025295, "ipc_ia": 0.511823, "tcn": 100.925, "tcn_mes": 0.012067, "ccl": 214.15}, {"f": "Dic'21", "status": "R", "tpm": 0.38, "badlar": 0.342, "ipc_idx": 582.4575, "ipc_mes": 0.0384, "ipc_ia": 0.509416, "tcn": 102.75, "tcn_mes": 0.018083, "ccl": 202.13}, {"f": "Ene'22", "status": "R", "tpm": 0.397143, "badlar": 0.369256, "ipc_idx": 605.0317, "ipc_mes": 0.038757, "ipc_ia": 0.506902, "tcn": 105.015, "tcn_mes": 0.022044, "ccl": 244.61}, {"f": "Feb'22", "status": "R", "tpm": 0.409211, "badlar": 0.383158, "ipc_idx": 633.4341, "ipc_mes": 0.046944, "ipc_ia": 0.523193, "tcn": 107.4417, "tcn_mes": 0.023108, "ccl": 200.47}, {"f": "Mzo'22", "status": "R", "tpm": 0.431667, "badlar": 0.405417, "ipc_idx": 676.0566, "ipc_mes": 0.067288, "ipc_ia": 0.551066, "tcn": 110.9783, "tcn_mes": 0.032916, "ccl": 190.28}, {"f": "Abr'22", "status": "R", "tpm": 0.459474, "badlar": 0.43273, "ipc_idx": 716.9399, "ipc_mes": 0.060473, "ipc_ia": 0.58038, "tcn": 115.3117, "tcn_mes": 0.039047, "ccl": 206.961}, {"f": "May'22", "status": "R", "tpm": 0.482, "badlar": 0.455219, "ipc_idx": 753.147, "ipc_mes": 0.050502, "ipc_ia": 0.606799, "tcn": 120.1617, "tcn_mes": 0.04206, "ccl": 210.51}, {"f": "Jun'22", "status": "R", "tpm": 0.5035, "badlar": 0.482062, "ipc_idx": 793.0278, "ipc_mes": 0.052952, "ipc_ia": 0.639826, "tcn": 125.215, "tcn_mes": 0.042054, "ccl": 252.708}, {"f": "Jul'22", "status": "R", "tpm": 0.527619, "badlar": 0.510714, "ipc_idx": 851.761, "ipc_mes": 0.074062, "ipc_ia": 0.710025, "tcn": 131.2267, "tcn_mes": 0.048011, "ccl": 288.285}, {"f": "Ago'22", "status": "R", "tpm": 0.660455, "badlar": 0.604886, "ipc_idx": 911.1316, "ipc_mes": 0.069703, "ipc_ia": 0.785153, "tcn": 138.7133, "tcn_mes": 0.057051, "ccl": 292.83}, {"f": "Sep'22", "status": "R", "tpm": 0.726429, "badlar": 0.664881, "ipc_idx": 967.3076, "ipc_mes": 0.061655, "ipc_ia": 0.8303, "tcn": 147.315, "tcn_mes": 0.062011, "ccl": 308.955}, {"f": "Oct'22", "status": "R", "tpm": 0.75, "badlar": 0.690625, "ipc_idx": 1028.706, "ipc_mes": 0.063474, "ipc_ia": 0.880357, "tcn": 156.895, "tcn_mes": 0.065031, "ccl": 307.3}, {"f": "Nov'22", "status": "R", "tpm": 0.75, "badlar": 0.691786, "ipc_idx": 1079.2787, "ipc_mes": 0.049161, "ipc_ia": 0.924128, "tcn": 167.255, "tcn_mes": 0.066031, "ccl": 322.75}, {"f": "Dic'22", "status": "R", "tpm": 0.75, "badlar": 0.693, "ipc_idx": 1134.5875, "ipc_mes": 0.051246, "ipc_ia": 0.947932, "tcn": 177.1283, "tcn_mes": 0.059031, "ccl": 344.13}, {"f": "Ene'23", "status": "R", "tpm": 0.75, "badlar": 0.694688, "ipc_idx": 1202.979, "ipc_mes": 0.060279, "ipc_ia": 0.988291, "tcn": 186.875, "tcn_mes": 0.055026, "ccl": 367.42}, {"f": "Feb'23", "status": "R", "tpm": 0.75, "badlar": 0.697743, "ipc_idx": 1282.7091, "ipc_mes": 0.066277, "ipc_ia": 1.025008, "tcn": 197.1533, "tcn_mes": 0.055001, "ccl": 366.41}, {"f": "Mzo'23", "status": "R", "tpm": 0.765, "badlar": 0.709801, "ipc_idx": 1381.1601, "ipc_mes": 0.076752, "ipc_ia": 1.042965, "tcn": 208.9883, "tcn_mes": 0.060029, "ccl": 406.54}, {"f": "Abr'23", "status": "R", "tpm": 0.802778, "badlar": 0.742361, "ipc_idx": 1497.2147, "ipc_mes": 0.084027, "ipc_ia": 1.088341, "tcn": 222.575, "tcn_mes": 0.065012, "ccl": 453.16}, {"f": "May'23", "status": "R", "tpm": 0.943, "badlar": 0.900469, "ipc_idx": 1613.5895, "ipc_mes": 0.077728, "ipc_ia": 1.142463, "tcn": 239.325, "tcn_mes": 0.075256, "ccl": 492.42}, {"f": "Jun'23", "status": "R", "tpm": 0.97, "badlar": 0.924469, "ipc_idx": 1709.6115, "ipc_mes": 0.059508, "ipc_ia": 1.155803, "tcn": 256.675, "tcn_mes": 0.072496, "ccl": 512.04}, {"f": "Jul'23", "status": "R", "tpm": 0.97, "badlar": 0.926012, "ipc_idx": 1818.0838, "ipc_mes": 0.063449, "ipc_ia": 1.1345, "tcn": 275.2833, "tcn_mes": 0.072498, "ccl": 551.27}, {"f": "Ago'23", "status": "R", "tpm": 1.094091, "badlar": 1.04017, "ipc_idx": 2044.2832, "ipc_mes": 0.124416, "ipc_ia": 1.243675, "tcn": 350.0167, "tcn_mes": 0.271478, "ccl": 778.62}, {"f": "Sep'23", "status": "R", "tpm": 1.18, "badlar": 1.137351, "ipc_idx": 2304.9242, "ipc_mes": 0.127498, "ipc_ia": 1.382824, "tcn": 350.0083, "tcn_mes": -2.4e-05, "ccl": 822.53}, {"f": "Oct'23", "status": "R", "tpm": 1.27, "badlar": 1.220812, "ipc_idx": 2496.273, "ipc_mes": 0.083017, "ipc_ia": 1.426615, "tcn": 350.0083, "tcn_mes": 0.0, "ccl": 864.84}, {"f": "Nov'23", "status": "R", "tpm": 1.33, "badlar": 1.2935, "ipc_idx": 2816.0628, "ipc_mes": 0.128107, "ipc_ia": 1.609208, "tcn": 360.525, "tcn_mes": 0.030047, "ccl": 839.14}, {"f": "Dic'23", "status": "R", "tpm": 1.173684, "badlar": 1.211711, "ipc_idx": 3533.1922, "ipc_mes": 0.254657, "ipc_ia": 2.114076, "tcn": 808.4833, "tcn_mes": 1.242517, "ccl": 973.15}, {"f": "Ene'24", "status": "R", "tpm": 1.0, "badlar": 1.091676, "ipc_idx": 4261.5, "ipc_mes": 0.206133, "ipc_ia": 2.542456, "tcn": 826.25, "tcn_mes": 0.021975, "ccl": 1248.95}, {"f": "Feb'24", "status": "R", "tpm": 1.0, "badlar": 1.088947, "ipc_idx": 4825.7881, "ipc_mes": 0.132415, "ipc_ia": 2.762184, "tcn": 842.25, "tcn_mes": 0.019365, "ccl": 1076.81}, {"f": "Mzo'24", "status": "R", "tpm": 0.873684, "badlar": 0.854145, "ipc_idx": 5357.0929, "ipc_mes": 0.110097, "ipc_ia": 2.878691, "tcn": 857.4167, "tcn_mes": 0.018007, "ccl": 1085.7}, {"f": "Abr'24", "status": "R", "tpm": 0.71, "badlar": 0.626687, "ipc_idx": 5830.2271, "ipc_mes": 0.088319, "ipc_ia": 2.894049, "tcn": 876.75, "tcn_mes": 0.022548, "ccl": 1091.95}, {"f": "May'24", "status": "R", "tpm": 0.436364, "badlar": 0.355852, "ipc_idx": 6073.7165, "ipc_mes": 0.041763, "ipc_ia": 2.764103, "tcn": 895.25, "tcn_mes": 0.021101, "ccl": 1247.42}, {"f": "Jun'24", "status": "R", "tpm": 0.4, "badlar": 0.334265, "ipc_idx": 6351.7145, "ipc_mes": 0.045771, "ipc_ia": 2.715297, "tcn": 911.75, "tcn_mes": 0.018431, "ccl": 1350.08}, {"f": "Jul'24", "status": "R", "tpm": 0.4, "badlar": 0.369063, "ipc_idx": 6607.7479, "ipc_mes": 0.040309, "ipc_ia": 2.634457, "tcn": 932.75, "tcn_mes": 0.023033, "ccl": 1284.84}, {"f": "Ago'24", "status": "R", "tpm": 0.4, "badlar": 0.388437, "ipc_idx": 6883.4412, "ipc_mes": 0.041723, "ipc_ia": 2.367166, "tcn": 952.8333, "tcn_mes": 0.021531, "ccl": 1299.94}, {"f": "Sep'24", "status": "R", "tpm": 0.4, "badlar": 0.39381, "ipc_idx": 7122.2421, "ipc_mes": 0.034692, "ipc_ia": 2.090011, "tcn": 970.9167, "tcn_mes": 0.018979, "ccl": 1243.74}, {"f": "Oct'24", "status": "R", "tpm": 0.4, "badlar": 0.405085, "ipc_idx": 7313.9542, "ipc_mes": 0.026917, "ipc_ia": 1.92995, "tcn": 990.75, "tcn_mes": 0.020427, "ccl": 1157.94}, {"f": "Nov'24", "status": "R", "tpm": 0.35, "badlar": 0.361711, "ipc_idx": 7491.4314, "ipc_mes": 0.024266, "ipc_ia": 1.66025, "tcn": 1011.75, "tcn_mes": 0.021196, "ccl": 1109.33}, {"f": "Dic'24", "status": "R", "tpm": 0.326316, "badlar": 0.32875, "ipc_idx": 7694.0075, "ipc_mes": 0.027041, "ipc_ia": 1.177636, "tcn": 1032.5, "tcn_mes": 0.020509, "ccl": 1186.93}, {"f": "Ene'25", "status": "R", "tpm": 0.318636, "badlar": 0.314972, "ipc_idx": 7864.1257, "ipc_mes": 0.02211, "ipc_ia": 0.845389, "tcn": 1053.5, "tcn_mes": 0.020339, "ccl": 1185.41}, {"f": "Feb'25", "status": "R", "tpm": 0.29, "badlar": 0.284781, "ipc_idx": 8052.9927, "ipc_mes": 0.024016, "ipc_ia": 0.668741, "tcn": 1064.375, "tcn_mes": 0.010323, "ccl": 1219.98}, {"f": "Mzo'25", "status": "R", "tpm": 0.29, "badlar": 0.295069, "ipc_idx": 8353.3158, "ipc_mes": 0.037293, "ipc_ia": 0.5593, "tcn": 1073.875, "tcn_mes": 0.008925, "ccl": 1319.46}, {"f": "Abr'25", "status": "R", "tpm": 0.29, "badlar": 0.331546, "ipc_idx": 8585.6078, "ipc_mes": 0.027808, "ipc_ia": 0.472603, "tcn": 1172.0, "tcn_mes": 0.091375, "ccl": 1195.73}, {"f": "May'25", "status": "R", "tpm": 0.29, "badlar": 0.327531, "ipc_idx": 8714.4871, "ipc_mes": 0.015011, "ipc_ia": 0.434787, "tcn": 1195.3333, "tcn_mes": 0.019909, "ccl": 1204.92}, {"f": "Jun'25", "status": "R", "tpm": 0.29, "badlar": 0.321612, "ipc_idx": 8855.5681, "ipc_mes": 0.016189, "ipc_ia": 0.394201, "tcn": 1194.0833, "tcn_mes": -0.001046, "ccl": 1210.25}, {"f": "Jul'25", "status": "R", "tpm": 0.29, "badlar": 0.324972, "ipc_idx": 9023.973, "ipc_mes": 0.019017, "ipc_ia": 0.365665, "tcn": 1351.8333, "tcn_mes": 0.13211, "ccl": 1358.82}, {"f": "Ago'25", "status": "R", "tpm": null, "badlar": 0.480312, "ipc_idx": 9193.2441, "ipc_mes": 0.018758, "ipc_ia": 0.335559, "tcn": 1323.8333, "tcn_mes": -0.020713, "ccl": 1358.89}, {"f": "Sep'25", "status": "R", "tpm": null, "badlar": 0.48429, "ipc_idx": 9384.0922, "ipc_mes": 0.02076, "ipc_ia": 0.317576, "tcn": 1366.5833, "tcn_mes": 0.032293, "ccl": 1541.77}, {"f": "Oct'25", "status": "R", "tpm": null, "badlar": 0.461676, "ipc_idx": 9603.8623, "ipc_mes": 0.023419, "ipc_ia": 0.313088, "tcn": 1443.0, "tcn_mes": 0.055918, "ccl": 1506.53}, {"f": "Nov'25", "status": "R", "tpm": null, "badlar": 0.320257, "ipc_idx": 9841.3581, "ipc_mes": 0.024729, "ipc_ia": 0.313682, "tcn": 1450.75, "tcn_mes": 0.005371, "ccl": 1518.74}, {"f": "Dic'25", "status": "R", "tpm": null, "badlar": 0.264605, "ipc_idx": 10121.3715, "ipc_mes": 0.028453, "ipc_ia": 0.315488, "tcn": 1459.4167, "tcn_mes": 0.005974, "ccl": 1521.34}, {"f": "Ene'26", "status": "R", "tpm": null, "badlar": 0.312024, "ipc_idx": 10413.0309, "ipc_mes": 0.028816, "ipc_ia": 0.324118, "tcn": 1447.6657, "tcn_mes": -0.008052, "ccl": 1493.78}, {"f": "Feb'26", "status": "R", "tpm": null, "badlar": 0.307917, "ipc_idx": 10714.6255, "ipc_mes": 0.028963, "ipc_ia": 0.330515, "tcn": 1408.9662, "tcn_mes": -0.026732, "ccl": 1460.27}, {"f": "Mzo'26", "status": "E", "tpm": null, "badlar": 0.2775, "ipc_idx": 11039.245283, "ipc_mes": 0.030297, "ipc_ia": 0.321541, "tcn": 1444.190355, "tcn_mes": 0.025, "ccl": 1507.345067}, {"f": "Abr'26", "status": "E", "tpm": null, "badlar": 0.25, "ipc_idx": 11164.076701, "ipc_mes": 0.011308, "ipc_ia": 0.300325, "tcn": 1473.074162, "tcn_mes": 0.02, "ccl": 1546.72787}, {"f": "May'26", "status": "E", "tpm": null, "badlar": 0.23, "ipc_idx": 11239.898518, "ipc_mes": 0.006792, "ipc_ia": 0.289795, "tcn": 1502.535645, "tcn_mes": 0.02, "ccl": 1577.662428}, {"f": "Jun'26", "status": "E", "tpm": null, "badlar": 0.235, "ipc_idx": 11290.93829, "ipc_mes": 0.004541, "ipc_ia": 0.27501, "tcn": 1532.586358, "tcn_mes": 0.02, "ccl": 1609.215676}, {"f": "Jul'26", "status": "E", "tpm": null, "badlar": 0.305, "ipc_idx": 11362.702633, "ipc_mes": 0.006356, "ipc_ia": 0.259169, "tcn": 1655.193267, "tcn_mes": 0.08, "ccl": 1737.95293}, {"f": "Ago'26", "status": "E", "tpm": null, "badlar": 0.38, "ipc_idx": 11442.737323, "ipc_mes": 0.007044, "ipc_ia": 0.24469, "tcn": 1688.297132, "tcn_mes": 0.02, "ccl": 1772.711989}, {"f": "Sep'26", "status": "E", "tpm": null, "badlar": 0.42, "ipc_idx": 11443.34053, "ipc_mes": 5.3e-05, "ipc_ia": 0.21944, "tcn": 1890.892788, "tcn_mes": 0.12, "ccl": 1985.437428}, {"f": "Oct'26", "status": "E", "tpm": null, "badlar": 0.42, "ipc_idx": 11508.152323, "ipc_mes": 0.005664, "ipc_ia": 0.198284, "tcn": 1900.347252, "tcn_mes": 0.005, "ccl": 1995.364615}, {"f": "Nov'26", "status": "E", "tpm": null, "badlar": 0.39, "ipc_idx": 11542.971557, "ipc_mes": 0.003026, "ipc_ia": 0.172904, "tcn": 1909.848988, "tcn_mes": 0.005, "ccl": 2005.341438}, {"f": "Dic'26", "status": "E", "tpm": null, "badlar": 0.36, "ipc_idx": 11546.652505, "ipc_mes": 0.000319, "ipc_ia": 0.140819, "tcn": 1928.947478, "tcn_mes": 0.01, "ccl": 2025.394852}, {"f": "Ene'27", "status": "E", "tpm": null, "badlar": 0.325, "ipc_idx": 11598.509842, "ipc_mes": 0.004491, "ipc_ia": 0.113846, "tcn": 1977.171165, "tcn_mes": 0.025, "ccl": 2076.029723}, {"f": "Feb'27", "status": "E", "tpm": null, "badlar": 0.3, "ipc_idx": 11714.249449, "ipc_mes": 0.009979, "ipc_ia": 0.093295, "tcn": 2016.714588, "tcn_mes": 0.02, "ccl": 2117.550318}, {"f": "Mzo'27", "status": "E", "tpm": null, "badlar": 0.28, "ipc_idx": 11836.514745, "ipc_mes": 0.010437, "ipc_ia": 0.072221, "tcn": 2046.965307, "tcn_mes": 0.015, "ccl": 2149.313573}, {"f": "Abr'27", "status": "E", "tpm": null, "badlar": 0.26, "ipc_idx": 11969.908953, "ipc_mes": 0.01127, "ipc_ia": 0.072181, "tcn": 2067.43496, "tcn_mes": 0.01, "ccl": 2170.806708}, {"f": "May'27", "status": "E", "tpm": null, "badlar": 0.24, "ipc_idx": 12103.079794, "ipc_mes": 0.011125, "ipc_ia": 0.076796, "tcn": 2088.10931, "tcn_mes": 0.01, "ccl": 2192.514775}, {"f": "Jun'27", "status": "E", "tpm": null, "badlar": 0.23, "ipc_idx": 12284.885754, "ipc_mes": 0.015021, "ipc_ia": 0.088031, "tcn": 2108.990403, "tcn_mes": 0.01, "ccl": 2214.439923}, {"f": "Jul'27", "status": "E", "tpm": null, "badlar": 0.23, "ipc_idx": 12473.31056, "ipc_mes": 0.015338, "ipc_ia": 0.097742, "tcn": 2151.170211, "tcn_mes": 0.02, "ccl": 2258.728722}, {"f": "Ago'27", "status": "E", "tpm": null, "badlar": 0.255, "ipc_idx": 12698.561743, "ipc_mes": 0.018059, "ipc_ia": 0.109749, "tcn": 2194.193615, "tcn_mes": 0.02, "ccl": 2303.903296}, {"f": "Sep'27", "status": "E", "tpm": null, "badlar": 0.305, "ipc_idx": 13003.962046, "ipc_mes": 0.02405, "ipc_ia": 0.136378, "tcn": 2281.96136, "tcn_mes": 0.04, "ccl": 2396.059428}, {"f": "Oct'27", "status": "E", "tpm": null, "badlar": 0.355, "ipc_idx": 13431.3952, "ipc_mes": 0.032869, "ipc_ia": 0.16712, "tcn": 2396.059428, "tcn_mes": 0.05, "ccl": 2515.862399}, {"f": "Nov'27", "status": "E", "tpm": null, "badlar": 0.39, "ipc_idx": 13889.259663, "ipc_mes": 0.034089, "ipc_ia": 0.203266, "tcn": 2443.980617, "tcn_mes": 0.02, "ccl": 2566.179647}, {"f": "Dic'27", "status": "E", "tpm": null, "badlar": 0.4, "ipc_idx": 14303.448925, "ipc_mes": 0.029821, "ipc_ia": 0.238753, "tcn": 2480.640326, "tcn_mes": 0.015, "ccl": 2604.672342}];
+const A1 = {"years": [2023, 2024, 2025, 2026, 2027], "data": {"PIB nominal en miles de mill. de USD oficiales": {"2023": 648.894711, "2024": 637.234362, "2025": 689.007306, "2026": 754.576887, "2027": 795.635483}, "PIB nominal en miles de mill. de USD CCL": {"2023": 315.126774, "2024": 490.509455, "2025": 647.449269, "2026": 726.98043, "2027": 767.682348}, "PIB nominal en billones de $": {"2023": 192.408248, "2024": 583.909615, "2025": 856.9786, "2026": 1141.580387, "2027": 1453.066192}, "PIB (var. i.a.)": {"2023": -0.018558, "2024": -0.013429, "2025": 0.043996, "2026": 0.028857, "2027": 0.018095}, "Consumo privado (var. i.a.)": {"2023": 0.009718, "2024": -0.02922, "2025": 0.065886, "2026": 0.016528, "2027": 0.009342}, "Brecha cambiaria (% prom. Dic.)": {"2023": 0.480951, "2024": 0.100078, "2025": 0.051826, "2026": 0.036412, "2027": 0.036412}, "Tipo de Cambio brecha CCL (prom. dic.)": {"2023": 950.762632, "2024": 1122.856842, "2025": 1522.873684, "2026": 1698.671277, "2027": 2076.653593}, "Tipo de cambio (prom. dic)": {"2023": 641.994732, "2024": 1020.706142, "2025": 1447.837721, "2026": 1638.991703, "2027": 2003.694332}, "Tipo de cambio (f.d.p.)": {"2023": 808.4833, "2024": 1032.5, "2025": 1459.4167, "2026": 1651.192634, "2027": 2040.731247}, "Tipo de cambio (var. i.a. prom.)": {"2023": 1.374755, "2024": 0.589898, "2025": 0.418467, "2026": 0.132027, "2027": 0.222516}, "TCR (17-dic-15 = 100)": {"2023": 124.864888, "2024": 79.78637, "2025": 95.110372, "2026": 0.0, "2027": 0.0}, "Tasa de pol\u00edtica monetaria (f.d.p.)": {"2023": 1.0, "2024": 0.32}, "TAMAR (f.d.p.)": {"2024": 0.3425, "2025": 0.28875}, "Inflaci\u00f3n (var. i.a.)": {"2023": 2.114076, "2024": 1.177636, "2025": 0.315488, "2026": 0.14279, "2027": 0.217697}, "Salarios (var. i.a.)": {"2023": 1.657854, "2024": 1.475195, "2025": 0.229489, "2026": 0.186246, "2027": 0.218992}, "Exportaciones dev. (Bs. y Ss., miles de mill. de USD)": {"2023": 82.946767, "2024": 96.926387, "2025": 105.222212, "2026": 115.031829, "2027": 123.031829}, "Importaciones dev. (Bs. y Ss., miles de mill. de USD)": {"2023": 92.299515, "2024": 80.272477, "2025": 102.14218, "2026": 111.632736, "2027": 117.69267}, "Balanza comercial dev. (miles de mill. de USD)": {"2023": -9.352747, "2024": 16.65391, "2025": 3.080033, "2026": 3.399093, "2027": 5.33916}, "Cuenta corriente dev. (% PIB)": {"2023": -0.032647, "2024": 0.009017, "2025": -0.013908, "2026": -0.014011, "2027": -0.023378}, "Cuenta corriente cambiaria (% PIB)": {"2023": -0.005519, "2024": 0.00266, "2025": -0.00322, "2026": -0.018726, "2027": -0.023378}, "Resultado primario (% PIB)": {"2023": -0.026842, "2024": 0.018796, "2025": 0.014416, "2026": 0.015, "2027": 0.015}, "Resultado financiero (% PIB)": {"2023": -0.044, "2024": 0.003998, "2025": 0.002564, "2026": 0.002, "2027": 0.0}, "Desempleo (IV trimestre)": {"2023": 0.057322, "2024": 0.064474, "2025": 0.066325, "2026": 0.073343, "2027": 0.078}, "Reservas Netas (f.d.p. Met. FMI)": {"2023": -8815.98405, "2024": -2221.657128, "2025": -14490.507829, "2026": -6490.507829, "2027": 5000.0}, "Riesgo Pa\u00eds (f.d.p.)": {"2023": 1888.6987, "2024": 635.0, "2025": 580.0, "2026": 450.0, "2027": 400.0}, "Nominal GDP in billions of official US dollars": {"2023": 648.894711, "2024": 637.234362}, "Nominal GDP in billions of CCL US dollars": {"2023": 315.126774, "2024": 489.0}, "Nominal GDP in trillion $": {"2023": 192.408248, "2024": 583.909615}, "GDP (yoy var.)": {"2023": -0.018558, "2024": -0.013429, "2025": 0.043996, "2026": 0.028857, "2027": 0.018095}, "Private consumption (yoy var.)": {"2023": 0.009718, "2024": -0.02922, "2025": 0.065886, "2026": 0.016528, "2027": 0.009342}, "Exchange Rate Gap (Dec. avg. %)": {"2023": 0.480951, "2024": 0.3}, "Exchange rate CCL gap (Dec. avg.)": {"2023": 950.762632, "2024": 1324.0}, "Exchange rate (Dec. avg.)": {"2023": 641.994732, "2024": 1020.706142}, "Exchange rate (eop)": {"2023": 808.4833, "2024": 1032.5}, "Exchange rate (yoy change avg.)": {"2023": 1.374755, "2024": 0.589898}, "RER (12-17-15=100)": {"2023": 124.864888, "2024": 79.78637}, "Monetary policy rate": {"2023": 1.0, "2024": 0.32}, "TAMAR (e.o.p.)": {"2024": 0.3425, "2025": 0.28875}, "Inflation (yoy var)": {"2023": 2.114076, "2024": 1.177636, "2025": 0.315488, "2026": 0.14279, "2027": 0.217697}, "Wages (yoy var)": {"2023": 1.657854, "2024": 1.475195, "2025": 0.229489, "2026": 0.186246, "2027": 0.218992}, "Exports (USD billions; goods and services)": {"2023": 82.946767, "2024": 96.926387, "2025": 105.222212, "2026": 115.031829, "2027": 123.031829}, "Imports (USD billions; goods and services)": {"2023": 92.299515, "2024": 80.272477, "2025": 102.14218, "2026": 111.632736, "2027": 117.69267}, "Commercial balance (USD billions)": {"2023": -9.352747, "2024": 16.65391, "2025": 3.080033, "2026": 3.399093, "2027": 5.33916}, "Current account (% GDP)": {"2023": -0.005519, "2024": 0.007}, "Foreign exchange current account %GDP": {"2023": -0.005519, "2024": 0.00266, "2025": -0.00322, "2026": -0.018726, "2027": -0.023378}, "Primary result (% GDP)": {"2023": -0.026842, "2024": 0.018796, "2025": 0.014416, "2026": 0.015, "2027": 0.015}, "Financial result (% GDP)": {"2023": -0.044, "2024": 0.003998, "2025": 0.002564, "2026": 0.002, "2027": 0.0}, "Unemployment (Q4)": {"2023": 0.057322, "2024": 0.064474}, "Net Reserves (e.o.p.)": {"2023": -8815.98405, "2024": -497.0}, "Country Risk (e.o.p.)": {"2023": 1888.6987, "2024": 635.0}, "GDP (yoy change)": {"2023": -0.018558, "2024": -0.013429}, "Inflation ( yoy change)": {"2023": 2.114076, "2024": 1.177636}, "Wages ( yoy change)": {"2023": 1.657854, "2024": 1.5}, "Fiscal result (% GDP)": {"2023": -0.026842, "2024": 0.018796}, "Préstamos $ (var. i.a.)": {"2016": 0.1736967678, "2017": 0.4588959453, "2018": 0.1908619529, "2019": 0.176, "2020": 0.453, "2021": 0.4795594787, "2022": 0.6720896994, "2023": 1.3025535373, "2024": 2.3046358419, "2025": 0.7226282383, "2026": 0.3121997605, "2027": 0.3843812466}, "Préstamos US$ (var. i.a.)": {"2016": 2.1476391512, "2017": 0.6171735782, "2018": 0.0490008184, "2019": -0.313, "2020": -0.502, "2021": -0.2267339599, "2022": -0.154072835, "2023": -0.0025503132, "2024": 1.878494803, "2025": 0.821280759, "2026": 0.2820958597, "2027": 0.1880639064}, "Depósitos $ (var. i.a.)": {"2016": 0.2376018225, "2017": 0.2544330601, "2018": 0.4159185318, "2019": 0.349, "2020": 0.413, "2021": 0.5798924442, "2022": 0.9036341941, "2023": 1.1813023513, "2024": 1.4294384001, "2025": 0.3818400848, "2026": 0.3168766891, "2027": 0.3214548263}, "Depósitos US$ (var. i.a.)": {"2016": 1.3070769849, "2017": 0.1958143621, "2018": 0.1092084179, "2019": -0.356, "2020": -0.254, "2021": 0.0259763357, "2022": 0.030145714, "2023": -0.1020369267, "2024": 1.0151461553, "2025": 0.1583868112, "2026": 0.1817455914, "2027": 0.0908727957}}};
+const A2 = {"years": [2023, 2024, 2025, 2026, 2027], "data": {"PIB nominal en miles de mill. de USD oficiales": {"2023": 648.894711, "2024": 637.234362, "2025": 689.007306, "2026": 721.914831, "2027": 737.376302}, "PIB nominal en miles de mill. de USD CCL": {"2023": 315.126774, "2024": 490.509455, "2025": 647.449269, "2026": 688.197064, "2027": 702.263145}, "PIB nominal en billones de $": {"2023": 192.408248, "2024": 583.909615, "2025": 856.9786, "2026": 1174.008854, "2027": 1581.866323}, "PIB (var. i.a.)": {"2023": -0.018558, "2024": -0.013429, "2025": 0.043996, "2026": 0.022607, "2027": -0.004788}, "Consumo privado (var. i.a.)": {"2023": 0.009718, "2024": -0.02922, "2025": 0.033771, "2026": -0.026157, "2027": 0.061383}, "Brecha cambiaria (% prom. Dic.)": {"2023": 0.480951, "2024": 0.100078, "2025": 0.051826, "2026": 0.05, "2027": 0.07}, "Tipo de Cambio brecha CCL (prom. dic.)": {"2023": 950.762632, "2024": 1122.856842, "2025": 1522.873684, "2026": 2015.368145, "2027": 2560.202326}, "Tipo de cambio (prom. dic)": {"2023": 641.994732, "2024": 1020.706142, "2025": 1447.837721, "2026": 1919.398233, "2027": 2438.28793}, "Tipo de cambio (f.d.p.)": {"2023": 808.4833, "2024": 1032.5, "2025": 1459.4167, "2026": 1928.947478, "2027": 2456.438957}, "Tipo de cambio (var. i.a. prom.)": {"2023": 1.374755, "2024": 0.589898, "2025": 0.418467, "2026": 0.3257, "2027": 0.27034}, "TCR (17-dic-15 = 100)": {"2023": 124.864888, "2024": 79.78637, "2025": 95.110372, "2026": 0.0, "2027": 0.0}, "Tasa de pol\u00edtica monetaria (f.d.p.)": {"2023": 1.0, "2024": 0.32}, "TAMAR (f.d.p.)": {"2024": 0.3425, "2025": 0.28875}, "Inflaci\u00f3n (var. i.a.)": {"2023": 2.114076, "2024": 1.177636, "2025": 0.315488, "2026": 0.351895, "2027": 0.29755}, "Salarios (var. i.a.)": {"2023": 1.657854, "2024": 1.475195, "2025": 0.229489, "2026": 0.383058, "2027": 0.309157}, "Exportaciones dev. (Bs. y Ss., miles de mill. de USD)": {"2023": 82.946767, "2024": 96.926387, "2025": 105.222212, "2026": 119.031829, "2027": 125.031829}, "Importaciones dev. (Bs. y Ss., miles de mill. de USD)": {"2023": 92.299515, "2024": 80.272477, "2025": 102.14218, "2026": 111.632736, "2027": 110.029134}, "Balanza comercial dev. (miles de mill. de USD)": {"2023": -9.352747, "2024": 16.65391, "2025": 3.080033, "2026": 7.399093, "2027": 15.002695}, "Cuenta corriente dev. (% PIB)": {"2023": -0.032647, "2024": 0.009017, "2025": -0.013908, "2026": -0.018, "2027": -0.018986}, "Cuenta corriente cambiaria (% PIB)": {"2023": -0.005519, "2024": 0.00266, "2025": -0.00322, "2026": -0.018, "2027": -0.018986}, "Resultado primario (% PIB)": {"2023": -0.026842, "2024": 0.018796, "2025": 0.014416, "2026": 0.017, "2027": 0.017}, "Resultado financiero (% PIB)": {"2023": -0.044, "2024": 0.003998, "2025": 0.002564, "2026": 0.002, "2027": 0.004}, "Desempleo (IV trimestre)": {"2023": 0.057322, "2024": 0.064474, "2025": 0.066325, "2026": 0.078, "2027": 0.082}, "Reservas Netas (f.d.p. Met. FMI)": {"2023": -8815.98405, "2024": -2221.657128, "2025": -14490.507829, "2026": -14490.507829, "2027": -16490.507829}, "Riesgo Pa\u00eds (f.d.p.)": {"2023": 1888.6987, "2024": 635.0, "2025": 580.0, "2026": 650.0, "2027": 600.0}, "Nominal GDP in billions of official US dollars": {"2023": 648.894711, "2024": 637.234362}, "Nominal GDP in billions of CCL US dollars": {"2023": 315.126774, "2024": 489.0}, "Nominal GDP in trillion $": {"2023": 192.408248, "2024": 583.909615}, "GDP (yoy var.)": {"2023": -0.018558, "2024": -0.013429, "2025": 0.043996, "2026": 0.022607, "2027": -0.004788}, "Private consumption (yoy var.)": {"2023": 0.009718, "2024": -0.02922, "2025": 0.033771, "2026": -0.026157, "2027": 0.061383}, "Exchange Rate Gap (Dec. avg. %)": {"2023": 0.480951, "2024": 0.3}, "Exchange rate CCL gap (Dec. avg.)": {"2023": 950.762632, "2024": 1324.0}, "Exchange rate (Dec. avg.)": {"2023": 641.994732, "2024": 1020.706142}, "Exchange rate (eop)": {"2023": 808.4833, "2024": 1032.5}, "Exchange rate (yoy change avg.)": {"2023": 1.374755, "2024": 0.589898}, "RER (12-17-15=100)": {"2023": 124.864888, "2024": 79.78637}, "Monetary policy rate": {"2023": 1.0, "2024": 0.32}, "TAMAR (e.o.p.)": {"2024": 0.3425, "2025": 0.28875}, "Inflation (yoy var)": {"2023": 2.114076, "2024": 1.177636, "2025": 0.315488, "2026": 0.351895, "2027": 0.29755}, "Wages (yoy var)": {"2023": 1.657854, "2024": 1.475195, "2025": 0.229489, "2026": 0.383058, "2027": 0.309157}, "Exports (USD billions; goods and services)": {"2023": 82.946767, "2024": 96.926387, "2025": 105.222212, "2026": 119.031829, "2027": 125.031829}, "Imports (USD billions; goods and services)": {"2023": 92.299515, "2024": 80.272477, "2025": 102.14218, "2026": 111.632736, "2027": 110.029134}, "Commercial balance (USD billions)": {"2023": -9.352747, "2024": 16.65391, "2025": 3.080033, "2026": 7.399093, "2027": 15.002695}, "Current account (% GDP)": {"2023": -0.005519, "2024": 0.007}, "Foreign exchange current account %GDP": {"2023": -0.005519, "2024": 0.00266, "2025": -0.00322, "2026": -0.018, "2027": -0.018986}, "Primary result (% GDP)": {"2023": -0.026842, "2024": 0.018796, "2025": 0.014416, "2026": 0.017, "2027": 0.017}, "Financial result (% GDP)": {"2023": -0.044, "2024": 0.003998, "2025": 0.002564, "2026": 0.002, "2027": 0.004}, "Unemployment (Q4)": {"2023": 0.057322, "2024": 0.064474}, "Net Reserves (e.o.p.)": {"2023": -8815.98405, "2024": -497.0}, "Country Risk (e.o.p.)": {"2023": 1888.6987, "2024": 635.0}, "GDP (yoy change)": {"2023": -0.018558, "2024": -0.013429}, "Inflation ( yoy change)": {"2023": 2.114076, "2024": 1.177636}, "Wages ( yoy change)": {"2023": 1.657854, "2024": 1.5}, "Fiscal result (% GDP)": {"2023": -0.026842, "2024": 0.018796}, "Préstamos $ (var. i.a.)": {"2016": 0.1736967678, "2017": 0.4588959453, "2018": 0.1908619529, "2019": 0.176, "2020": 0.453, "2021": 0.4795594787, "2022": 0.6720896994, "2023": 1.3025535373, "2024": 2.3046358419, "2025": 0.7226282383, "2026": 0.3895169764, "2027": 0.2677953351}, "Préstamos US$ (var. i.a.)": {"2016": 2.1476391512, "2017": 0.6171735782, "2018": 0.0490008184, "2019": -0.313, "2020": -0.502, "2021": -0.2267339599, "2022": -0.154072835, "2023": -0.0025503132, "2024": 1.878494803, "2025": 0.821280759, "2026": 0.2820958597, "2027": 0.05}, "Depósitos $ (var. i.a.)": {"2016": 0.2376018225, "2017": 0.2544330601, "2018": 0.4159185318, "2019": 0.349, "2020": 0.413, "2021": 0.5798924442, "2022": 0.9036341941, "2023": 1.1813023513, "2024": 1.4294384001, "2025": 0.3818400848, "2026": 0.4182182273, "2027": 0.2826728537}, "Depósitos US$ (var. i.a.)": {"2016": 1.3070769849, "2017": 0.1958143621, "2018": 0.1092084179, "2019": -0.356, "2020": -0.254, "2021": 0.0259763357, "2022": 0.030145714, "2023": -0.1020369267, "2024": 1.0151461553, "2025": 0.1583868112, "2026": 0.0791934056, "2027": 0.02}}};
+
+
+// ── Colors & helpers ─────────────────────────────────────────────────────────
+const C = {
+    e1:'#3C9794', e2:'#DA4531', e3:'#84BF84',
+    dato:'#546e7a', teal:'#8FCCCA', orange:'#FEB15F',
+    green2:'#70A134', coral:'#FE8B5F'
+  };
+const SPLIT_FIN = 60; // index in FIN arrays where Jan'26 starts (0=Jan'21)
+
+function r2(v){ return (v!=null&&isFinite(v)) ? Math.round(v*100)/100 : null; }
+function r1(v){ return (v!=null&&isFinite(v)) ? Math.round(v*10)/10 : null; }
+function pct(v){ return (v!=null&&isFinite(v)) ? Math.round(v*1000)/10 : null; }
+
+// ── Derived series helpers ────────────────────────────────────────────────────
+function buildSalIdx(d1Arr) {
+  const n = Math.min(d1Arr.length, FIN1.length);
+  const idx = new Array(n);
+  idx[0] = 100;
+  for (let i = 1; i < n; i++) {
+    const salIa = d1Arr[i] && d1Arr[i].sal_ia;
+    if (salIa != null && isFinite(salIa)) {
+      const mg = Math.pow(1 + salIa, 1/12) - 1;
+      idx[i] = idx[i-1] * (1 + mg);
+    } else {
+      idx[i] = idx[i-1];
+    }
+  }
+  return idx;
+}
+
+function buildSalReal(salIdx, finArr) {
+  const ipcBase = finArr[0].ipc_idx;
+  return salIdx.map((s, i) => {
+    const ipc = finArr[i] ? finArr[i].ipc_idx : null;
+    if (s == null || ipc == null) return null;
+    return s / (ipc / ipcBase);
+  });
+}
+
+function buildTCR(finArr) {
+  const tcnBase = finArr[0].tcn;
+  const ipcBase = finArr[0].ipc_idx;
+  return finArr.map(r => {
+    if (r.tcn == null || r.ipc_idx == null) return null;
+    return (r.tcn / tcnBase) / (r.ipc_idx / ipcBase) * 100;
+  });
+}
+
+function varMes(arr) {
+  return arr.map((v, i) => {
+    if (i === 0 || v == null || arr[i-1] == null || arr[i-1] === 0) return null;
+    return (v / arr[i-1] - 1) * 100;
+  });
+}
+function varIA(arr) {
+  return arr.map((v, i) => {
+    if (i < 12 || v == null || arr[i-12] == null || arr[i-12] === 0) return null;
+    return (v / arr[i-12] - 1) * 100;
+  });
+}
+
+// Precompute derived series (full length = FIN1.length = 84)
+const SAL_IDX_1 = buildSalIdx(D1_MONTHLY);
+const SAL_IDX_2 = buildSalIdx(D2_MONTHLY);
+const SAL_REAL_1 = buildSalReal(SAL_IDX_1, FIN1);
+const SAL_REAL_2 = buildSalReal(SAL_IDX_2, FIN2);
+const TCR_1 = buildTCR(FIN1);
+const TCR_2 = buildTCR(FIN2);
+
+// ── Chart factory ────────────────────────────────────────────────────────────
+const charts = {};
+function mk(id, type, labels, datasets, opts = {}) {
+    if (window._charts && window._charts[id]) { try { window._charts[id].destroy(); } catch(e){} }
+    if (!window._charts) window._charts = {};
+    if (!window._chartData) window._chartData = {};
+    window._chartData[id] = { labels: [...labels], datasets: datasets.map(d=>({...d, data:[...d.data]})) };
+  const ctx = document.getElementById(id); if (!ctx) return null;
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(ctx.getContext('2d'), {
+    type, data:{labels, datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      animation:{duration:300},
+      interaction:{mode:'index', intersect:false},
+      plugins:{
+        legend:{position:'top', labels:{usePointStyle:true, padding:10, font:{size:10}}},
+        tooltip:{callbacks:{
+          label(c){
+            const v = c.parsed.y; if (v==null) return null;
+            const f = opts.fmt||'num';
+            if (f==='pct') return c.dataset.label+': '+(v>=0?'+':'')+v.toFixed(1)+'%';
+            if (f==='tc')  return c.dataset.label+': $'+v.toFixed(1);
+            if (f==='usd') return c.dataset.label+': US$'+v.toFixed(1)+' K mn';
+            if (f==='bp')  return c.dataset.label+': '+v.toFixed(0)+' pb';
+            return c.dataset.label+': '+v.toFixed(1);
+          }
+        }}
+      },
+      scales:{
+        x:{grid:{display:false}, ticks:{font:{size:9}, maxTicksLimit:8}},
+        y:{beginAtZero:opts.bz!==false, ticks:{font:{size:9}, callback:v=>{
+          const f = opts.fmt||'num';
+          if (f==='pct') return v+'%';
+          if (f==='tc')  return '$'+v;
+          if (f==='usd') return 'US$'+v;
+          return v;
+        }}, grid:{color:'rgba(0,0,0,.05)'}},
+        ...(opts.y2 ? {y2:{position:'right', beginAtZero:opts.y2bz!==false,
+          ticks:{font:{size:9}, callback:v=>opts.y2fmt==='pct'?v+'%':v.toFixed(0)},
+          grid:{display:false}}} : {})
+      }
+    }
+  });
+  window._charts[id] = charts[id];
+  return charts[id];
+}
+
+// ── Annual data helpers ───────────────────────────────────────────────────────
+function aVal(obj, key, y){ const d=obj.data[key]; return d?d[String(y)]??null:null; }
+function aVals(obj, key, years){ const d=obj.data[key]; if(!d) return years.map(()=>null); return years.map(y=>d[String(y)]??null); }
+function aPct(obj, key, years){ return aVals(obj,key,years).map(v=>v!=null?Math.round(v*10000)/100:null); }
+
+// ── App state ────────────────────────────────────────────────────────────────
+const app = {
+  currentTab: 'macro',
+  period: '2023',
+  showEsc: {1:true, 2:true, 3:true},
+
+  tab(name, el) {
+    this.currentTab = name;
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    const pm = {macro:'pMacro', fin:'pFin', series:'pSeries'};
+    document.getElementById(pm[name]).classList.add('active');
+    this.refresh();
+  },
+
+  toggleEsc(n, btn) {
+    this.showEsc[n] = !this.showEsc[n];
+    btn.classList.toggle('active');
+    this.renderFin();
+  },
+
+  toggleEscSer(n, btn) {
+    this.showEsc[n] = !this.showEsc[n];
+    btn.classList.toggle('active');
+    // sync fin buttons too
+    const fb = document.getElementById('btnE'+n);
+    if (fb) { if(this.showEsc[n]) fb.classList.add('active'); else fb.classList.remove('active'); }
+    this.renderSeries();
+  },
+
+  refresh() {
+    this.period = document.getElementById('periodSel').value;
+    if (this.currentTab === 'macro') this.renderMacro();
+    else if (this.currentTab === 'fin') this.renderFin();
+    else this.renderSeries();
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MACRO TAB
+  // ═══════════════════════════════════════════════════════════════════════════
+  renderMacro() {
+    const p = this.period;
+    const startYear = p==='all' ? 2021 : parseInt(p);
+    const allYears = A1.years.filter(y => y >= startYear);
+    const ylbls = allYears.map(String);
+    const datoYrs = allYears.filter(y => y <= 2025);
+    const scenYrs = allYears.filter(y => y >= 2026);
+
+    this.renderKPIs(allYears);
+
+    // Helper: build dato+esc1+esc2 bar datasets
+    const barSets = (key, pctMul=true) => {
+      const fn = pctMul ? aPct : aVals;
+      const d0 = fn(A1, key, allYears);
+      const ds = [];
+      if (datoYrs.length > 0) {
+        ds.push({
+          label:'Dato', type:'bar',
+          data: allYears.map((y,i) => y<=2025 ? d0[i] : null),
+          backgroundColor:'rgba(84,110,122,.45)', borderColor:'#546e7a', borderWidth:1.5, borderRadius:3
+        });
+      }
+      if (scenYrs.length > 0) {
+        const e1 = fn(A1, key, allYears);
+        const e2 = fn(A2, key, allYears);
+        ds.push({
+          label:'Esc. 1', type:'bar',
+          data: allYears.map((y,i) => y>=2026 ? e1[i] : null),
+          backgroundColor:'rgba(26,107,154,.55)', borderColor:C.e1, borderWidth:1.5, borderRadius:3
+        });
+        ds.push({
+          label:'Esc. 2', type:'bar',
+          data: allYears.map((y,i) => y>=2026 ? e2[i] : null),
+          backgroundColor:'rgba(224,92,46,.45)', borderColor:C.e2, borderWidth:1.5, borderRadius:3
+        });
+      }
+      return ds;
+    };
+
+    // Helper: build dato+esc1+esc2 line datasets (with 2025 connection)
+    const lineSets = (key, pctMul=true) => {
+      const fn = pctMul ? aPct : aVals;
+      const d1 = fn(A1, key, allYears);
+      const d2 = fn(A2, key, allYears);
+      const ds = [];
+      if (datoYrs.length > 0) {
+        ds.push({
+          label:'Dato',
+          data: allYears.map((y,i) => y<=2025 ? d1[i] : null),
+          borderColor:C.dato, backgroundColor:C.datob, fill:true, tension:.3, pointRadius:4, borderWidth:2
+        });
+      }
+      if (scenYrs.length > 0) {
+        const conn = allYears.indexOf(2025);
+        ds.push({
+          label:'Esc. 1',
+          data: allYears.map((y,i) => (i < conn) ? null : d1[i]),
+          borderColor:C.e1, backgroundColor:'transparent', fill:false, tension:.3, pointRadius:4, borderWidth:2, borderDash:[5,3]
+        });
+        ds.push({
+          label:'Esc. 2',
+          data: allYears.map((y,i) => (i < conn) ? null : d2[i]),
+          borderColor:C.e2, backgroundColor:'transparent', fill:false, tension:.3, pointRadius:4, borderWidth:2, borderDash:[3,2]
+        });
+      }
+      return ds;
+    };
+
+    mk('cPIB','bar',ylbls, barSets('PIB (var. i.a.)'), {fmt:'pct'});
+    mk('cInfl','bar',ylbls, barSets('Inflación (var. i.a.)'), {fmt:'pct', bz:true});
+    mk('cSal','line',ylbls, lineSets('Salarios (var. i.a.)'), {fmt:'pct', bz:true});
+    mk('cDesem','line',ylbls, lineSets('Desempleo (IV trimestre)'), {fmt:'pct', bz:true});
+    mk('cTC','line',ylbls, lineSets('Tipo de cambio (f.d.p.)', false), {fmt:'tc', bz:true});
+
+    // Fiscal (bar with sign colors)
+    const fp1 = aPct(A1,'Resultado primario (% PIB)',allYears);
+    const fp2 = aPct(A2,'Resultado primario (% PIB)',allYears);
+    const fDs = [];
+    if (datoYrs.length>0) fDs.push({label:'Dato',type:'bar',data:allYears.map((y,i)=>y<=2025?fp1[i]:null),backgroundColor:allYears.map((y,i)=>fp1[i]>=0?'rgba(39,174,96,.55)':'rgba(192,57,43,.45)'),borderColor:allYears.map((y,i)=>fp1[i]>=0?'#27ae60':'#c0392b'),borderWidth:1.5,borderRadius:3});
+    if (scenYrs.length>0) {
+      fDs.push({label:'Esc. 1',type:'bar',data:allYears.map((y,i)=>y>=2026?fp1[i]:null),backgroundColor:allYears.map((y,i)=>fp1[i]>=0?'rgba(26,107,154,.55)':'rgba(192,57,43,.45)'),borderColor:C.e1,borderWidth:1.5,borderRadius:3});
+      fDs.push({label:'Esc. 2',type:'bar',data:allYears.map((y,i)=>y>=2026?fp2[i]:null),backgroundColor:allYears.map((y,i)=>fp2[i]>=0?'rgba(224,92,46,.45)':'rgba(192,57,43,.3)'),borderColor:C.e2,borderWidth:1.5,borderRadius:3});
+    }
+    mk('cFiscal','bar',ylbls, fDs, {fmt:'pct'});
+
+    // Comercio (Esc1 only for dato + scenario)
+    const exp1=aVals(A1,'Exportaciones dev. (Bs. y Ss., miles de mill. de USD)',allYears);
+    const imp1=aVals(A1,'Importaciones dev. (Bs. y Ss., miles de mill. de USD)',allYears);
+    const bal1=aVals(A1,'Balanza comercial dev. (miles de mill. de USD)',allYears);
+    const exp2=aVals(A2,'Exportaciones dev. (Bs. y Ss., miles de mill. de USD)',allYears);
+    const imp2=aVals(A2,'Importaciones dev. (Bs. y Ss., miles de mill. de USD)',allYears);
+    const bal2=aVals(A2,'Balanza comercial dev. (miles de mill. de USD)',allYears);
+    mk('cComercio','bar',ylbls,[
+      {label:'Exp. Dato/Esc.1', data:exp1, backgroundColor:'rgba(26,107,154,.65)', borderWidth:0, borderRadius:2},
+      {label:'Imp. Dato/Esc.1', data:imp1, backgroundColor:'rgba(224,92,46,.65)', borderWidth:0, borderRadius:2},
+      {label:'Saldo Esc.1',    data:bal1, type:'line', borderColor:'#1c2b3a', backgroundColor:'transparent', fill:false, tension:.3, pointRadius:4},
+      {label:'Saldo Esc.2',   data:bal2, type:'line', borderColor:C.e2, backgroundColor:'transparent', fill:false, tension:.3, pointRadius:4, borderDash:[5,3]},
+    ],{fmt:'mil', bz:false});
+
+    // Reservas + Riesgo País (dual axis)
+    const res1=aVals(A1,'Reservas Netas (f.d.p. Met. FMI)',allYears);
+    const res2=aVals(A2,'Reservas Netas (f.d.p. Met. FMI)',allYears);
+    const rp1=aVals(A1,'Riesgo País (f.d.p.)',allYears);
+    const rp2=aVals(A2,'Riesgo País (f.d.p.)',allYears);
+    const conn = allYears.indexOf(2025);
+    const rDs = [];
+    if (datoYrs.length>0) {
+      rDs.push({label:'Reservas Dato',data:allYears.map((y,i)=>y<=2025?res1[i]:null),type:'bar',backgroundColor:'rgba(84,110,122,.4)',borderColor:C.dato,borderWidth:1.5,borderRadius:3,yAxisID:'y'});
+      rDs.push({label:'Riesgo País Dato',data:allYears.map((y,i)=>y<=2025?rp1[i]:null),type:'line',borderColor:C.dato,backgroundColor:'transparent',fill:false,tension:.3,pointRadius:4,yAxisID:'y2'});
+    }
+    if (scenYrs.length>0) {
+      rDs.push({label:'Reservas Esc.1',data:allYears.map((y,i)=>y>=2026?res1[i]:null),type:'bar',backgroundColor:C.e1b,borderColor:C.e1,borderWidth:1.5,borderRadius:3,yAxisID:'y'});
+      rDs.push({label:'Reservas Esc.2',data:allYears.map((y,i)=>y>=2026?res2[i]:null),type:'bar',backgroundColor:C.e2b,borderColor:C.e2,borderWidth:1.5,borderRadius:3,yAxisID:'y'});
+      rDs.push({label:'R.País Esc.1',data:allYears.map((y,i)=>i<conn?null:rp1[i]),type:'line',borderColor:'#9b59b6',backgroundColor:'transparent',fill:false,tension:.3,pointRadius:4,yAxisID:'y2',borderDash:[5,3]});
+      rDs.push({label:'R.País Esc.2',data:allYears.map((y,i)=>i<conn?null:rp2[i]),type:'line',borderColor:C.orange,backgroundColor:'transparent',fill:false,tension:.3,pointRadius:4,yAxisID:'y2',borderDash:[3,2]});
+    }
+    mk('cReservas','bar',ylbls, rDs, {fmt:'usd', bz:false, y2:true, y2bz:true, y2fmt:'num'});
+
+    this.renderMacroTable(allYears);
+  },
+
+  renderKPIs(years) {
+    const ly = years.find(y => y >= 2026) || years[years.length-1];
+    const lyStr = String(ly);
+    const g1 = k => A1.data[k]?.[lyStr];
+    const g2 = k => A2.data[k]?.[lyStr];
+    const isScen = ly >= 2026;
+    const kpis = [
+      {label:'PIB ('+ly+')', v1:g1('PIB (var. i.a.)'), v2:g2('PIB (var. i.a.)'), fmt:'pct'},
+      {label:'Inflación ('+ly+')', v1:g1('Inflación (var. i.a.)'), v2:g2('Inflación (var. i.a.)'), fmt:'pct'},
+      {label:'TC fdp ('+ly+')', v1:g1('Tipo de cambio (f.d.p.)'), v2:g2('Tipo de cambio (f.d.p.)'), fmt:'tc'},
+      {label:'Res. Primario ('+ly+')', v1:g1('Resultado primario (% PIB)'), v2:g2('Resultado primario (% PIB)'), fmt:'pct'},
+      {label:'Desempleo ('+ly+')', v1:g1('Desempleo (IV trimestre)'), v2:g2('Desempleo (IV trimestre)'), fmt:'pct'},
+      {label:'Riesgo País ('+ly+')', v1:g1('Riesgo País (f.d.p.)'), v2:g2('Riesgo País (f.d.p.)'), fmt:'bp'},
+    ];
+    document.getElementById('kpis').innerHTML = kpis.map(k => {
+      const fv = v => {
+        if (v==null) return '—';
+        if (k.fmt==='pct') return (v*100).toFixed(1)+'%';
+        if (k.fmt==='tc') return '$'+v.toFixed(0);
+        if (k.fmt==='bp') return v.toFixed(0)+' pb';
+        return v.toFixed(1);
+      };
+      const c1 = k.fmt==='pct'&&k.v1!=null?(k.v1>=0?'pos':'neg'):'';
+      const c2 = k.fmt==='pct'&&k.v2!=null?(k.v2>=0?'pos':'neg'):'';
+      const sub = isScen
+        ? `Esc.2: <span class="${c2}">${fv(k.v2)}</span>`
+        : `<span style="color:var(--dato);font-size:9px">DATO</span>`;
+      return `<div class="kpi">
+        <div class="kpi-lbl">${k.label}</div>
+        <div class="kpi-val ${c1}">${fv(k.v1)}</div>
+        <div class="kpi-sub">${sub}</div>
+      </div>`;
+    }).join('');
+  },
+
+  renderMacroTable(years) {
+    const datoYrs = years.filter(y => y <= 2025);
+    const scenYrs = years.filter(y => y >= 2026);
+
+    const rows = [
+      {g:'Actividad', rows:[
+        {l:'PIB (var. i.a.)', k:'PIB (var. i.a.)', fmt:'pct'},
+        {l:'Consumo privado (var. i.a.)', k:'Consumo privado (var. i.a.)', fmt:'pct'},
+        {l:'Desempleo IV T.', k:'Desempleo (IV trimestre)', fmt:'pct'},
+      ]},
+      {g:'Precios y Salarios', rows:[
+        {l:'Inflación (var. i.a.)', k:'Inflación (var. i.a.)', fmt:'pct'},
+        {l:'Salarios (var. i.a.)', k:'Salarios (var. i.a.)', fmt:'pct'},
+      ]},
+      {g:'Tipo de Cambio', rows:[
+        {l:'TC promedio dic.', k:'Tipo de cambio (prom. dic)', fmt:'tc'},
+        {l:'TC fin de período', k:'Tipo de cambio (f.d.p.)', fmt:'tc'},
+        {l:'TC var. i.a. prom.', k:'Tipo de cambio (var. i.a. prom.)', fmt:'pct'},
+        {l:'CCL (prom. dic.)', k:'Tipo de Cambio brecha CCL (prom. dic.)', fmt:'tc'},
+        {l:'Brecha cambiaria %', k:'Brecha cambiaria (% prom. Dic.)', fmt:'pct'},
+      ]},
+      {g:'Sector Fiscal', rows:[
+        {l:'Res. primario (% PIB)', k:'Resultado primario (% PIB)', fmt:'pct'},
+        {l:'Res. financiero (% PIB)', k:'Resultado financiero (% PIB)', fmt:'pct'},
+      ]},
+      {g:'Sector Externo', rows:[
+        {l:'Exportaciones (US$ K mill.)', k:'Exportaciones dev. (Bs. y Ss., miles de mill. de USD)', fmt:'usd'},
+        {l:'Importaciones (US$ K mill.)', k:'Importaciones dev. (Bs. y Ss., miles de mill. de USD)', fmt:'usd'},
+        {l:'Balanza comercial (US$ K mill.)', k:'Balanza comercial dev. (miles de mill. de USD)', fmt:'usd'},
+        {l:'Cta. cte. % PIB', k:'Cuenta corriente dev. (% PIB)', fmt:'pct'},
+        {l:'Reservas netas (mill. USD)', k:'Reservas Netas (f.d.p. Met. FMI)', fmt:'res'},
+        {l:'Riesgo País (pb)', k:'Riesgo País (f.d.p.)', fmt:'bp'},
+      ]},
+    ];
+
+    const fv = (v, fmt) => {
+      if (v==null) return '<td style="color:#ccc">—</td>';
+      if (fmt==='pct') return `<td class="${v>=0?'vp':'vn'}">${(v>=0?'+':'')}${(v*100).toFixed(1)}%</td>`;
+      if (fmt==='tc')  return `<td>$${v.toFixed(0)}</td>`;
+      if (fmt==='usd') return `<td class="${v>=0?'vp':'vn'}">${v.toFixed(1)}</td>`;
+      if (fmt==='res') return `<td class="${v>=0?'vp':'vn'}">${v.toFixed(0)}</td>`;
+      if (fmt==='bp')  return `<td>${v.toFixed(0)}</td>`;
+      return `<td>${v.toFixed(2)}</td>`;
+    };
+
+    const nDato = datoYrs.length;
+    const nScen = scenYrs.length;
+    const totalCols = 1 + nDato + nScen * 2;
+
+    // Header row 1 (group labels)
+    let h = `<table><thead>`;
+    h += `<tr><th></th>`;
+    if (nDato > 0) h += `<th colspan="${nDato}" class="th-group gr-dato">📌 Dato</th>`;
+    if (nScen > 0) {
+      h += `<th colspan="${nScen}" class="th-group gr-esc1">Escenario 1</th>`;
+      h += `<th colspan="${nScen}" class="th-group gr-esc2">Escenario 2</th>`;
+    }
+    h += `</tr>`;
+
+    // Header row 2 (years)
+    h += `<tr><th>Indicador</th>`;
+    datoYrs.forEach(y => h += `<th class="th-dato">${y}</th>`);
+    scenYrs.forEach(y => h += `<th class="th-esc1">${y}</th>`);
+    scenYrs.forEach(y => h += `<th class="th-esc2">${y}</th>`);
+    h += `</tr></thead><tbody>`;
+
+    rows.forEach(group => {
+      h += `<tr class="sep-row"><td colspan="${totalCols}">${group.g}</td></tr>`;
+      group.rows.forEach(row => {
+        h += `<tr><td>${row.l}</td>`;
+        // Dato years (A1 = same for both scenarios in dato period)
+        datoYrs.forEach(y => h += fv(A1.data[row.k]?.[String(y)], row.fmt));
+        // Esc1 scenario years
+        scenYrs.forEach(y => h += fv(A1.data[row.k]?.[String(y)], row.fmt));
+        // Esc2 scenario years
+        scenYrs.forEach(y => h += fv(A2.data[row.k]?.[String(y)], row.fmt));
+        h += `</tr>`;
+      });
+    });
+
+    h += `</tbody></table>`;
+    document.getElementById('tblMacro').innerHTML = h;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SISTEMA FINANCIERO TAB (monthly)
+  // ═══════════════════════════════════════════════════════════════════════════
+  renderFin() {
+    const p = this.period;
+    const startM = p==='all' ? '2021-01' : p+'-01';
+    const s = this.showEsc;
+
+    // ── Crédito & Depósitos (annual, bar) ──────────────────────────────────
+    const startYear = p==='all' ? 2021 : parseInt(p);
+    const annYears = A1.years.filter(y => y >= startYear);
+    const annLbls  = annYears.map(String);
+    const spA = annYears.findIndex(y => y >= 2026);  // split idx for annual
+
+    // Helper: build dato+esc1+esc2 bar datasets for annual pct series
+    const annBar = (key) => {
+      const vals1 = annYears.map(y => { const v=A1.data[key]?.[String(y)]; return v!=null?r2(v*100):null; });
+      const vals2 = annYears.map(y => { const v=A2.data[key]?.[String(y)]; return v!=null?r2(v*100):null; });
+      const ds = [];
+      // Dato bars (up to 2025)
+      if (spA > 0) {
+        ds.push({label:'Dato', data:vals1.map((v,i)=>i<spA?v:null),
+          backgroundColor:annYears.map((_,i)=>i<spA?C.dato+'99':'transparent'),
+          borderColor:annYears.map((_,i)=>i<spA?C.dato:'transparent'),
+          borderWidth:1});
+      }
+      // Esc1 bars (2026+)
+      if (spA >= 0 && spA < annYears.length && s[1]) {
+        ds.push({label:'Esc. 1', data:vals1.map((v,i)=>i>=spA?v:null),
+          backgroundColor:annYears.map((_,i)=>i>=spA?C.e1+'99':'transparent'),
+          borderColor:annYears.map((_,i)=>i>=spA?C.e1:'transparent'),
+          borderWidth:1});
+      }
+      // Esc2 bars (2026+)
+      if (spA >= 0 && spA < annYears.length && s[2]) {
+        ds.push({label:'Esc. 2', data:vals2.map((v,i)=>i>=spA?v:null),
+          backgroundColor:annYears.map((_,i)=>i>=spA?C.e2+'66':'transparent'),
+          borderColor:annYears.map((_,i)=>i>=spA?C.e2:'transparent'),
+          borderWidth:1.5, borderDash:[4,2]});
+      }
+      return ds;
+    };
+
+    mk('cPrestPesos','bar',annLbls, annBar('Préstamos $ (var. i.a.)'), {fmt:'pct', bz:false});
+    mk('cDepPesos',  'bar',annLbls, annBar('Depósitos $ (var. i.a.)'),  {fmt:'pct', bz:false});
+    mk('cPrestUSD',  'bar',annLbls, annBar('Préstamos US$ (var. i.a.)'),{fmt:'pct', bz:false});
+    mk('cDepUSD',    'bar',annLbls, annBar('Depósitos US$ (var. i.a.)'),{fmt:'pct', bz:false});
+
+    // Index charts: chain annual growth rates, base 2023=100
+    const buildIdx = (key, src1, src2) => {
+      const yrs = A1.years; // all available years
+      const base = 100;
+      // Build full index from earliest available year
+      const idx1 = {}; const idx2 = {};
+      let v1 = base, v2 = base;
+      // find base year (2023)
+      const baseYr = 2023;
+      idx1[baseYr] = base; idx2[baseYr] = base;
+      // forward
+      for (let i = yrs.indexOf(baseYr)+1; i < yrs.length; i++) {
+        const y = yrs[i]; const py = yrs[i-1];
+        const g1 = A1.data[key]?.[String(y)]; const g2 = A2.data[key]?.[String(y)];
+        idx1[y] = idx1[py] != null && g1 != null ? r2(idx1[py]*(1+g1)) : null;
+        idx2[y] = idx2[py] != null && g2 != null ? r2(idx2[py]*(1+g2)) : null;
+      }
+      // backward
+      for (let i = yrs.indexOf(baseYr)-1; i >= 0; i--) {
+        const y = yrs[i]; const ny = yrs[i+1];
+        const g1 = A1.data[key]?.[String(ny)]; const g2 = A2.data[key]?.[String(ny)];
+        idx1[y] = idx1[ny] != null && g1 != null ? r2(idx1[ny]/(1+g1)) : null;
+        idx2[y] = idx2[ny] != null && g2 != null ? r2(idx2[ny]/(1+g2)) : null;
+      }
+      // Now build datasets for filtered years
+      const v1arr = annYears.map(y => idx1[y] ?? null);
+      const v2arr = annYears.map(y => idx2[y] ?? null);
+      const ds = [];
+      if (spA > 0)
+        ds.push({label:'Dato',data:v1arr.map((v,i)=>i<spA?v:null),borderColor:C.dato,fill:false,tension:.3,pointRadius:3,borderWidth:2.5});
+      if (spA >= 0 && spA < annYears.length) {
+        if (s[1]) ds.push({label:'Esc. 1',data:v1arr.map((v,i)=>i>=Math.max(0,spA-1)?v:null),borderColor:C.e1,fill:false,tension:.3,pointRadius:3,borderWidth:1.5,borderDash:[5,3]});
+        if (s[2]) ds.push({label:'Esc. 2',data:v2arr.map((v,i)=>i>=Math.max(0,spA-1)?v:null),borderColor:C.e2,fill:false,tension:.3,pointRadius:3,borderWidth:1.5,borderDash:[3,2]});
+      } else if (spA < 0) {
+        ds.push({label:'Dato',data:v1arr,borderColor:C.dato,fill:false,tension:.3,pointRadius:3,borderWidth:2.5});
+      }
+      return ds;
+    };
+
+    mk('cPrestIdx','line',annLbls, buildIdx('Préstamos $ (var. i.a.)'),  {fmt:'num', bz:false});
+    mk('cDepIdx',  'line',annLbls, buildIdx('Depósitos $ (var. i.a.)'),   {fmt:'num', bz:false});
+
+    this.renderFinTable(startM);
+  },
+
+  renderFinTable(startM) {
+    const s = this.showEsc;
+    const d = s[1] ? D1_MONTHLY : (s[2] ? D2_MONTHLY : D3_MONTHLY);
+    const escLabel = s[1]?'Escenario 1':s[2]?'Escenario 2':'Escenario 3';
+    document.getElementById('tblFinTitle').textContent = escLabel;
+    const rows = d.filter(r => r.f >= startM);
+    const cols = [
+      {l:'TCN Prom.',k:'tcn',fmt:'tc2'},{l:'TCN fdp',k:'tcn_fdp',fmt:'tc2'},
+      {l:'IPC Mes (%)',k:'ipc_mes',fmt:'pct2'},{l:'IPC ia (%)',k:'ipc_ia',fmt:'pct2'},
+      {l:'Sal. ia (%)',k:'sal_ia',fmt:'pct2'},{l:'CCL Prom.',k:'ccl',fmt:'tc2'},
+      {l:'Brecha (%)',k:'brecha',fmt:'pct2'},{l:'Riesgo País',k:'rp',fmt:'bp'},
+    ];
+    const fv = (v,fmt) => {
+      if (v==null) return '<td style="color:#ccc">—</td>';
+      if (fmt==='tc2') return `<td>$${v.toFixed(1)}</td>`;
+      if (fmt==='pct2') return `<td class="${v>=0?'vp':'vn'}">${(v*100).toFixed(1)}%</td>`;
+      if (fmt==='bp') return `<td>${v.toFixed(0)}</td>`;
+      return `<td>${v.toFixed(2)}</td>`;
+    };
+    let h = `<table><thead><tr><th>Mes</th>${cols.map(c=>`<th>${c.l}</th>`).join('')}</tr></thead><tbody>`;
+    rows.forEach(r => {
+      const isDato = r.f < '2026-01';
+      h += `<tr${isDato?'':' style="background:rgba(26,107,154,.03)"'}><td>${r.f}</td>${cols.map(c=>fv(r[c.k],c.fmt)).join('')}</tr>`;
+    });
+    h += `</tbody></table>`;
+    document.getElementById('tblFin').innerHTML = h;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SERIES MENSUALES TAB
+  // ═══════════════════════════════════════════════════════════════════════════
+  renderSeries() {
+    const p = this.period;
+    const startI = p==='all' ? 0 : Math.max(0, (parseInt(p)-2021)*12);
+    const endI = FIN1.length; // 84 = Dec'27
+    const sp = Math.max(0, SPLIT_FIN - startI); // split idx in sliced array
+    const conn = Math.max(0, sp - 1);
+    const s = this.showEsc;
+
+    const fin1 = FIN1.slice(startI, endI);
+    const fin2 = FIN2.slice(startI, endI);
+    const d1   = D1_MONTHLY.slice(startI, endI);
+    const d2   = D2_MONTHLY.slice(startI, endI);
+    const sal1 = SAL_IDX_1.slice(startI, endI);
+    const sal2 = SAL_IDX_2.slice(startI, endI);
+    const sr1  = SAL_REAL_1.slice(startI, endI);
+    const sr2  = SAL_REAL_2.slice(startI, endI);
+    const tcr1 = TCR_1.slice(startI, endI);
+    const tcr2 = TCR_2.slice(startI, endI);
+
+    const labels = fin1.map(r => r.f);
+    const n = fin1.length;
+
+    // Build dato/fan datasets from arrays of numbers
+    const fanN = (arr1, arr2, colorOverride) => {
+      const ds = [];
+      if (sp > 0) {
+        ds.push({label:'Dato', data:arr1.map((v,i)=>i<sp?r2(v):null), borderColor:C.dato, fill:false, tension:.3, pointRadius:0, borderWidth:2.5});
+      }
+      const addScen = (arr, lbl, col, dash) => {
+        ds.push({label:lbl, data:arr.map((v,i)=>i<conn?null:r2(v)), borderColor:col, fill:false, tension:.3, pointRadius:0, borderWidth:1.5, borderDash:dash});
+      };
+      if (sp < n) {
+        if (s[1]) addScen(arr1, 'Esc. 1', colorOverride||C.e1, [5,3]);
+        if (s[2]) addScen(arr2, 'Esc. 2', C.e2, [3,2]);
+      } else if (sp === 0) {
+        if (s[1]) ds.push({label:'Esc. 1', data:arr1.map(r2), borderColor:C.e1, fill:false, tension:.3, pointRadius:0, borderWidth:2});
+        if (s[2]) ds.push({label:'Esc. 2', data:arr2.map(r2), borderColor:C.e2, fill:false, tension:.3, pointRadius:0, borderWidth:2, borderDash:[5,3]});
+      }
+      return ds;
+    };
+
+    // TCN prom nivel
+    mk('sTCNprom','line',labels, fanN(fin1.map(r=>r.tcn), fin2.map(r=>r.tcn)), {fmt:'tc',bz:true});
+    // TCN fdp nivel
+    mk('sTCNfdp','line',labels, fanN(d1.map(r=>r.tcn_fdp), d2.map(r=>r.tcn_fdp)), {fmt:'tc',bz:true});
+    // TCN prom var mensual
+    const tcnM1 = fin1.map(r=>r.tcn_mes!=null?r.tcn_mes*100:null);
+    const tcnM2 = varMes(fin2.map(r=>r.tcn));
+    mk('sTCNmes','line',labels, fanN(tcnM1, tcnM2), {fmt:'pct',bz:true});
+    // TCN prom var ia
+    const tcnIA1 = varIA(fin1.map(r=>r.tcn));
+    const tcnIA2 = varIA(fin2.map(r=>r.tcn));
+    mk('sTCNia','line',labels, fanN(tcnIA1, tcnIA2), {fmt:'pct',bz:true});
+
+    // IPC índice
+    const ipcBase = FIN1[0].ipc_idx;
+    mk('sIPCidx','line',labels, fanN(
+      fin1.map(r=>r.ipc_idx!=null?r.ipc_idx/ipcBase*100:null),
+      fin2.map(r=>r.ipc_idx!=null?r.ipc_idx/ipcBase*100:null)
+    ), {bz:true});
+    // IPC var mensual
+    mk('sIPCmes','line',labels, fanN(
+      fin1.map(r=>r.ipc_mes!=null?r.ipc_mes*100:null),
+      fin2.map(r=>r.ipc_mes!=null?r.ipc_mes*100:null)
+    ), {fmt:'pct',bz:true});
+    // IPC var ia
+    mk('sIPCia','line',labels, fanN(
+      fin1.map(r=>r.ipc_ia!=null?r.ipc_ia*100:null),
+      fin2.map(r=>r.ipc_ia!=null?r.ipc_ia*100:null)
+    ), {fmt:'pct',bz:true});
+
+    // Tasas (TPM + Badlar)
+    const tasDs2 = [];
+    if (sp > 0) {
+      tasDs2.push({label:'TPM Dato', data:fin1.map((r,i)=>i<sp?(r.tpm!=null?r1(r.tpm*100):null):null), borderColor:C.dato, fill:false, tension:.3, pointRadius:0, borderWidth:2.5});
+      tasDs2.push({label:'Badlar Dato', data:fin1.map((r,i)=>i<sp?(r.badlar!=null?r1(r.badlar*100):null):null), borderColor:'#78909c', fill:false, tension:.3, pointRadius:0, borderWidth:1.5, borderDash:[4,2]});
+    }
+    if (sp < n) {
+      if (s[1]) {
+        tasDs2.push({label:'TPM Esc.1', data:fin1.map((r,i)=>i<conn?null:(r.tpm!=null?r1(r.tpm*100):null)), borderColor:C.e1, fill:false, tension:.3, pointRadius:0, borderWidth:1.5, borderDash:[5,3]});
+        tasDs2.push({label:'Badlar Esc.1', data:fin1.map((r,i)=>i<conn?null:(r.badlar!=null?r1(r.badlar*100):null)), borderColor:C.teal, fill:false, tension:.3, pointRadius:0, borderWidth:1.2, borderDash:[3,3]});
+      }
+      if (s[2]) tasDs2.push({label:'Badlar Esc.2', data:fin2.map((r,i)=>i<conn?null:(r.badlar!=null?r1(r.badlar*100):null)), borderColor:C.e2, fill:false, tension:.3, pointRadius:0, borderWidth:1.2, borderDash:[3,3]});
+    } else if (sp === 0) {
+      if (s[1]) {
+        tasDs2.push({label:'TPM Esc.1', data:fin1.map(r=>r.tpm!=null?r1(r.tpm*100):null), borderColor:C.e1, fill:false, tension:.3, pointRadius:0, borderWidth:2});
+        tasDs2.push({label:'Badlar Esc.1', data:fin1.map(r=>r.badlar!=null?r1(r.badlar*100):null), borderColor:C.teal, fill:false, tension:.3, pointRadius:0, borderWidth:1.5, borderDash:[4,2]});
+      }
+      if (s[2]) tasDs2.push({label:'Badlar Esc.2', data:fin2.map(r=>r.badlar!=null?r1(r.badlar*100):null), borderColor:C.e2, fill:false, tension:.3, pointRadius:0, borderWidth:1.5, borderDash:[5,3]});
+    }
+    mk('sTasas','line',labels, tasDs2, {fmt:'pct', bz:true});
+
+    // Salario índice
+    mk('sSalIdx','line',labels, fanN(sal1, sal2), {bz:true});
+    // Salario var ia
+    mk('sSalIA','line',labels, fanN(
+      d1.map(r=>r.sal_ia!=null?r.sal_ia*100:null),
+      d2.map(r=>r.sal_ia!=null?r.sal_ia*100:null)
+    ), {fmt:'pct',bz:true});
+    // Salario real
+    mk('sSalReal','line',labels, fanN(sr1, sr2), {bz:true});
+    // TCR
+    mk('sTCR','line',labels, fanN(tcr1, tcr2), {bz:true});
+
+    this.renderSeriesTable(fin1, fin2, d1, d2, sal1, sal2, sr1, sr2, tcr1, tcr2, labels, sp);
+  },
+
+  renderSeriesTable(fin1, fin2, d1, d2, sal1, sal2, sr1, sr2, tcr1, tcr2, labels, sp) {
+    const s = this.showEsc;
+    // Pick primary scenario (E1 if active, otherwise E2)
+    const isPrimE1 = s[1];
+    const finP = isPrimE1 ? fin1 : fin2;
+    const d1P  = isPrimE1 ? d1   : d2;
+    const salP = isPrimE1 ? sal1 : sal2;
+    const srP  = isPrimE1 ? sr1  : sr2;
+    const tcrP = isPrimE1 ? tcr1 : tcr2;
+    const lbl  = isPrimE1 ? 'Escenario 1' : 'Escenario 2';
+    document.getElementById('tblSerTitle').textContent = lbl;
+
+    const ipcBase = FIN1[0].ipc_idx;
+
+    const tcnMes = finP.map(r=>r.tcn_mes!=null?r.tcn_mes*100:null);
+    const tcnIA  = varIA(finP.map(r=>r.tcn));
+    const fdpMes = varMes(d1P.map(r=>r.tcn_fdp));
+    const fdpIA  = varIA(d1P.map(r=>r.tcn_fdp));
+    const salMesV= varMes(salP);
+    const salIAv = d1P.map(r=>r.sal_ia!=null?r.sal_ia*100:null);
+    const srMes  = varMes(srP);
+    const srIA   = varIA(srP);
+    const tcrMes = varMes(tcrP);
+    const tcrIA  = varIA(tcrP);
+
+    const fN = (v, d=1) => v==null?'<td style="color:#ccc">—</td>':`<td>${v.toFixed(d)}</td>`;
+    const fP = (v, d=1) => v==null?'<td style="color:#ccc">—</td>':`<td class="${v>=0?'vp':'vn'}">${(v>=0?'+':'')}${v.toFixed(d)}%</td>`;
+    const fT = (v) => v==null?'<td style="color:#ccc">—</td>':`<td>$${v.toFixed(1)}</td>`;
+
+    let h = `<table><thead><tr>
+      <th>Fecha</th>
+      <th>TCN prom</th><th>Δm TCN</th><th>Δia TCN</th>
+      <th>TCN fdp</th><th>Δm fdp</th><th>Δia fdp</th>
+      <th>IPC (b100)</th><th>Δm IPC</th><th>Δia IPC</th>
+      <th>TPM TNA</th><th>Badlar TNA</th>
+      <th>Sal. idx</th><th>Δm Sal</th><th>Δia Sal</th>
+      <th>Sal. Real</th><th>Δm S.Real</th><th>Δia S.Real</th>
+      <th>TCR idx</th><th>Δm TCR</th><th>Δia TCR</th>
+    </tr></thead><tbody>`;
+
+    labels.forEach((lbl2, i) => {
+      const isDato = i < sp;
+      const bg = isDato ? '' : ' style="background:rgba(26,107,154,.03)"';
+      const fin = finP[i];
+      const d1r = d1P[i];
+      h += `<tr${bg}>`;
+      h += `<td>${lbl2}${isDato?'<span style="color:var(--dato);font-size:8px;margin-left:3px">D</span>':''}</td>`;
+      h += fT(fin?.tcn);
+      h += fP(tcnMes[i]); h += fP(tcnIA[i]);
+      h += fT(d1r?.tcn_fdp);
+      h += fP(fdpMes[i]); h += fP(fdpIA[i]);
+      h += fN(fin?.ipc_idx!=null?fin.ipc_idx/ipcBase*100:null);
+      h += fP(fin?.ipc_mes!=null?fin.ipc_mes*100:null);
+      h += fP(fin?.ipc_ia!=null?fin.ipc_ia*100:null);
+      h += fN(fin?.tpm!=null?fin.tpm*100:null);
+      h += fN(fin?.badlar!=null?fin.badlar*100:null);
+      h += fN(salP[i]);
+      h += fP(salMesV[i]); h += fP(salIAv[i]);
+      h += fN(srP[i]);
+      h += fP(srMes[i]); h += fP(srIA[i]);
+      h += fN(tcrP[i]);
+      h += fP(tcrMes[i]); h += fP(tcrIA[i]);
+      h += `</tr>`;
+    });
+
+    h += `</tbody></table>`;
+    document.getElementById('tblSer').innerHTML = h;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CSV DOWNLOADS
+  // ═══════════════════════════════════════════════════════════════════════════
+  dlAnnual() {
+    const years = A1.years;
+    const datoYrs = years.filter(y => y <= 2025);
+    const scenYrs = years.filter(y => y >= 2026);
+    const keys = [
+      'PIB (var. i.a.)','Inflación (var. i.a.)','Salarios (var. i.a.)','Desempleo (IV trimestre)',
+      'Tipo de cambio (prom. dic)','Tipo de cambio (f.d.p.)','Tipo de cambio (var. i.a. prom.)',
+      'Tipo de Cambio brecha CCL (prom. dic.)','Brecha cambiaria (% prom. Dic.)',
+      'Resultado primario (% PIB)','Resultado financiero (% PIB)',
+      'Exportaciones dev. (Bs. y Ss., miles de mill. de USD)',
+      'Importaciones dev. (Bs. y Ss., miles de mill. de USD)',
+      'Balanza comercial dev. (miles de mill. de USD)',
+      'Cuenta corriente dev. (% PIB)',
+      'Reservas Netas (f.d.p. Met. FMI)','Riesgo País (f.d.p.)',
+    ];
+    let csv = 'Indicador,Periodo';
+    datoYrs.forEach(y => csv += ',Dato '+y);
+    scenYrs.forEach(y => csv += ',Esc1 '+y);
+    scenYrs.forEach(y => csv += ',Esc2 '+y);
+    csv += '\n';
+    keys.forEach(k => {
+      csv += `"${k}",`;
+      datoYrs.forEach(y => csv += ','+(A1.data[k]?.[String(y)]??''));
+      scenYrs.forEach(y => csv += ','+(A1.data[k]?.[String(y)]??''));
+      scenYrs.forEach(y => csv += ','+(A2.data[k]?.[String(y)]??''));
+      csv += '\n';
+    });
+    this._dlCsv('series_anuales_bein.csv', csv);
+  },
+
+  dlMonthly() {
+    const cols = ['f','tcn','tcn_fdp','ipc_mes','ipc_ia','sal_ia','tpm','badlar','ccl','ccl_fdp','brecha','rp'];
+    const hdr = 'Fecha,TCN_Prom,TCN_fdp,IPC_Mes,IPC_ia,Sal_ia,TPM,Badlar,CCL_Prom,CCL_fdp,Brecha,RiesgoPais';
+    let csv = '';
+    [[D1_MONTHLY,'Escenario 1'],[D2_MONTHLY,'Escenario 2'],[D3_MONTHLY,'Escenario 3']].forEach(([d,lbl])=>{
+      csv += `\n${lbl}\n`+hdr+'\n';
+      d.forEach(r => csv += cols.map(c=>r[c]??'').join(',')+'\n');
+    });
+    this._dlCsv('series_mensuales_bein.csv', csv);
+  },
+
+  dlSeries() {
+    const ipcBase = FIN1[0].ipc_idx;
+    const sal1 = SAL_IDX_1; const sal2 = SAL_IDX_2;
+    const sr1 = SAL_REAL_1; const sr2 = SAL_REAL_2;
+    const tcr1 = TCR_1; const tcr2 = TCR_2;
+    const hdr = 'Fecha,Escenario,TCN_prom,Dm_TCN,Dia_TCN,TCN_fdp,Dm_fdp,Dia_fdp,IPC_idx(b100),Dm_IPC,Dia_IPC,TPM_TNA,Badlar_TNA,Sal_idx,Dm_Sal,Dia_Sal,SalReal_idx,Dm_SalReal,Dia_SalReal,TCR_idx,Dm_TCR,Dia_TCR';
+
+    const buildRows = (finArr, d1Arr, salArr, srArr, tcrArr, escLbl) => {
+      const tcnMes = finArr.map(r=>r.tcn_mes!=null?r.tcn_mes*100:null);
+      const tcnIA  = varIA(finArr.map(r=>r.tcn));
+      const fdpMes = varMes(d1Arr.map(r=>r.tcn_fdp));
+      const fdpIA  = varIA(d1Arr.map(r=>r.tcn_fdp));
+      const salMes = varMes(salArr);
+      const salIA  = d1Arr.map(r=>r.sal_ia!=null?r.sal_ia*100:null);
+      const srMes  = varMes(srArr);
+      const srIA   = varIA(srArr);
+      const tcrMes2= varMes(tcrArr);
+      const tcrIA2 = varIA(tcrArr);
+      return finArr.map((r,i)=>
+        `${r.f},${escLbl},${r.tcn??''},${tcnMes[i]??''},${tcnIA[i]??''},`+
+        `${d1Arr[i]?.tcn_fdp??''},${fdpMes[i]??''},${fdpIA[i]??''},`+
+        `${r.ipc_idx!=null?(r.ipc_idx/ipcBase*100).toFixed(2):''},${r.ipc_mes!=null?(r.ipc_mes*100).toFixed(2):''},${r.ipc_ia!=null?(r.ipc_ia*100).toFixed(2):''},`+
+        `${r.tpm!=null?(r.tpm*100).toFixed(2):''},${r.badlar!=null?(r.badlar*100).toFixed(2):''},`+
+        `${salArr[i]?.toFixed(2)??''},${salMes[i]?.toFixed(2)??''},${salIA[i]?.toFixed(2)??''},`+
+        `${srArr[i]?.toFixed(2)??''},${srMes[i]?.toFixed(2)??''},${srIA[i]?.toFixed(2)??''},`+
+        `${tcrArr[i]?.toFixed(2)??''},${tcrMes2[i]?.toFixed(2)??''},${tcrIA2[i]?.toFixed(2)??''}`
+      ).join('\n');
+    };
+
+    let csv = hdr + '\n';
+    csv += buildRows(FIN1, D1_MONTHLY, sal1, sr1, tcr1, 'Esc1') + '\n';
+    csv += buildRows(FIN2, D2_MONTHLY, sal2, sr2, tcr2, 'Esc2') + '\n';
+    this._dlCsv('series_completas_bein.csv', csv);
+  },
+
+
+  // ── RANGE POR GRÁFICO ──────────────────────────────────────────────────────
+  setRange(id, months) {
+    const ch = window._charts?.[id];
+    const orig = window._chartData?.[id];
+    if (!ch || !orig) return;
+    // Actualizar botones
+    const card = document.getElementById(id)?.closest?.('.cc');
+    if (card) {
+      card.querySelectorAll('.rb').forEach(b => {
+        const bm = b.textContent==='1A'?12:b.textContent==='3A'?36:b.textContent==='5A'?60:null;
+        b.classList.toggle('active', bm===months);
+      });
+    }
+    const total = orig.labels.length;
+    const n = (months && months < total) ? months : total;
+    const startIdx = total - n;
+    ch.data.labels = orig.labels.slice(startIdx);
+    ch.data.datasets = orig.datasets.map(ds => ({
+      ...ds,
+      data: (ds.data||[]).slice(startIdx)
+    }));
+    ch.update('none');
+  },
+
+  // ── DESCARGA PNG ───────────────────────────────────────────────────────────
+  dlPng(id) {
+    const ch = window._charts?.[id];
+    if (!ch) { alert('Gráfico no disponible'); return; }
+    const url = ch.toBase64Image('image/png', 1);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ecogo_' + id + '.png';
+    a.click();
+  },
+
+  // ── DESCARGA CSV POR GRÁFICO ───────────────────────────────────────────────
+  dlChartCsv(id) {
+    const ch = window._charts?.[id];
+    const orig = window._chartData?.[id];
+    if (!ch || !orig) { alert('Datos no disponibles'); return; }
+    let csv = 'Periodo,' + orig.datasets.map(d=>d.label||id).join(',') + '\n';
+    orig.labels.forEach((lbl, i) => {
+      csv += lbl + ',' + orig.datasets.map(d=>(d.data[i]??'')).join(',') + '\n';
+    });
+    this._dlCsv('ecogo_' + id + '.csv', csv);
+  },
+  _dlCsv(filename, content) {
+    const blob = new Blob(['\ufeff'+content], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  }
+};
+
+// Init
+document.addEventListener('DOMContentLoaded', () => app.renderMacro());
+
+</script>
+</body>
+</html>

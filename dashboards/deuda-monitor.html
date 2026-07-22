@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitor de Deuda en Pesos 2026 | Eco Go</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<style>
+/* ── Variables Eco Go ────────────────────────── */
+:root {
+  --teal-light: #8FCCCA;
+  --teal-mid:   #3C9794;
+  --teal-dark:  #1B5F5E;
+  --text:       #333333;
+  --bg:         #F1F1F1;
+  --white:      #FFFFFF;
+
+  /* chart extras */
+  --green:   #84BF84;
+  --red:     #DA4531;
+  --yellow:  #FEB15F;
+  --salmon:  #FE8B5F;
+  --lime:    #89C442;
+  --dkgreen: #70A134;
+}
+
+/* ── Reset & Base ────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ── Header ──────────────────────────────────── */
+.header {
+  background: var(--teal-dark);
+  padding: 0;
+  display: flex;
+  align-items: stretch;
+}
+.header-accent {
+  width: 6px;
+  background: var(--teal-light);
+  flex-shrink: 0;
+}
+.header-body {
+  flex: 1;
+  padding: 18px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.header-left h1 {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--white);
+  letter-spacing: -0.3px;
+}
+.header-left .subtitle {
+  font-size: 12px;
+  color: var(--teal-light);
+  margin-top: 3px;
+  font-weight: 400;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.ecogo-logo {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--white);
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ecogo-logo span {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--teal-light);
+}
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1.5px solid var(--teal-light);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--teal-light);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.3px;
+}
+.export-btn:hover {
+  background: var(--teal-light);
+  color: var(--teal-dark);
+}
+.export-btn svg { width: 13px; height: 13px; }
+
+/* ── Container ───────────────────────────────── */
+.container {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 22px 24px 40px;
+}
+
+/* ── KPI Cards ───────────────────────────────── */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.kpi-card {
+  background: var(--white);
+  border-radius: 6px;
+  padding: 16px 18px;
+  border-top: 3px solid var(--teal-mid);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+}
+.kpi-card.c2 { border-top-color: var(--teal-light); }
+.kpi-card.c3 { border-top-color: var(--yellow); }
+.kpi-card.c4 { border-top-color: var(--red); }
+.kpi-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #888;
+  margin-bottom: 6px;
+}
+.kpi-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--teal-dark);
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+.kpi-sub {
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 5px;
+  font-weight: 400;
+}
+
+/* ── Cards ───────────────────────────────────── */
+.card {
+  background: var(--white);
+  border-radius: 6px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+}
+.card-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--teal-dark);
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--teal-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ── Grid layouts ────────────────────────────── */
+.grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-1-1 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-full { margin-bottom: 16px; }
+
+/* ── Legend ──────────────────────────────────── */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #666;
+  font-weight: 500;
+}
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ── Month Tabs ──────────────────────────────── */
+.month-tabs {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.month-tab {
+  padding: 5px 13px;
+  border: 1.5px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  background: var(--white);
+  color: #777;
+  transition: all 0.12s;
+  letter-spacing: 0.2px;
+}
+.month-tab:hover { border-color: var(--teal-mid); color: var(--teal-mid); }
+.month-tab.active { background: var(--teal-mid); color: var(--white); border-color: var(--teal-mid); }
+
+/* ── Calendar Table ──────────────────────────── */
+.cal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.cal-table th {
+  background: var(--teal-dark);
+  color: var(--white);
+  padding: 8px 10px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.cal-table th.left { text-align: left; }
+.cal-table thead tr.subhead th {
+  background: var(--teal-mid);
+  color: rgba(255,255,255,0.85);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 5px 10px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.cal-table tbody td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #f2f2f2;
+  text-align: right;
+}
+.cal-table tbody td.left { text-align: left; }
+.cal-table tbody tr:last-child td { border-bottom: none; }
+.cal-table tbody tr:hover:not(.row-licit):not(.row-total) { background: #f7fbfb; }
+
+.row-licit td {
+  background: #edf6f6 !important;
+  color: var(--teal-dark) !important;
+  font-weight: 700;
+  font-size: 11px;
+  text-align: center !important;
+  border-bottom: 1px solid #d4eaea !important;
+}
+.row-total td {
+  background: var(--teal-dark) !important;
+  color: var(--white) !important;
+  font-weight: 700;
+}
+.tipo-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  background: #e2f0f0;
+  color: var(--teal-dark);
+  letter-spacing: 0.3px;
+}
+
+.no-detail {
+  text-align: center;
+  color: #bbb;
+  padding: 28px 16px;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.source {
+  font-size: 10px;
+  color: #aaa;
+  margin-top: 10px;
+  font-style: italic;
+  text-align: right;
+}
+
+/* ── Print / PDF ─────────────────────────────── */
+@media print {
+  body { background: white; }
+  .export-btn, .month-tabs { display: none; }
+  .card { box-shadow: none; border: 1px solid #ddd; }
+  .container { padding: 10px; }
+}
+
+canvas { max-height: 270px; }
+</style>
+</head>
+<body>
+
+<!-- ════ HEADER ════════════════════════════════ -->
+<div class="header">
+  <div class="header-accent"></div>
+  <div class="header-body">
+    <div class="header-left">
+      <h1>Monitor de Deuda en Pesos · 2026</h1>
+      <div class="subtitle">Perfil de vencimientos Abril – Diciembre &nbsp;·&nbsp; Amortización + Intereses &nbsp;·&nbsp; En billones de $</div>
+    </div>
+    <div class="header-right">
+      <button class="export-btn" onclick="exportExcel()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+        Exportar Excel
+      </button>
+      <button class="export-btn" onclick="window.print()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Imprimir / PDF
+      </button>
+      <div class="ecogo-logo"><span></span>ECO GO</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ BODY ═══════════════════════════════════ -->
+<div class="container">
+
+  <!-- KPI -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Abr – Dic 2026</div>
+      <div class="kpi-value">$194,6 bn</div>
+      <div class="kpi-sub">Amortización + intereses</div>
+    </div>
+    <div class="kpi-card c2">
+      <div class="kpi-label">Con Privados</div>
+      <div class="kpi-value">$97,8 bn</div>
+      <div class="kpi-sub">50,3% del total</div>
+    </div>
+    <div class="kpi-card c3">
+      <div class="kpi-label">Con Públicos</div>
+      <div class="kpi-value">$96,8 bn</div>
+      <div class="kpi-sub">49,7% del total</div>
+    </div>
+    <div class="kpi-card c4">
+      <div class="kpi-label">Mes más exigente</div>
+      <div class="kpi-value">Diciembre</div>
+      <div class="kpi-sub">$58,8 bn · 79% público</div>
+    </div>
+  </div>
+
+  <!-- Row 1: barra tenedor -->
+  <div class="grid-full">
+    <div class="card">
+      <div class="card-title">Vencimientos mensuales — Privados vs. Públicos</div>
+      <canvas id="chartBarTenedor" style="max-height:240px;"></canvas>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--teal-mid)"></div>Con privados</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>Con públicos</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: instrumento + % privados -->
+  <div class="grid-1-1">
+    <div class="card">
+      <div class="card-title">Instrumento por mes</div>
+      <canvas id="chartBarInst"></canvas>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--teal-dark)"></div>Tasa fija</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--teal-light)"></div>Tasa variable</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>CER</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>DLK</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--salmon)"></div>Duales</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">% del total con privados — por mes</div>
+      <canvas id="chartLine"></canvas>
+    </div>
+  </div>
+
+  <!-- Row 3: composición por instrumento total vs privados -->
+  <div class="grid-1-1">
+    <div class="card">
+      <div class="card-title">Composición por instrumento — Total<br><small style="font-weight:400;font-size:10px;text-transform:none;letter-spacing:0;">Acumulado Abr–Dic 2026</small></div>
+      <canvas id="chartDonutTotal"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Composición por instrumento — Con privados<br><small style="font-weight:400;font-size:10px;text-transform:none;letter-spacing:0;">Acumulado Abr–Dic 2026</small></div>
+      <canvas id="chartDonutPriv"></canvas>
+    </div>
+  </div>
+
+  <!-- Row 4: tabla calendario -->
+  <div class="grid-full">
+    <div class="card">
+      <div class="card-title">
+        Detalle de vencimientos por mes
+        <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:#aaa;">El detalle por ticker estará disponible para los meses restantes al actualizar el Excel</span>
+      </div>
+      <div class="month-tabs" id="monthTabs"></div>
+      <div id="calTableWrap"></div>
+      <div class="source">Fuente: Eco Go en base a Secretaría de Finanzas y estimaciones propias</div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- ════ DATA & SCRIPTS ═══════════════════════════ -->
+<script>
+/* ── Paleta Eco Go ─────────────────────────── */
+const C = {
+  tealLight: '#8FCCCA',
+  tealMid:   '#3C9794',
+  tealDark:  '#1B5F5E',
+  text:      '#333333',
+  bg:        '#F1F1F1',
+  green:     '#84BF84',
+  red:       '#DA4531',
+  yellow:    '#FEB15F',
+  salmon:    '#FE8B5F',
+  lime:      '#89C442',
+  dkgreen:   '#70A134',
+};
+
+/* ── Monthly 2026 data ─────────────────────── */
+const months = ['Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const monthly = [
+  { mes:'Abril',      total:31.32, privados:16.91, publicos:14.41, tasa_fija:22.78, tasa_var:3.08,  cer:0.00,  dlk:5.45, duales:0.00 },
+  { mes:'Mayo',       total:26.10, privados:17.03, publicos:9.07,  tasa_fija:14.12, tasa_var:0.01,  cer:11.97, dlk:0.00, duales:0.00 },
+  { mes:'Junio',      total:18.64, privados:15.24, publicos:3.40,  tasa_fija:2.67,  tasa_var:0.00,  cer:8.15,  dlk:2.76, duales:5.06 },
+  { mes:'Julio',      total:7.82,  privados:5.84,  publicos:1.98,  tasa_fija:6.19,  tasa_var:0.00,  cer:1.62,  dlk:0.00, duales:0.00 },
+  { mes:'Agosto',     total:10.34, privados:8.62,  publicos:1.72,  tasa_fija:2.44,  tasa_var:7.91,  cer:0.00,  dlk:0.00, duales:0.00 },
+  { mes:'Septiembre', total:7.29,  privados:5.65,  publicos:1.64,  tasa_fija:0.48,  tasa_var:0.00,  cer:1.31,  dlk:0.18, duales:5.32 },
+  { mes:'Octubre',    total:16.69, privados:7.21,  publicos:9.49,  tasa_fija:10.57, tasa_var:0.00,  cer:6.12,  dlk:0.00, duales:0.00 },
+  { mes:'Noviembre',  total:17.52, privados:8.95,  publicos:8.56,  tasa_fija:2.76,  tasa_var:0.06,  cer:14.69, dlk:0.00, duales:0.00 },
+  { mes:'Diciembre',  total:58.85, privados:12.34, publicos:46.51, tasa_fija:0.00,  tasa_var:0.00,  cer:44.00, dlk:0.00, duales:14.85 },
+];
+
+/* ── Privados by instrument ────────────────── */
+const monthlyPriv = [
+  { mes:'Abril',      tf:11.32, tv:2.78, cer:0.00, dlk:2.81, du:0.00 },
+  { mes:'Mayo',       tf:8.19,  tv:0.01, cer:8.83, dlk:0.00, du:0.00 },
+  { mes:'Junio',      tf:2.50,  tv:0.00, cer:8.19, dlk:0.67, du:3.88 },
+  { mes:'Julio',      tf:4.51,  tv:0.00, cer:1.32, dlk:0.00, du:0.00 },
+  { mes:'Agosto',     tf:1.95,  tv:6.68, cer:0.00, dlk:0.00, du:0.00 },
+  { mes:'Septiembre', tf:0.38,  tv:0.00, cer:1.04, dlk:0.15, du:4.08 },
+  { mes:'Octubre',    tf:1.73,  tv:0.00, cer:5.48, dlk:0.00, du:0.00 },
+  { mes:'Noviembre',  tf:2.35,  tv:0.05, cer:6.56, dlk:0.00, du:0.00 },
+  { mes:'Diciembre',  tf:0.00,  tv:0.00, cer:4.67, dlk:0.00, du:7.68 },
+];
+
+/* ── Calendar detail — intereses CER/TCN proyectados (Eco Go) ─────── */
+const calendarData = {
+  Abril: [
+    { dia:'15', ticker:'Licitación', tipo:'', is_licit:true, total:null, capital:null, intereses:null, priv_total:null, priv_capital:null, priv_intereses:null },
+    { dia:'17', ticker:'S17A6',  tipo:'LECAP',  total:8.265, capital:8.265, intereses:0.0,   priv_total:7.587, priv_capital:7.587, priv_intereses:0.0 },
+    { dia:'17', ticker:'TO26',   tipo:'BONTE',  total:0.000, capital:0.000, intereses:0.0,   priv_total:0.000, priv_capital:0.000, priv_intereses:0.0 },
+    { dia:'28', ticker:'Licitación', tipo:'', is_licit:true, total:null, capital:null, intereses:null, priv_total:null, priv_capital:null, priv_intereses:null },
+    { dia:'30', ticker:'S30A6',  tipo:'LECAP',  total:14.094, capital:14.094, intereses:0.0, priv_total:3.586, priv_capital:3.586, priv_intereses:0.0 },
+    { dia:'30', ticker:'M30A6',  tipo:'LETAR',  total:3.221,  capital:3.221,  intereses:0.0, priv_total:2.899, priv_capital:2.899, priv_intereses:0.0 },
+    { dia:'30', ticker:'D30A6',  tipo:'LELINK', total:5.397,  capital:5.397,  intereses:0.0, priv_total:2.781, priv_capital:2.781, priv_intereses:0.0 },
+    { dia:'Total', ticker:'', tipo:'', total:30.977, capital:30.977, intereses:0.0, priv_total:16.853, priv_capital:16.853, priv_intereses:0.0, is_total:true },
+  ],
+  Mayo: [
+    { dia:'13', ticker:'Licitación', tipo:'', is_licit:true, total:null, capital:null, intereses:null, priv_total:null, priv_capital:null, priv_intereses:null },
+    { dia:'15', ticker:'X15Y6',  tipo:'LECER',  total:6.886,  capital:6.792,  intereses:0.094, priv_total:5.509, priv_capital:5.433, priv_intereses:0.076 },
+    { dia:'15', ticker:'S15Y6',  tipo:'LECAP',  total:2.249,  capital:2.249,  intereses:0.0,   priv_total:1.800, priv_capital:1.800, priv_intereses:0.0 },
+    { dia:'27', ticker:'Licitación', tipo:'', is_licit:true, total:null, capital:null, intereses:null, priv_total:null, priv_capital:null, priv_intereses:null },
+    { dia:'29', ticker:'S29Y6',  tipo:'LECAP',  total:10.878, capital:10.878, intereses:0.0,   priv_total:5.682, priv_capital:5.682, priv_intereses:0.0 },
+    { dia:'29', ticker:'X29Y6',  tipo:'LECER',  total:3.750,  capital:3.699,  intereses:0.051, priv_total:2.871, priv_capital:2.832, priv_intereses:0.039 },
+    { dia:'Total', ticker:'', tipo:'', total:23.763, capital:23.618, intereses:0.145, priv_total:15.862, priv_capital:15.747, priv_intereses:0.115, is_total:true },
+  ],
+  Junio: [
+    { dia:'10', ticker:'Licitación', tipo:'', is_licit:true, total:null, capital:null, intereses:null, priv_total:null, priv_capital:null, priv_intereses:null },
+    { dia:'24', ticker:'Licitación', tipo:'', is_licit:true, total:null, capital:null, intereses:null, priv_total:null, priv_capital:null, priv_intereses:null },
+    { dia:'30', ticker:'TZX26',  tipo:'BONCER',    total:9.345,  capital:9.107,  intereses:0.238, priv_total:9.479, priv_capital:9.238, priv_intereses:0.241 },
+    { dia:'30', ticker:'TZV26',  tipo:'BONTE',     total:2.730,  capital:2.676,  intereses:0.054, priv_total:0.000, priv_capital:0.000, priv_intereses:0.0 },
+    { dia:'30', ticker:'T30J6',  tipo:'BONCAP',    total:2.520,  capital:2.520,  intereses:0.0,   priv_total:2.358, priv_capital:2.358, priv_intereses:0.0 },
+    { dia:'30', ticker:'TTJ26',  tipo:'BONCAPMAR', total:4.772,  capital:4.772,  intereses:0.0,   priv_total:3.654, priv_capital:3.654, priv_intereses:0.0 },
+    { dia:'Total', ticker:'', tipo:'', total:19.367, capital:19.075, intereses:0.292, priv_total:15.491, priv_capital:15.250, priv_intereses:0.241, is_total:true },
+  ],
+  Julio: [
+    { dia:'15', ticker:'Licitación', tipo:'', is_licit:true, total:null, capital:null, intereses:null, priv_total:null, priv_capital:null, priv_intereses:null },
+    { dia:'29', ticker:'Licitación', tipo:'', is_licit:true, total:null, capital:null, intereses:null, priv_total:null, priv_capital:null, priv_intereses:null },
+    { dia:'31', ticker:'S31L6',  tipo:'LECAP',  total:2.913,  capital:2.913,  intereses:0.0,   priv_total:1.665, priv_capital:1.665, priv_intereses:0.0 },
+    { dia:'31', ticker:'X31L6',  tipo:'LECER',  total:1.569,  capital:1.508,  intereses:0.061, priv_total:1.280, priv_capital:1.230, priv_intereses:0.050 },
+    { dia:'Total', ticker:'', tipo:'', total:4.482, capital:4.421, intereses:0.061, priv_total:2.945, priv_capital:2.895, priv_intereses:0.050, is_total:true },
+  ],
+  Agosto: [
+    { dia:'12', ticker:'Licitación', tipo:'', is_licit:true, total:null, capital:null, intereses:null, priv_total:null, priv_capital:null, priv_intereses:null },
+    { dia:'26', ticker:'Licitación', tipo:'', is_licit:true, total:null, capital:null, intereses:null, priv_total:null, priv_capital:null, priv_intereses:null },
+    { dia:'31', ticker:'S31G6',  tipo:'LECAP',  total:2.165,  capital:2.165,  intereses:0.0, priv_total:1.732, priv_capital:1.732, priv_intereses:0.0 },
+    { dia:'31', ticker:'M31G6',  tipo:'LETAR',  total:8.141,  capital:8.141,  intereses:0.0, priv_total:6.874, priv_capital:6.874, priv_intereses:0.0 },
+    { dia:'Total', ticker:'', tipo:'', total:10.306, capital:10.306, intereses:0.0, priv_total:8.606, priv_capital:8.606, priv_intereses:0.0, is_total:true },
+  ],
+  Septiembre: [
+    { dia:'9',  ticker:'Licitación', tipo:'', is_licit:true, total:null, capital:null, intereses:null, priv_total:null, priv_capital:null, priv_intereses:null },
+    { dia:'15', ticker:'TTS26',  tipo:'BONCAPMAR', total:4.758,  capital:4.758,  intereses:0.0,   priv_total:3.644, priv_capital:3.644, priv_intereses:0.0 },
+    { dia:'23', ticker:'Licitación', tipo:'', is_licit:true, total:null, capital:null, intereses:null, priv_total:null, priv_capital:null, priv_intereses:null },
+    { dia:'30', ticker:'S30S6',  tipo:'LECAP',     total:0.415,  capital:0.415,  intereses:0.0,   priv_total:0.332, priv_capital:0.332, priv_intereses:0.0 },
+    { dia:'30', ticker:'X30S6',  tipo:'LECER',     total:1.231,  capital:1.146,  intereses:0.085, priv_total:0.985, priv_capital:0.917, priv_intereses:0.068 },
+    { dia:'30', ticker:'D30S6',  tipo:'LELINK',    total:0.180,  capital:0.167,  intereses:0.013, priv_total:0.143, priv_capital:0.133, priv_intereses:0.010 },
+    { dia:'Total', ticker:'', tipo:'', total:6.584, capital:6.486, intereses:0.098, priv_total:5.104, priv_capital:5.026, priv_intereses:0.078, is_total:true },
+  ],
+  Octubre: [
+    { dia:'7',  ticker:'Licitación', tipo:'', is_licit:true, total:null, capital:null, intereses:null, priv_total:null, priv_capital:null, priv_intereses:null },
+    { dia:'17', ticker:'TO26',   tipo:'BONTE',  total:0.097,  capital:0.097,  intereses:0.0,   priv_total:0.097, priv_capital:0.097, priv_intereses:0.0 },
+    { dia:'28', ticker:'Licitación', tipo:'', is_licit:true, total:null, capital:null, intereses:null, priv_total:null, priv_capital:null, priv_intereses:null },
+    { dia:'30', ticker:'TZXO6',  tipo:'BONCER', total:5.931,  capital:5.437,  intereses:0.494, priv_total:5.310, priv_capital:4.867, priv_intereses:0.443 },
+    { dia:'30', ticker:'S30O6',  tipo:'LECAP',  total:8.921,  capital:8.921,  intereses:0.0,   priv_total:1.454, priv_capital:1.454, priv_intereses:0.0 },
+    { dia:'Total', ticker:'', tipo:'', total:14.949, capital:14.455, intereses:0.494, priv_total:6.861, priv_capital:6.418, priv_intereses:0.443, is_total:true },
+  ],
+  Noviembre: [
+    { dia:'9',  ticker:'TX26',   tipo:'BONCER', total:7.753,  capital:7.013,  intereses:0.741, priv_total:2.247, priv_capital:2.032, priv_intereses:0.215 },
+    { dia:'11', ticker:'Licitación', tipo:'', is_licit:true, total:null, capital:null, intereses:null, priv_total:null, priv_capital:null, priv_intereses:null },
+    { dia:'25', ticker:'Licitación', tipo:'', is_licit:true, total:null, capital:null, intereses:null, priv_total:null, priv_capital:null, priv_intereses:null },
+    { dia:'30', ticker:'S30N6',  tipo:'LECAP',  total:1.943,  capital:1.943,  intereses:0.0,   priv_total:1.633, priv_capital:1.633, priv_intereses:0.0 },
+    { dia:'30', ticker:'X30N6',  tipo:'LECER',  total:6.700,  capital:6.059,  intereses:0.641, priv_total:4.187, priv_capital:3.787, priv_intereses:0.400 },
+    { dia:'Total', ticker:'', tipo:'', total:16.396, capital:15.015, intereses:1.382, priv_total:8.067, priv_capital:7.452, priv_intereses:0.615, is_total:true },
+  ],
+  Diciembre: [
+    { dia:'9',  ticker:'Licitación', tipo:'', is_licit:true, total:null, capital:null, intereses:null, priv_total:null, priv_capital:null, priv_intereses:null },
+    { dia:'15', ticker:'TZXD6',  tipo:'BONCER',    total:39.985, capital:35.707, intereses:4.278, priv_total:4.178, priv_capital:3.731, priv_intereses:0.447 },
+    { dia:'15', ticker:'TTD26',  tipo:'BONCAPMAR', total:12.455, capital:12.455, intereses:0.0,   priv_total:6.438, priv_capital:6.438, priv_intereses:0.0 },
+    { dia:'23', ticker:'Licitación', tipo:'', is_licit:true, total:null, capital:null, intereses:null, priv_total:null, priv_capital:null, priv_intereses:null },
+    { dia:'Total', ticker:'', tipo:'', total:52.440, capital:48.162, intereses:4.278, priv_total:10.616, priv_capital:10.169, priv_intereses:0.447, is_total:true },
+  ],
+};
+
+/* ── Chart defaults ────────────────────────── */
+Chart.defaults.font.family = "'Inter', Arial, sans-serif";
+Chart.defaults.font.size   = 11;
+Chart.defaults.color       = '#888';
+
+const gridOpts = { color: '#f0f0f0', drawBorder: false };
+
+/* ── Chart 1: Stacked bar tenedor ─────────── */
+new Chart(document.getElementById('chartBarTenedor'), {
+  type: 'bar',
+  data: {
+    labels: months,
+    datasets: [
+      { label:'Con privados', data: monthly.map(d=>d.privados), backgroundColor: C.tealMid, borderRadius: 3, borderSkipped: false },
+      { label:'Con públicos', data: monthly.map(d=>d.publicos), backgroundColor: C.yellow,  borderRadius: 3, borderSkipped: false },
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend:{ display:false }, tooltip:{ callbacks:{ label: ctx => ` ${ctx.dataset.label}: $${ctx.parsed.y.toFixed(1)} bn` } } },
+    scales: {
+      x: { stacked:true, grid:{ display:false } },
+      y: { stacked:true, grid: gridOpts, title:{ display:true, text:'Billones de $', font:{size:10} } }
+    }
+  }
+});
+
+/* ── Chart 2a: Donut Total ────────────────── */
+const totalsAll = {
+  tf:  monthly.reduce((a,d)=>a+d.tasa_fija,0),
+  tv:  monthly.reduce((a,d)=>a+d.tasa_var,0),
+  cer: monthly.reduce((a,d)=>a+d.cer,0),
+  dlk: monthly.reduce((a,d)=>a+d.dlk,0),
+  du:  monthly.reduce((a,d)=>a+d.duales,0),
+};
+const grandTotal = Object.values(totalsAll).reduce((a,b)=>a+b,0);
+
+const donutColors = [C.tealDark, C.tealLight, C.green, C.yellow, C.salmon];
+const donutLabels = ['Tasa fija','Tasa variable','CER','DLK','Duales'];
+
+new Chart(document.getElementById('chartDonutTotal'), {
+  type: 'doughnut',
+  data: {
+    labels: donutLabels,
+    datasets:[{ data: Object.values(totalsAll), backgroundColor: donutColors, borderWidth:2, borderColor:'#fff' }]
+  },
+  options: {
+    responsive: true, cutout: '62%',
+    plugins: {
+      legend:{ position:'bottom', labels:{ font:{size:11}, padding:10, usePointStyle:true, pointStyle:'rect' } },
+      tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: $${ctx.parsed.toFixed(1)} bn  (${(ctx.parsed/grandTotal*100).toFixed(1)}%)` } }
+    }
+  }
+});
+
+/* ── Chart 2b: Donut Privados ─────────────── */
+const totalsPriv = {
+  tf:  monthlyPriv.reduce((a,d)=>a+d.tf,0),
+  tv:  monthlyPriv.reduce((a,d)=>a+d.tv,0),
+  cer: monthlyPriv.reduce((a,d)=>a+d.cer,0),
+  dlk: monthlyPriv.reduce((a,d)=>a+d.dlk,0),
+  du:  monthlyPriv.reduce((a,d)=>a+d.du,0),
+};
+const grandPriv = Object.values(totalsPriv).reduce((a,b)=>a+b,0);
+
+new Chart(document.getElementById('chartDonutPriv'), {
+  type: 'doughnut',
+  data: {
+    labels: donutLabels,
+    datasets:[{ data: Object.values(totalsPriv), backgroundColor: donutColors, borderWidth:2, borderColor:'#fff' }]
+  },
+  options: {
+    responsive: true, cutout: '62%',
+    plugins: {
+      legend:{ position:'bottom', labels:{ font:{size:11}, padding:10, usePointStyle:true, pointStyle:'rect' } },
+      tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: $${ctx.parsed.toFixed(1)} bn  (${(ctx.parsed/grandPriv*100).toFixed(1)}%)` } }
+    }
+  }
+});
+
+/* ── Chart 3: Stacked bar instrumento ─────── */
+new Chart(document.getElementById('chartBarInst'), {
+  type: 'bar',
+  data: {
+    labels: months,
+    datasets: [
+      { label:'Tasa fija',    data:monthly.map(d=>d.tasa_fija), backgroundColor:C.tealDark,  borderRadius:2 },
+      { label:'Tasa variable',data:monthly.map(d=>d.tasa_var),  backgroundColor:C.tealLight, borderRadius:2 },
+      { label:'CER',          data:monthly.map(d=>d.cer),        backgroundColor:C.green,     borderRadius:2 },
+      { label:'DLK',          data:monthly.map(d=>d.dlk),        backgroundColor:C.yellow,    borderRadius:2 },
+      { label:'Duales',       data:monthly.map(d=>d.duales),     backgroundColor:C.salmon,    borderRadius:2 },
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins:{ legend:{ display:false } },
+    scales: {
+      x:{ stacked:true, grid:{ display:false } },
+      y:{ stacked:true, grid:gridOpts, title:{ display:true, text:'Billones de $', font:{size:10} } }
+    }
+  }
+});
+
+/* ── Chart 4: Line % privados ─────────────── */
+new Chart(document.getElementById('chartLine'), {
+  type: 'line',
+  data: {
+    labels: months,
+    datasets:[{
+      label:'% Con privados',
+      data: monthly.map(d=>+(d.privados/d.total*100).toFixed(1)),
+      borderColor: C.tealMid,
+      backgroundColor: 'rgba(60,151,148,0.08)',
+      borderWidth: 2.5,
+      pointRadius: 5,
+      pointBackgroundColor: C.tealMid,
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
+      fill: true,
+      tension: 0.3
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins:{ legend:{ display:false } },
+    scales: {
+      x:{ grid:{ display:false } },
+      y:{ min:0, max:100, grid:gridOpts, ticks:{ callback:v=>v+'%' }, title:{ display:true, text:'% del total', font:{size:10} } }
+    }
+  }
+});
+
+
+/* ── Calendar table ───────────────────────── */
+const fmt = v => (v != null && !isNaN(v)) ? v.toFixed(1) : '—';
+
+function renderTable(mes) {
+  const wrap = document.getElementById('calTableWrap');
+  const mData = monthly.find(d=>d.mes===mes);
+  const detail = calendarData[mes];
+
+  const tableHdr = `
+    <table class="cal-table" id="calTable_${mes}">
+      <thead>
+        <tr>
+          <th class="left" colspan="3" style="background:var(--teal-dark);text-align:left;">${mes} 2026</th>
+          <th colspan="3" style="border-left:1px solid rgba(255,255,255,0.15);">Total</th>
+          <th colspan="3" style="border-left:1px solid rgba(255,255,255,0.15);">Con acreedores privados</th>
+        </tr>
+        <tr class="subhead">
+          <th class="left">Día</th><th class="left">Ticker</th><th class="left">Tipo</th>
+          <th style="border-left:1px solid rgba(255,255,255,0.15);">Total</th><th>Capital</th><th>Intereses</th>
+          <th style="border-left:1px solid rgba(255,255,255,0.15);">Total</th><th>Capital</th><th>Intereses</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  if (!detail) {
+    wrap.innerHTML = tableHdr + `
+      <tr class="row-total">
+        <td class="left">—</td><td class="left">Total mes</td><td class="left"></td>
+        <td>${fmt(mData.total)}</td><td>—</td><td>—</td>
+        <td>${fmt(mData.privados)}</td><td>—</td><td>—</td>
+      </tr>
+      </tbody></table>
+      <div class="no-detail">Detalle por ticker disponible al actualizar el Excel de la fuente</div>`;
+    return;
+  }
+
+  let rows = '';
+  for (const r of detail) {
+    if (r.is_licit) {
+      rows += `<tr class="row-licit"><td colspan="9">▸ ${r.dia} de ${mes} &nbsp;—&nbsp; Licitación</td></tr>`;
+      continue;
+    }
+    if (r.is_total) {
+      rows += `<tr class="row-total">
+        <td class="left">Total</td><td class="left"></td><td class="left"></td>
+        <td>${fmt(r.total)}</td><td>${fmt(r.capital)}</td><td>${fmt(r.intereses)}</td>
+        <td style="border-left:1px solid rgba(255,255,255,0.2);">${fmt(r.priv_total)}</td><td>${fmt(r.priv_capital)}</td><td>${fmt(r.priv_intereses)}</td>
+      </tr>`;
+      continue;
+    }
+    const badge = r.tipo ? `<span class="tipo-badge">${r.tipo}</span>` : '';
+    rows += `<tr>
+      <td class="left">${r.dia}</td>
+      <td class="left"><strong>${r.ticker}</strong></td>
+      <td class="left">${badge}</td>
+      <td>${fmt(r.total)}</td><td>${fmt(r.capital)}</td><td>${fmt(r.intereses)}</td>
+      <td>${fmt(r.priv_total)}</td><td>${fmt(r.priv_capital)}</td><td>${fmt(r.priv_intereses)}</td>
+    </tr>`;
+  }
+
+  wrap.innerHTML = tableHdr + rows + `</tbody></table>`;
+}
+
+/* ── Tabs ─────────────────────────────────── */
+let activeMonth = 'Abril';
+const tabsEl = document.getElementById('monthTabs');
+months.forEach(mes => {
+  const btn = document.createElement('button');
+  btn.className = 'month-tab' + (mes === activeMonth ? ' active' : '');
+  btn.textContent = mes;
+  btn.onclick = () => {
+    activeMonth = mes;
+    document.querySelectorAll('.month-tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTable(mes);
+  };
+  tabsEl.appendChild(btn);
+});
+renderTable(activeMonth);
+
+/* ── Export Excel ─────────────────────────── */
+function exportExcel() {
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Resumen mensual
+  const resumen = [
+    ['Monitor de Deuda en Pesos 2026', '', '', '', '', '', '', '', ''],
+    ['Fuente: Eco Go en base a Secretaría de Finanzas', '', '', '', '', '', '', '', ''],
+    ['', '', '', '', '', '', '', '', ''],
+    ['Mes','Total (bn $)','Con Privados (bn $)','Con Públicos (bn $)','% Privados','% Públicos','Tasa fija','Tasa variable','CER','DLK','Duales'],
+    ...monthly.map(d=>[
+      d.mes,
+      d.total, d.privados, d.publicos,
+      +(d.privados/d.total*100).toFixed(1),
+      +(d.publicos/d.total*100).toFixed(1),
+      d.tasa_fija, d.tasa_var, d.cer, d.dlk, d.duales
+    ]),
+    ['TOTAL',
+      +monthly.reduce((a,d)=>a+d.total,0).toFixed(2),
+      +monthly.reduce((a,d)=>a+d.privados,0).toFixed(2),
+      +monthly.reduce((a,d)=>a+d.publicos,0).toFixed(2),
+      '','',
+      +monthly.reduce((a,d)=>a+d.tasa_fija,0).toFixed(2),
+      +monthly.reduce((a,d)=>a+d.tasa_var,0).toFixed(2),
+      +monthly.reduce((a,d)=>a+d.cer,0).toFixed(2),
+      +monthly.reduce((a,d)=>a+d.dlk,0).toFixed(2),
+      +monthly.reduce((a,d)=>a+d.duales,0).toFixed(2),
+    ]
+  ];
+  const ws1 = XLSX.utils.aoa_to_sheet(resumen);
+  XLSX.utils.book_append_sheet(wb, ws1, 'Resumen mensual');
+
+  // Sheet 2: Detalle Abril
+  const detApr = [
+    ['Abril 2026 — Detalle por Ticker'],
+    ['Día','Ticker','Tipo','Total','Capital','Intereses','Privados Total','Privados Capital','Privados Intereses'],
+    ...calendarData.Abril.filter(r=>!r.is_licit).map(r=>[
+      r.dia, r.ticker, r.tipo,
+      r.total, r.capital, r.intereses,
+      r.priv_total, r.priv_capital, r.priv_intereses
+    ])
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet(detApr);
+  XLSX.utils.book_append_sheet(wb, ws2, 'Detalle Abril');
+
+  // Sheet 3: Histórico
+  const histRows = [
+    ['Evolución histórica de vencimientos mensuales (bn $)'],
+    ['Mes','2024','2025','2026'],
+    ...monthsShort.map((m,i)=>[m, hist2024[i], hist2025[i], hist2026[i]])
+  ];
+  const ws3 = XLSX.utils.aoa_to_sheet(histRows);
+  XLSX.utils.book_append_sheet(wb, ws3, 'Histórico 2024-2026');
+
+  XLSX.writeFile(wb, 'Monitor_Deuda_Pesos_2026_EcoGo.xlsx');
+}
+</script>
+</body>
+</html>

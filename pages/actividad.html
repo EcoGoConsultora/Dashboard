@@ -129,6 +129,28 @@
           </div>
         </div>
 
+        <!-- GRÁFICO IPI - Indicadores de actividad -->
+        <div class="act-section">
+          <div class="act-card">
+            <div class="act-card__head">
+              <div>
+                <p class="act-card__title">Indicadores de actividad</p>
+                <p class="act-card__sub">Serie sin estacionalidad · nov-23 = 100</p>
+              </div>
+              <div class="tl-bar" id="ipiTlBtns">
+                <button class="tl-btn" onclick="ipiSetRange(6)">6M</button>
+                <button class="tl-btn" onclick="ipiSetRange(12)">1A</button>
+                <button class="tl-btn" onclick="ipiSetRange(24)">2A</button>
+                <span class="tl-sep"></span>
+                <button class="tl-btn is-active" onclick="ipiSetRange(0)">Todo</button>
+              </div>
+            </div>
+            <div class="act-filters" id="ipiFilters"></div>
+            <div class="act-chart-box" style="height:320px"><canvas id="chartIpi"></canvas></div>
+            <p class="act-note" id="ipiNote">Fuente: INDEC / EcoGo</p>
+          </div>
+        </div>
+
         <!-- GRÁFICO 8 -->
         <div class="act-section">
           <div class="act-card">
@@ -178,6 +200,7 @@
 
   <script src="../assets/js/layout.js"></script>
   <script src="../assets/data/emae_series.js"></script>
+  <script src="../assets/data/actividad_ipi.js"></script>
   <script>
   (function(){
     /* ─── data ─── */
@@ -414,6 +437,126 @@
         );
       });
     }
+  })();
+  </script>
+
+  <!-- ── Gráfico IPI / Indicadores de actividad ────────────────── -->
+  <script>
+  (function(){
+    var D = window.ACTIVIDAD_IPI;
+    if (!D || !document.getElementById('chartIpi')) return;
+
+    var IPI_COLORS = {
+      "EMAE":              "#1B5F5E",
+      "IPI Manufacturero": "#DA4531",
+      "ISAC":              "#E8A87C",
+      "IPI Minero":        "#89C442",
+      "ISSP":              "#7E5CCB"
+    };
+
+    var allDates  = D.dates;
+    var ipiChart  = null;
+    var ipiActive = Object.keys(IPI_COLORS);  // todas visibles por defecto
+
+    // Actualizar nota con último período disponible
+    var noteEl = document.getElementById('ipiNote');
+    if (noteEl && allDates.length) {
+      var lastDate = allDates[allDates.length - 1];
+      var parts = lastDate.split('-');
+      var meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      var lbl = meses[parseInt(parts[1]) - 1] + '-' + parts[0].slice(2);
+      noteEl.textContent = 'Fuente: INDEC / EcoGo · Última observación: ' + lbl;
+    }
+
+    // Botones de filtro por serie
+    var filtersEl = document.getElementById('ipiFilters');
+    if (filtersEl) {
+      Object.keys(IPI_COLORS).forEach(function(name) {
+        var btn = document.createElement('button');
+        btn.className = 'act-filter-btn active';
+        btn.innerHTML = '<span class="dot" style="background:' + IPI_COLORS[name] + '"></span>' + name;
+        btn.style.color = IPI_COLORS[name];
+        btn.style.borderColor = IPI_COLORS[name];
+        btn.addEventListener('click', function() {
+          var idx = ipiActive.indexOf(name);
+          if (idx >= 0) {
+            if (ipiActive.length === 1) return; // al menos 1 visible
+            ipiActive.splice(idx, 1);
+            btn.classList.remove('active'); btn.classList.add('inactive');
+          } else {
+            ipiActive.push(name);
+            btn.classList.remove('inactive'); btn.classList.add('active');
+          }
+          renderIpi(ipiRange);
+        });
+        filtersEl.appendChild(btn);
+      });
+    }
+
+    var ipiRange = 0;  // 0 = todo
+
+    window.ipiSetRange = function(months) {
+      ipiRange = months;
+      document.querySelectorAll('#ipiTlBtns .tl-btn').forEach(function(b){ b.classList.remove('is-active'); });
+      var labels = [6, 12, 24, 0];
+      document.querySelectorAll('#ipiTlBtns .tl-btn').forEach(function(b, i){
+        if (labels[i] === months) b.classList.add('is-active');
+      });
+      renderIpi(months);
+    };
+
+    function renderIpi(months) {
+      var dates = allDates;
+      var slicedDates = months > 0 ? dates.slice(-months) : dates;
+      var startIdx = dates.length - slicedDates.length;
+
+      var datasets = Object.keys(IPI_COLORS).map(function(name) {
+        var vals = D.series[name].slice(startIdx);
+        return {
+          label: name,
+          data: vals,
+          borderColor: IPI_COLORS[name],
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: slicedDates.length <= 18 ? 3 : 0,
+          pointHoverRadius: 5,
+          tension: 0.25,
+          spanGaps: true,
+          hidden: ipiActive.indexOf(name) < 0
+        };
+      });
+
+      if (ipiChart) {
+        ipiChart.data.labels = slicedDates;
+        ipiChart.data.datasets = datasets;
+        ipiChart.update();
+      } else {
+        ipiChart = new Chart(document.getElementById('chartIpi'), {
+          type: 'line',
+          data: { labels: slicedDates, datasets: datasets },
+          options: {
+            responsive: true, maintainAspectRatio: false, animation: {duration: 250},
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function(c) {
+                    return c.dataset.label + ': ' + (c.raw !== null && c.raw !== undefined ? c.raw.toFixed(1) : '—');
+                  }
+                }
+              }
+            },
+            scales: {
+              x: { ticks: { color: '#6E7679', font: { size: 10 }, maxRotation: 0, maxTicksLimit: 12 }, grid: { color: 'rgba(0,0,0,.04)' } },
+              y: { ticks: { color: '#6E7679', font: { size: 10 }, callback: function(v){ return v.toFixed(0); } }, grid: { color: 'rgba(0,0,0,.05)' } }
+            }
+          }
+        });
+      }
+    }
+
+    renderIpi(0);
   })();
   </script>
 </body>

@@ -986,8 +986,10 @@ def extract_reservas(status):
 # =====================================================================
 def push_to_github(status):
     """
-    Copia los .js/.json regenerados en DATA_DIR hacia la carpeta del repo
-    clonado de GitHub (GIT_REPO_DIR) y hace git add + commit + push.
+    Copia TODO el dashboard (código + datos) desde DASHBOARD_DIR hacia la
+    carpeta del repo clonado de GitHub (GIT_REPO_DIR) y hace
+    git add + commit + push. Así cualquier cambio manual (HTML, JS, orden
+    de categorías, etc.) viaja a GitHub, no solo los .js/.json de datos.
     No falla el refresh si git no está disponible o no hay cambios: solo
     deja un WARN/FAIL en el resumen.
     """
@@ -997,20 +999,6 @@ def push_to_github(status):
     if not os.path.isdir(GIT_REPO_DIR):
         status.warn("GitHub", f"no se encontró el repo clonado en {GIT_REPO_DIR}")
         return
-
-    dest_data_dir = os.path.join(GIT_REPO_DIR, "assets", "data")
-    if not os.path.isdir(dest_data_dir):
-        status.warn("GitHub", f"no se encontró assets/data en {GIT_REPO_DIR}")
-        return
-
-    copiados = 0
-    for fname in os.listdir(DATA_DIR):
-        if fname.endswith((".js", ".json")):
-            try:
-                shutil.copy2(os.path.join(DATA_DIR, fname), os.path.join(dest_data_dir, fname))
-                copiados += 1
-            except Exception as e:
-                status.warn("GitHub - copia", f"{fname}: {e}")
 
     def _run(cmd):
         return subprocess.run(cmd, cwd=GIT_REPO_DIR, capture_output=True, text=True)
@@ -1023,6 +1011,46 @@ def push_to_github(status):
     except FileNotFoundError:
         status.warn("GitHub", "git no está instalado o no está en PATH")
         return
+
+    # Limpiar lock viejo si quedó pegado (p. ej. GitHub Desktop corriendo en simultáneo)
+    lock_path = os.path.join(GIT_REPO_DIR, ".git", "index.lock")
+    if os.path.exists(lock_path):
+        try:
+            os.remove(lock_path)
+        except Exception:
+            pass
+
+    # Sincronizar con lo último de GitHub ANTES de copiar los datos nuevos,
+    # para evitar rechazos de push por estar desactualizado ("fetch first").
+    r = _run(["git", "fetch", "origin"])
+    if r.returncode != 0:
+        status.warn("GitHub - git fetch", (r.stderr or r.stdout).strip())
+    else:
+        r = _run(["git", "reset", "--hard", "origin/main"])
+        if r.returncode != 0:
+            status.warn("GitHub - git reset", (r.stderr or r.stdout).strip())
+
+    # Copiar TODO el dashboard (código + datos), salvo carpetas internas
+    # que no deben viajar a GitHub.
+    EXCLUDE_DIRS = {".git", "__pycache__", ".ipynb_checkpoints", "node_modules"}
+    copiados = 0
+    for root, dirs, files in os.walk(DASHBOARD_DIR):
+        dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
+        rel = os.path.relpath(root, DASHBOARD_DIR)
+        dest_root = GIT_REPO_DIR if rel == "." else os.path.join(GIT_REPO_DIR, rel)
+        try:
+            os.makedirs(dest_root, exist_ok=True)
+        except Exception as e:
+            status.warn("GitHub - copia", f"{rel}: {e}")
+            continue
+        for fname in files:
+            if fname == "index.lock":
+                continue
+            try:
+                shutil.copy2(os.path.join(root, fname), os.path.join(dest_root, fname))
+                copiados += 1
+            except Exception as e:
+                status.warn("GitHub - copia", f"{os.path.join(rel, fname)}: {e}")
 
     r = _run(["git", "add", "-A"])
     if r.returncode != 0:
@@ -1220,7 +1248,7 @@ def main():
     print("\n[10/10] Actualizando Series Largas (Anexo.xlsx)...")
     try:
         from extract_series_largas import run_extraction
-        anexo_path = os.path.join(BASE_EXCEL, "Anexo.xlsx")
+        anexo_path = os.path.join(BASE_EXCEL, "03 Informes y Anexos", "Cuadros y Anexos", "Anexos nuevos", "Anexo.xlsx")
         result = run_extraction(anexo_path, DASHBOARD_DIR)
         if result["ok"]:
             status.ok("Series Largas", result["msg"])
