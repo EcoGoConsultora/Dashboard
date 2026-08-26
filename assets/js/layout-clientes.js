@@ -9,6 +9,7 @@ const SECTIONS = [
   { id:'rigi',           label:'RIGI',                     href:'pages/rigi-clientes.html',      group:'Monitor',  icon:'pie-chart',  desc:'Régimen de Incentivo para Grandes Inversiones.' },
   { id:'reservas',       label:'Reservas',                 href:'pages/reservas-clientes.html',  group:'Monitor',  icon:'shield',     desc:'Composición RIN, reservas brutas y depósitos.' },
   { id:'internacional2', label:'Internacional · Consensus', href:'pages/internacional2.html',     group:'Externo',  icon:'map',        desc:'LatinFocus Consensus Forecast — resumen y detalle por país.' },
+  { id:'deuda-pesos',    label:'Deuda en Pesos',           href:'pages/deuda-pesos-clientes.html', group:'En construcción', icon:'layers', desc:'Perfil de vencimientos, stock y composición de la deuda en pesos.' },
 ];
 
 const ICONS = {
@@ -18,6 +19,7 @@ const ICONS = {
   'pie-chart': '<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>',
   shield:      '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
   map:         '<polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>',
+  layers:      '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
   menu:        '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>'
 };
 

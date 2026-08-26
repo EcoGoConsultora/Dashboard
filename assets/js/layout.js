@@ -13,7 +13,6 @@ const SECTIONS = [
   { id:'internacional',  label:'Internacional',           href:'pages/internacional.html',   group:'Externo',   icon:'map',           desc:'Proyecciones de consenso para América Latina y commodities.' },
   { id:'mercados-global',label:'Internacional · Mercados', href:'pages/mercados-global.html', group:'Mercados',  icon:'globe',         desc:'Benchmarks globales · strip del snapshot y cobertura del bloque externo.' },
   { id:'mercados',       label:'Mercados',                href:'pages/mercados.html',        group:'Mercados',  icon:'bar-chart2',    desc:'Tasa fija, renta variable, CER, dólar linked y hard-dollar.' },
-  { id:'deuda-pesos',    label:'Deuda en Pesos',          href:'pages/deuda-pesos.html',     group:'En construcción', icon:'layers',    desc:'Perfil de vencimientos, stock y composición de la deuda en pesos.' },
   { id:'monetarias',     label:'Monetarias',              href:'pages/monetarias.html',      group:'En construcción', icon:'trending-up', desc:'Agregados monetarios, base y tasas de interés.' }
 ];
 
