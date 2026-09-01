@@ -172,6 +172,7 @@
 
   function tooltipPct(c){ return c.dataset.label + ': ' + fmtPct(c.parsed.y, 2); }
   function tooltipNum(c){ return c.dataset.label + ': ' + fmtNum(c.parsed.y, 1); }
+  function tooltipFooterTotal(items){ var s = items.reduce(function(acc,i){ return acc + i.parsed.y; }, 0); return 'Total: ' + fmtPct(s, 2); }
 
   /* ---------- Agregados monetarios ---------- */
   function buildAgregados(){
@@ -223,7 +224,7 @@
           interaction:{ mode:'index', intersect:false },
           plugins:{
             legend:{ position:'bottom', labels:{ usePointStyle:true, padding:12 } },
-            tooltip:{ callbacks:{ label: tooltipPct } }
+            tooltip:{ callbacks:{ label: tooltipPct, footer: tooltipFooterTotal } }
           },
           scales:{
             x: timeAxis(),
@@ -247,7 +248,7 @@
           interaction:{ mode:'index', intersect:false },
           plugins:{
             legend:{ position:'bottom', labels:{ usePointStyle:true, padding:12 } },
-            tooltip:{ callbacks:{ label: tooltipPct } }
+            tooltip:{ callbacks:{ label: tooltipPct, footer: tooltipFooterTotal } }
           },
           scales:{ x: timeAxis(), y: pctAxis({ stacked:true, title:{ display:true, text:'% del PIB' } }) }
         }
@@ -262,7 +263,7 @@
           interaction:{ mode:'index', intersect:false },
           plugins:{
             legend:{ position:'bottom', labels:{ usePointStyle:true, padding:12 } },
-            tooltip:{ callbacks:{ label: tooltipPct } }
+            tooltip:{ callbacks:{ label: tooltipPct, footer: tooltipFooterTotal } }
           },
           scales:{ x: timeAxis(), y: pctAxis({ stacked:true, title:{ display:true, text:'% del PIB' } }) }
         }
