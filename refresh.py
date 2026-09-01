@@ -53,6 +53,8 @@ EXCEL_PATHS = {
     "emae_nuevo":     os.path.join(BASE_EXCEL, "Actividad", "EMAE - NUEVO.xlsx"),
     "pasivos_res":    os.path.join(BASE_EXCEL, "Monetarias", "pasivos reservas.xlsx"),
     "res_dep":        os.path.join(BASE_EXCEL, "Monetarias", "Reservas brutas y depósitos.xlsx"),
+    "agregados_mon":  os.path.join(BASE_EXCEL, "Monetarias", "Copia de Agregados monetarios.xlsx"),
+    "monitor_mon":    os.path.join(BASE_EXCEL, "Monetarias", "Monitor monetario mensual.xlsx"),
     "rigi":           os.path.join(BASE_EXCEL, "Códigos", "Python", "Patru", "rigi", "Proyectos RIGI.xlsx"),
 }
 
@@ -60,10 +62,6 @@ EXCEL_PATHS = {
 MONITOR_MUNDIAL_JS = os.path.join(BASE_EXCEL, "Internacional", "Monitor mundial", "data", "monitor-data.js")
 
 DATA_DIR = os.path.join(DASHBOARD_DIR, "assets", "data")
-
-# Carpeta local del repo clonado de GitHub (EcoGoConsultora/Dashboard).
-# Ahí se copian los .js/.json actualizados y se hace commit + push automático.
-GIT_REPO_DIR = r"C:\Users\fscalise\Documents\GitHub\Dashboard"
 
 # =====================================================================
 #  Helpers
@@ -135,6 +133,72 @@ def col_idx(letter):
 
 def fmt_n(v):
     return v if isinstance(v, (int, float)) else None
+
+def _parse_ref(ref):
+    """Separa una referencia de Excel tipo "'Hoja X'!$A$1:$A$10" en (hoja, rango)."""
+    sheet_part, cell_part = ref.split('!', 1)
+    return sheet_part.strip("'"), cell_part
+
+def _read_range_values(wb, ref):
+    """Lee los valores de un rango de celdas (una columna) dado por su referencia."""
+    from openpyxl.utils.cell import range_boundaries
+    sheet_name, cell_part = _parse_ref(ref)
+    ws = wb[sheet_name]
+    min_col, min_row, max_col, max_row = range_boundaries(cell_part)
+    vals = []
+    for row in ws.iter_rows(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col, values_only=True):
+        vals.append(row[0])
+    return vals
+
+def _read_single_value(wb, ref):
+    return _read_range_values(wb, ref)[0]
+
+def get_chart_series(wb, chartsheet_name):
+    """Lee las series (fechas + valores + nombre) del primer grafico de una
+    hoja-grafico de Excel (Chartsheet), leyendo directo de las celdas que el
+    grafico referencia. Si el analista extiende el rango de datos del
+    grafico en Excel, el refresh sigue ese rango automaticamente."""
+    ws = wb[chartsheet_name]
+    chart = ws._charts[0]
+    cats = None
+    series_out = []
+    for s in chart.series:
+        val_ref = s.val.numRef.f
+        vals = _read_range_values(wb, val_ref)
+        if cats is None and s.cat is not None:
+            cat_ref = s.cat.numRef.f if s.cat.numRef else (s.cat.strRef.f if s.cat.strRef else None)
+            if cat_ref:
+                cats = _read_range_values(wb, cat_ref)
+        if s.tx is not None and s.tx.strRef is not None:
+            label = _read_single_value(wb, s.tx.strRef.f)
+        elif s.tx is not None and s.tx.v:
+            label = s.tx.v
+        else:
+            label = None
+        if isinstance(label, str):
+            label = label.strip()
+        series_out.append((label, vals))
+    return cats, series_out
+
+def _chart_block(wb, chart_name, scale=1.0):
+    """Arma {dates, series} a partir de un grafico de Excel (ver get_chart_series).
+    scale permite normalizar unidades (ej.: 0.01 si el Excel guarda el dato
+    ya multiplicado por 100, para dejarlo como fraccion 0-1 igual que el
+    resto del dashboard)."""
+    cats, series_list = get_chart_series(wb, chart_name)
+    n = 0
+    for d in (cats or []):
+        if isinstance(d, datetime):
+            n += 1
+        else:
+            break
+    dates = [d.strftime('%Y-%m-%d') for d in cats[:n]]
+    series = {}
+    for label, vals in series_list:
+        if not label:
+            continue
+        series[label] = [round(v * scale, 4) if isinstance(v, (int, float)) else None for v in vals[:n]]
+    return {'dates': dates, 'series': series}
 
 # =====================================================================
 #  PRECIOS
@@ -982,75 +1046,102 @@ def extract_reservas(status):
     return data if data else None
 
 # =====================================================================
+#  MONETARIAS — agregados monetarios, prestamos privados y monetizacion
+# =====================================================================
+def extract_monetarias(status):
+    """
+    Lee los graficos armados a mano en dos Excel de BD/Monetarias y
+    reproduce esas mismas series (rango de fechas y columnas que el propio
+    grafico de Excel referencia). Alcanza con extender el rango del grafico
+    en Excel para que el proximo refresh levante los datos nuevos.
+    """
+    data = {}
+
+    # ---- Agregados monetarios (niveles reales y % del PIB) ----
+    path1 = EXCEL_PATHS["agregados_mon"]
+    if not os.path.exists(path1):
+        status.warn("Monetarias - Agregados", f"no se encontro: {path1}")
+    else:
+        try:
+            wb1 = _open_wb(path1)
+            niveles = _chart_block(wb1, "Gráfico2")
+            pib     = _chart_block(wb1, "Gráfico3")
+            data['agregados'] = {
+                'dates':   niveles['dates'],
+                'niveles': niveles['series'],
+                'pib':     pib['series'],
+            }
+            status.ok("Monetarias - Agregados", f"{len(niveles['dates'])} meses")
+        except Exception as e:
+            status.fail("Monetarias - Agregados", str(e))
+            traceback.print_exc()
+
+    # ---- Prestamos privados y monetizacion (Monitor monetario mensual) ----
+    path2 = EXCEL_PATHS["monitor_mon"]
+    if not os.path.exists(path2):
+        status.warn("Monetarias - Prestamos", f"no se encontro: {path2}")
+    else:
+        try:
+            wb2 = _open_wb(path2)
+            # Los graficos de este Excel guardan el dato ya como numero de
+            # porcentaje (3.01 = 3.01%), no como fraccion — normalizamos con
+            # scale=0.01 para que quede en fraccion 0-1, igual que el resto
+            # del dashboard (agregados monetarios, precios, etc.).
+            data['prestamos'] = {
+                'pesos':   _chart_block(wb2, "(Gr) Prestamos en pesos", scale=0.01),
+                'dolares': _chart_block(wb2, "(Gr) Prestamos en dólares", scale=0.01),
+                'totales': _chart_block(wb2, "(Gr) Prestamos totales", scale=0.01),
+            }
+            status.ok("Monetarias - Prestamos", f"{len(data['prestamos']['pesos']['dates'])} meses")
+
+            data['monetizacion'] = {
+                'total':         _chart_block(wb2, "Gráfico4", scale=0.01),
+                'pesos_dolares': _chart_block(wb2, "Gráfico5", scale=0.01),
+            }
+            status.ok("Monetarias - Monetizacion", f"{len(data['monetizacion']['total']['dates'])} meses")
+        except Exception as e:
+            status.fail("Monetarias - Prestamos/Monetizacion", str(e))
+            traceback.print_exc()
+
+    return data if data else None
+
+# =====================================================================
 #  GITHUB — copiar datos actualizados al repo clonado y hacer push
 # =====================================================================
 def push_to_github(status):
     """
-    Copia TODO el dashboard (código + datos) desde DASHBOARD_DIR hacia la
-    carpeta del repo clonado de GitHub (GIT_REPO_DIR) y hace
-    git add + commit + push. Así cualquier cambio manual (HTML, JS, orden
-    de categorías, etc.) viaja a GitHub, no solo los .js/.json de datos.
+    Hace git add + commit + push directo desde DASHBOARD_DIR: esta misma
+    carpeta es el clon local del repo de GitHub (EcoGoConsultora/Dashboard).
+    Antes de subir, trae los cambios del remoto (fetch + merge) para evitar
+    que el push se rechace por estar desactualizado.
     No falla el refresh si git no está disponible o no hay cambios: solo
     deja un WARN/FAIL en el resumen.
     """
-    import shutil
     import subprocess
 
-    if not os.path.isdir(GIT_REPO_DIR):
-        status.warn("GitHub", f"no se encontró el repo clonado en {GIT_REPO_DIR}")
-        return
-
     def _run(cmd):
-        return subprocess.run(cmd, cwd=GIT_REPO_DIR, capture_output=True, text=True)
+        return subprocess.run(cmd, cwd=DASHBOARD_DIR, capture_output=True, text=True)
 
     try:
         r = _run(["git", "--version"])
         if r.returncode != 0:
-            status.warn("GitHub", "git no está disponible en PATH; instalar Git for Windows")
+            status.warn("GitHub", "git no est\u00e1 disponible en PATH; instalar Git for Windows")
             return
     except FileNotFoundError:
-        status.warn("GitHub", "git no está instalado o no está en PATH")
+        status.warn("GitHub", "git no est\u00e1 instalado o no est\u00e1 en PATH")
         return
 
-    # Limpiar lock viejo si quedó pegado (p. ej. GitHub Desktop corriendo en simultáneo)
-    lock_path = os.path.join(GIT_REPO_DIR, ".git", "index.lock")
+    if not os.path.isdir(os.path.join(DASHBOARD_DIR, ".git")):
+        status.warn("GitHub", f"{DASHBOARD_DIR} no es un repo git (falta la carpeta .git)")
+        return
+
+    # Limpiar lock viejo si quedo pegado (p. ej. GitHub Desktop corriendo en simultaneo)
+    lock_path = os.path.join(DASHBOARD_DIR, ".git", "index.lock")
     if os.path.exists(lock_path):
         try:
             os.remove(lock_path)
         except Exception:
             pass
-
-    # Sincronizar con lo último de GitHub ANTES de copiar los datos nuevos,
-    # para evitar rechazos de push por estar desactualizado ("fetch first").
-    r = _run(["git", "fetch", "origin"])
-    if r.returncode != 0:
-        status.warn("GitHub - git fetch", (r.stderr or r.stdout).strip())
-    else:
-        r = _run(["git", "reset", "--hard", "origin/main"])
-        if r.returncode != 0:
-            status.warn("GitHub - git reset", (r.stderr or r.stdout).strip())
-
-    # Copiar TODO el dashboard (código + datos), salvo carpetas internas
-    # que no deben viajar a GitHub.
-    EXCLUDE_DIRS = {".git", "__pycache__", ".ipynb_checkpoints", "node_modules"}
-    copiados = 0
-    for root, dirs, files in os.walk(DASHBOARD_DIR):
-        dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
-        rel = os.path.relpath(root, DASHBOARD_DIR)
-        dest_root = GIT_REPO_DIR if rel == "." else os.path.join(GIT_REPO_DIR, rel)
-        try:
-            os.makedirs(dest_root, exist_ok=True)
-        except Exception as e:
-            status.warn("GitHub - copia", f"{rel}: {e}")
-            continue
-        for fname in files:
-            if fname == "index.lock":
-                continue
-            try:
-                shutil.copy2(os.path.join(root, fname), os.path.join(dest_root, fname))
-                copiados += 1
-            except Exception as e:
-                status.warn("GitHub - copia", f"{os.path.join(rel, fname)}: {e}")
 
     r = _run(["git", "add", "-A"])
     if r.returncode != 0:
@@ -1059,20 +1150,40 @@ def push_to_github(status):
 
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
     r = _run(["git", "commit", "-m", f"Actualizacion automatica de datos - {ts}"])
+    nothing_local_to_commit = False
     if r.returncode != 0:
         out = (r.stdout + r.stderr).lower()
         if "nothing to commit" in out:
-            status.ok("GitHub", f"{copiados} archivos copiados, sin cambios para subir")
+            nothing_local_to_commit = True
         else:
             status.fail("GitHub - git commit", (r.stdout + r.stderr).strip())
-        return
+            return
 
-    r = _run(["git", "push"])
+    # Traer lo ultimo de GitHub y mezclarlo (por si se subio algo desde otro lado)
+    r = _run(["git", "fetch", "origin"])
+    if r.returncode != 0:
+        status.warn("GitHub - git fetch", (r.stderr or r.stdout).strip())
+    else:
+        r = _run(["git", "merge", "--no-edit", "origin/main"])
+        if r.returncode != 0:
+            status.fail(
+                "GitHub - git merge",
+                (r.stdout + r.stderr).strip() + " (puede necesitar resolucion manual de conflictos en GitHub Desktop)"
+            )
+            return
+
+    if nothing_local_to_commit:
+        r = _run(["git", "rev-list", "--count", "origin/main..HEAD"])
+        pending = r.stdout.strip() if r.returncode == 0 else "?"
+        if pending in ("0", ""):
+            status.ok("GitHub", "sin cambios para subir")
+            return
+
+    r = _run(["git", "push", "origin", "main"])
     if r.returncode != 0:
         status.fail("GitHub - git push", (r.stderr or r.stdout).strip())
     else:
-        status.ok("GitHub", f"{copiados} archivos subidos a GitHub")
-
+        status.ok("GitHub", "cambios subidos a GitHub")
 
 # =====================================================================
 #  MAIN
@@ -1231,7 +1342,7 @@ def main():
         status.warn("Mercados", f"no se pudo actualizar desde la API: {e}")
 
     # ---- Actividad IPI (Indicadores de actividad) ----
-    print("\n[9/10] Actualizando Indicadores de Actividad (IPI - Todos.xlsx)...")
+    print("\n[9/11] Actualizando Indicadores de Actividad (IPI - Todos.xlsx)...")
     try:
         from extract_actividad_ipi import run_extraction as run_ipi
         ipi_path = os.path.join(BASE_EXCEL, "Actividad", "IPI - Todos.xlsx")
@@ -1245,7 +1356,7 @@ def main():
         traceback.print_exc()
 
     # ---- Series Largas (Anexo histórico) ----
-    print("\n[10/10] Actualizando Series Largas (Anexo.xlsx)...")
+    print("\n[10/11] Actualizando Series Largas (Anexo.xlsx)...")
     try:
         from extract_series_largas import run_extraction
         anexo_path = os.path.join(BASE_EXCEL, "03 Informes y Anexos", "Cuadros y Anexos", "Anexos nuevos", "Anexo.xlsx")
@@ -1256,6 +1367,17 @@ def main():
             status.fail("Series Largas", result["msg"])
     except Exception as e:
         status.fail("Series Largas", str(e))
+        traceback.print_exc()
+
+    # ---- Monetarias ----
+    print("\n[11/11] Procesando Monetarias...")
+    try:
+        d = extract_monetarias(status)
+        if d:
+            sz = save_data("monetarias", d)
+            status.ok("Monetarias", f"{sz:,} bytes")
+    except Exception as e:
+        status.fail("Monetarias", str(e))
         traceback.print_exc()
 
     # ---- Subir cambios a GitHub ----

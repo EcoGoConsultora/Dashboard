@@ -8,12 +8,11 @@ const SECTIONS = [
   { id:'actividad',      label:'Actividad',               href:'pages/actividad.html',       group:'Real',      icon:'activity',      desc:'Monitor de actividad económica, EMAE y proyecciones de PIB.' },
   { id:'empleo',         label:'Empleo',                  href:'pages/empleo.html',          group:'Real',      icon:'users',         desc:'Mercado laboral, desempleo, salarios e informalidad.' },
   { id:'precios',        label:'Precios',                 href:'pages/precios.html',         group:'Real',      icon:'tag',           desc:'IPC, núcleo, regulados y proyecciones de inflación.' },
-  { id:'monetario',      label:'Monetario',               href:'pages/monetario.html',       group:'Financiero',icon:'trending-up',   desc:'Agregados, tasas, base monetaria y mercados.' },
   { id:'tipo-cambio',    label:'Tipo de Cambio',          href:'pages/tipo-cambio.html',     group:'Externo',   icon:'dollar-sign',   desc:'Oficial, CCL, MEP, brechas y reservas del BCRA.' },
   { id:'internacional',  label:'Internacional',           href:'pages/internacional.html',   group:'Externo',   icon:'map',           desc:'Proyecciones de consenso para América Latina y commodities.' },
   { id:'mercados-global',label:'Internacional · Mercados', href:'pages/mercados-global.html', group:'Mercados',  icon:'globe',         desc:'Benchmarks globales · strip del snapshot y cobertura del bloque externo.' },
   { id:'mercados',       label:'Mercados',                href:'pages/mercados.html',        group:'Mercados',  icon:'bar-chart2',    desc:'Tasa fija, renta variable, CER, dólar linked y hard-dollar.' },
-  { id:'monetarias',     label:'Monetarias',              href:'pages/monetarias.html',      group:'En construcción', icon:'trending-up', desc:'Agregados monetarios, base y tasas de interés.' }
+  { id:'monetarias',     label:'Monetarias',              href:'pages/monetarias.html',      group:'Financiero', icon:'trending-up',   desc:'Agregados monetarios, préstamos privados y monetización de la economía.' }
 ];
 
 const ICONS = {

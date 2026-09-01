@@ -38,13 +38,16 @@ Eso requiere que yo (Claude) ajuste el script. Avisame y lo arreglamos.
 
 ## Publicación automática en GitHub
 
+Esta misma carpeta (`EcoGo-Dashboard`) es un clon de `github.com/EcoGoConsultora/Dashboard` — ya no depende de una carpeta puente aparte.
+
 Al final de `refresh.py` (y de los notebooks `Actualizar_Dashboard_Clientes.ipynb` / `Actualizar_Dashboard_EcoGo.ipynb`) se agregó un paso que:
 
-1. Copia los `.js`/`.json` regenerados en `assets/data/` a la carpeta del repo clonado: `C:\Users\fscalise\Documents\GitHub\Dashboard`.
-2. Hace `git add`, `git commit` y `git push` automáticamente en esa carpeta.
+1. Hace `git add` + `git commit` de los cambios (código y datos) directo acá.
+2. Trae los cambios de GitHub (`git fetch` + `git merge`) por si algo se subió desde otro lado.
+3. Hace `git push` a la rama `main`.
 
 Requisitos para que funcione:
 
 - Tener **Git for Windows** instalado y `git` disponible en el PATH (verificar con `git --version` en una terminal). Si falta, el refresh sigue funcionando igual pero avisa que no pudo subir a GitHub.
-- La carpeta `C:\Users\fscalise\Documents\GitHub\Dashboard` tiene que existir (clonada una vez con GitHub Desktop) y tener acceso de escritura ya autenticado.
-- Si cambia la ubicación de esa carpeta, actualizar `GIT_REPO_DIR` en `refresh.py`.
+- Esta carpeta tiene que seguir siendo un repo git válido con el remoto `origin` apuntando a `https://github.com/EcoGoConsultora/Dashboard.git` (podés verificarlo con `git remote -v` en una terminal parada acá) y con acceso de escritura ya autenticado en esta compu.
+- Si algún día el push falla por conflicto (por ejemplo, alguien editó algo directo en GitHub), el mensaje de error lo va a avisar en el resumen — en ese caso conviene abrir esta carpeta con GitHub Desktop para resolverlo a mano.

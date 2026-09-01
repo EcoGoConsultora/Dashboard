@@ -1,42 +1,127 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Monetarias · Eco Go</title>
-  <link rel="stylesheet" href="../assets/css/theme.css"/>
-  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <style>
-    .wip-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;gap:16px;padding:40px 20px}
-    .wip-icon{font-size:3rem;line-height:1}
-    .wip-title{font-size:1.5rem;font-weight:800;color:var(--color-text);margin:0}
-    .wip-sub{font-size:.9rem;color:var(--color-text-muted);max-width:380px;margin:0;line-height:1.6}
-    .wip-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(60,151,148,.1);border:1.5px solid rgba(60,151,148,.3);color:var(--eg-teal-dark);font-size:.75rem;font-weight:700;border-radius:20px;padding:5px 14px}
+    .chart-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius);padding:16px 18px 14px;box-shadow:var(--shadow-sm);margin-bottom:18px}
+    .chart-card h3{font-size:1rem;color:var(--eg-teal-dark);margin:0 0 4px}
+    .chart-card .chart-source{font-size:.72rem;color:var(--color-text-muted);margin-bottom:10px}
+    .chart-box{position:relative;width:100%;height:380px}
+    .chart-box--tall{height:440px}
+    .eg-grid--2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    @media (max-width:900px){ .eg-grid--2{grid-template-columns:1fr} }
   </style>
 </head>
 <body data-depth="1" data-active-section="monetarias">
+
   <div class="eg-app">
     <aside class="eg-sidebar" id="egSidebar"></aside>
     <header class="eg-header" id="egHeader"></header>
+
     <main class="eg-main">
       <section class="eg-page-header">
         <div>
           <h1 class="eg-page-header__title">Monetarias</h1>
-          <p class="eg-page-header__subtitle">Agregados monetarios · base y tasas de interés</p>
+          <p class="eg-page-header__subtitle">Agregados monetarios, préstamos al sector privado y monetización de la economía. BCRA.</p>
+        </div>
+        <div class="eg-page-header__actions">
+          <span class="eg-tag" id="ultimoMesTag">—</span>
         </div>
       </section>
-      <div class="wip-wrap">
-        <div class="wip-icon">🏗️</div>
-        <p class="wip-title">En construcción</p>
-        <p class="wip-sub">Esta sección está siendo desarrollada. Próximamente vas a encontrar los principales agregados monetarios, evolución de la base monetaria y tasas de interés del BCRA.</p>
-        <span class="wip-badge">⚙ Próximamente</span>
+
+      <div class="eg-stats" id="kpiGrid"></div>
+      <div class="eg-stats-source">
+        Fuente:
+        <a href="https://www.bcra.gob.ar/" target="_blank" rel="noopener">
+          BCRA
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+        </a>
       </div>
+
+      <!-- Agregados monetarios -->
+      <h2 style="margin:22px 0 4px;color:var(--eg-teal-dark);font-size:1.15rem;">Agregados monetarios</h2>
+      <div class="eg-grid--2">
+        <div class="chart-card">
+          <h3>Niveles reales</h3>
+          <div class="chart-source">En billones de pesos de hoy · Circulante, M0, M1, M2, M3 · Eco Go</div>
+          <div class="chart-box"><canvas id="chartAgregadosNiveles"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>% del PIB</h3>
+          <div class="chart-source">Serie desestacionalizada · Eco Go</div>
+          <div class="chart-box"><canvas id="chartAgregadosPib"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Préstamos al sector privado -->
+      <h2 style="margin:22px 0 4px;color:var(--eg-teal-dark);font-size:1.15rem;">Préstamos al sector privado</h2>
+      <div class="eg-tabs">
+        <div class="eg-tabs__title">Por tipo de préstamo</div>
+        <div class="eg-tabs__subtitle">Empresas, garantía real, consumo y otros · % del PIB</div>
+        <div class="eg-tabs__nav" id="prestamosTabsNav">
+          <button class="eg-tabs__btn is-active" data-tab="pesos">En pesos</button>
+          <button class="eg-tabs__btn" data-tab="dolares">En dólares</button>
+          <button class="eg-tabs__btn" data-tab="totales">Totales</button>
+        </div>
+      </div>
+      <div id="panelPrestamos">
+        <section class="eg-tab-panel" id="panel-prestamos-pesos">
+          <div class="chart-card" style="margin-top:14px;">
+            <h3>Préstamos privados en pesos</h3>
+            <div class="chart-source">% del PIB · Empresas, garantía real, consumo, otros · Eco Go</div>
+            <div class="chart-box chart-box--tall"><canvas id="chartPrestamosPesos"></canvas></div>
+          </div>
+        </section>
+        <section class="eg-tab-panel" id="panel-prestamos-dolares" hidden>
+          <div class="chart-card" style="margin-top:14px;">
+            <h3>Préstamos privados en dólares</h3>
+            <div class="chart-source">% del PIB · Empresas, garantía real, tarjeta de crédito, otros · Eco Go</div>
+            <div class="chart-box chart-box--tall"><canvas id="chartPrestamosDolares"></canvas></div>
+          </div>
+        </section>
+        <section class="eg-tab-panel" id="panel-prestamos-totales" hidden>
+          <div class="chart-card" style="margin-top:14px;">
+            <h3>Préstamos privados totales</h3>
+            <div class="chart-source">% del PIB · Pesos + dólares · Empresas, garantía real, consumo, otros · Eco Go</div>
+            <div class="chart-box chart-box--tall"><canvas id="chartPrestamosTotales"></canvas></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Monetización de la economía -->
+      <h2 style="margin:22px 0 4px;color:var(--eg-teal-dark);font-size:1.15rem;">Monetización de la economía</h2>
+      <div class="eg-grid--2">
+        <div class="chart-card">
+          <h3>Por instrumento</h3>
+          <div class="chart-source">% del PIB · Circulante, depósitos a la vista, depósitos a plazo · Eco Go</div>
+          <div class="chart-box"><canvas id="chartMonetizacionTotal"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Pesos vs. dólares</h3>
+          <div class="chart-source">% del PIB · Circulante, depósitos en pesos, depósitos en dólares · Eco Go</div>
+          <div class="chart-box"><canvas id="chartMonetizacionFX"></canvas></div>
+        </div>
+      </div>
+
       <footer class="eg-footer">
-        <span>Monetarias · Eco Go</span>
+        <span>Sección: Monetarias · Eco Go</span>
         <a href="../index.html">← Volver al inicio</a>
       </footer>
     </main>
   </div>
+
   <script src="../assets/js/layout.js"></script>
+  <script src="../assets/data/monetarias.js"></script>
+  <script src="../assets/js/monetarias.js"></script>
 </body>
 </html>
