@@ -14,13 +14,17 @@
     .dt-note{font-size:.72rem;color:var(--color-text-muted);margin-top:8px}
     /* tablas con primera columna fija y encabezado pegajoso */
     .dt-wrap{overflow-x:auto;overflow-y:auto;max-height:480px;border:1px solid var(--color-border);border-radius:8px}
-    .dt-table{border-collapse:separate!important;border-spacing:0;font-size:.79rem;white-space:nowrap;width:100%}
-    .dt-table th{position:sticky;top:0;background:#fff;z-index:2;padding:6px 10px;border-bottom:2px solid var(--color-border);color:var(--eg-teal-dark);font-weight:700;text-align:right;font-size:.7rem}
-    .dt-table th:first-child{text-align:left;position:sticky!important;left:0!important;z-index:10!important;background:#fff!important;min-width:110px;box-shadow:3px 0 6px rgba(0,0,0,.10)}
-    .dt-table td{padding:5px 10px;border-bottom:1px solid var(--color-border);text-align:right;color:var(--color-text);font-size:.79rem}
-    .dt-table td:first-child{position:sticky!important;left:0!important;z-index:5!important;background:#fff!important;text-align:left;min-width:110px;font-weight:600;box-shadow:3px 0 6px rgba(0,0,0,.10)}
+    .dt-table{border-collapse:separate!important;border-spacing:0;font-size:.71rem;width:100%;table-layout:fixed}
+    .dt-table th{position:sticky;top:0;background:#fff;z-index:2;padding:5px 3px;border-bottom:2px solid var(--color-border);color:var(--eg-teal-dark);font-weight:700;text-align:right;font-size:.63rem;line-height:1.15;white-space:normal;word-break:break-word;vertical-align:bottom}
+    .dt-table th:first-child{text-align:left;position:sticky!important;left:0!important;z-index:10!important;background:#fff!important;width:64px;min-width:64px;box-shadow:3px 0 6px rgba(0,0,0,.10)}
+    .dt-table td{padding:4px 3px;border-bottom:1px solid var(--color-border);text-align:right;color:var(--color-text);font-size:.71rem;white-space:nowrap}
+    .dt-table td:first-child{position:sticky!important;left:0!important;z-index:5!important;background:#fff!important;text-align:left;width:64px;min-width:64px;font-weight:600;box-shadow:3px 0 6px rgba(0,0,0,.10);white-space:nowrap}
     .dt-table tr:hover td{background:rgba(60,151,148,.05)}
     .dt-table tr:hover td:first-child{background:rgba(60,151,148,.05)!important}
+    .dt-table .dt-total{font-weight:700;background:#eef6f5}
+    .dt-table th.dt-total{background:#e3f0ee}
+    .dt-table .dt-group-end{border-right:2px solid var(--color-border)}
+    .dt-table .dt-grouprow th{text-align:center;background:#e3f0ee;font-size:.65rem;padding:5px 3px;border-bottom:1px solid var(--color-border)}
     .dt-chart-box{position:relative;height:420px}
   </style>
 </head>
@@ -39,11 +43,11 @@
       <!-- Cuadro Lopez Murphy -->
       <div class="dt-card">
         <p class="dt-title">Deuda pública — serie histórica</p>
-        <p class="dt-sub">En miles de millones de USD, salvo TCN y % del PIB · Hacé scroll para ver todas las columnas</p>
+        <p class="dt-sub">En miles de millones de USD, salvo TCN y % del PIB</p>
         <div class="dt-wrap">
           <table class="dt-table" id="lopezMurphyTable"></table>
         </div>
-        <p class="dt-note">Fuente: Eco Go en base a Ministerio de Economía, BCRA, INDEC · Deuda Lopez Murphy.xlsx · 2005-2021 (vertical)</p>
+        <p class="dt-note">Fuente: Eco Go en base a Ministerio de Economía, BCRA, INDEC</p>
       </div>
 
       <!-- Cuadro vencimientos mensuales -->
@@ -53,7 +57,7 @@
         <div class="dt-wrap">
           <table class="dt-table" id="vencimientosTable"></table>
         </div>
-        <p class="dt-note">Fuente: Eco Go / BCRA · Deuda en pesos.xlsx · Vencimientos mensual</p>
+        <p class="dt-note">Fuente: Eco Go / BCRA</p>
       </div>
 
       <!-- Grafico perfil de vencimientos con privados -->
@@ -61,7 +65,7 @@
         <p class="dt-title">Perfil de vencimientos de la deuda del Tesoro con privados</p>
         <p class="dt-sub">En miles de millones de dólares</p>
         <div class="dt-chart-box"><canvas id="chartRefinanciamiento"></canvas></div>
-        <p class="dt-note">Fuente: Eco Go · Ejercicio refinanciamiento.xlsx · Gráfico1</p>
+        <p class="dt-note">Fuente: Eco Go</p>
       </div>
 
       <footer class="eg-footer">
@@ -86,11 +90,34 @@
       return v.toLocaleString('es-AR', {minimumFractionDigits:1, maximumFractionDigits:1});
     }
 
+    /* Encabezados abreviados para que la tabla entre sin scroll horizontal
+       (el CSV/XLSX de descarga sigue usando el encabezado completo) */
+    var HEADER_SHORT = {
+      'Deuda mercado · Pesos':                                          'Mercado $',
+      'Deuda mercado · Dólares':                                        'Mercado USD',
+      'Deuda mercado · Total (1)':                                      'Mercado (1)',
+      'OO.II. (2)':                                                     'OO.II. (2)',
+      'Deuda BCRA* · Pesos':                                            'BCRA $',
+      'Deuda BCRA* · Dólares':                                          'BCRA USD',
+      'Deuda BCRA* · Total (3)':                                        'BCRA (3)',
+      'Deuda relevante (4) = (1) + (2) + (3) · Total':                  'D. relevante (4)',
+      'Deuda relevante (4) = (1) + (2) + (3) · % del PIB ***':          '(4) % PIB',
+      'Deuda intra-sector público (5)':                                 'Intra-sector (5)',
+      'Deuda total bruta  (6) = (4) + (5)':                             'D. total bruta (6)',
+      'Reservas brutas':                                                'Reservas brutas',
+      'Reservas netas (7)':                                             'Reservas netas (7)',
+      'Deuda total neta (8) = (6) - (7)':                               'D. total neta (8)',
+      'Deuda relevante neta (9) = (4) - (7)':                           'D. relevante neta (9)',
+      'Δ Deuda':                                                        'Δ Deuda',
+      'TCN ($/USD)':                                                    'TCN',
+      'Inflación** (Var. % i.a.)':                                      'Inflación i.a.'
+    };
+
     function buildTable(tableId, tbl) {
       var el = document.getElementById(tableId);
       if (!el || !tbl || !tbl.headers) return;
       var html = '<thead><tr>';
-      tbl.headers.forEach(function(h){ html += '<th>' + h + '</th>'; });
+      tbl.headers.forEach(function(h){ html += '<th>' + (HEADER_SHORT[h] || h) + '</th>'; });
       html += '</tr></thead><tbody>';
       tbl.rows.forEach(function(row){
         html += '<tr><td>' + row[0] + '</td>';
@@ -103,8 +130,83 @@
       el.innerHTML = html;
     }
 
+    /* Vencimientos mensuales: respeta la estructura del Excel — dos grupos
+       de columnas (Total / Con privados), con la columna "Total" de cada
+       grupo resaltada en negrita, igual que en la planilla. */
+    function buildVencimientosTable(tableId, tbl) {
+      var el = document.getElementById(tableId);
+      if (!el || !tbl || !tbl.headers) return;
+
+      var cols = tbl.headers.slice(1).map(function(h){
+        var parts = h.split(' · ');
+        return { full: h, group: parts.length > 1 ? parts[0] : parts[0], sub: parts.length > 1 ? parts[1] : parts[0] };
+      });
+
+      // armar grupos consecutivos (Total: 6 cols, Con privados: 6 cols)
+      var groups = [];
+      cols.forEach(function(c){
+        var last = groups[groups.length - 1];
+        if (last && last.name === c.group) { last.count++; }
+        else { groups.push({ name: c.group, count: 1 }); }
+      });
+
+      var html = '<thead>';
+      html += '<tr class="dt-grouprow"><th rowspan="2">Período</th>';
+      groups.forEach(function(g, gi){
+        var isLast = gi === groups.length - 1;
+        html += '<th colspan="' + g.count + '"' + (isLast ? '' : ' class="dt-group-end"') + '>' + g.name + '</th>';
+      });
+      html += '</tr><tr class="dt-subrow">';
+      var idx = 0;
+      groups.forEach(function(g, gi){
+        var isLastGroup = gi === groups.length - 1;
+        for (var k = 0; k < g.count; k++) {
+          var c = cols[idx];
+          var isGroupEnd = isLastGroup ? false : (k === g.count - 1);
+          var cls = [];
+          if (c.sub === 'Total') cls.push('dt-total');
+          if (isGroupEnd) cls.push('dt-group-end');
+          html += '<th' + (cls.length ? ' class="' + cls.join(' ') + '"' : '') + '>' + c.sub + '</th>';
+          idx++;
+        }
+      });
+      html += '</tr></thead><tbody>';
+
+      tbl.rows.forEach(function(row){
+        html += '<tr><td>' + row[0] + '</td>';
+        for (var i = 1; i < row.length; i++) {
+          var c = cols[i - 1];
+          var cls = [];
+          if (c.sub === 'Total') cls.push('dt-total');
+          html += '<td' + (cls.length ? ' class="' + cls.join(' ') + '"' : '') + '>' + fmtCell(tbl.headers[i], row[i]) + '</td>';
+        }
+        html += '</tr>';
+      });
+      html += '</tbody>';
+      el.innerHTML = html;
+
+      // borde divisorio entre "Total" y "Con privados" en el cuerpo de la tabla
+      var boundary = groups[0] ? groups[0].count : 0; // ultima columna del primer grupo (1-indexed: col boundary+1)
+      el.querySelectorAll('tbody tr').forEach(function(tr){
+        var cell = tr.children[boundary]; // celda #0 es Período, #1..count es el 1er grupo
+        if (cell) cell.classList.add('dt-group-end');
+      });
+
+      // la 2da fila de encabezado debe "pegarse" justo debajo de la 1ra
+      // (se mide en vivo porque la altura de la 1ra fila varia con el ancho)
+      function alignSubrow() {
+        var groupRow = el.querySelector('.dt-grouprow');
+        var subRow = el.querySelector('.dt-subrow');
+        if (!groupRow || !subRow) return;
+        var h = groupRow.getBoundingClientRect().height;
+        Array.prototype.forEach.call(subRow.querySelectorAll('th'), function(th){ th.style.top = h + 'px'; });
+      }
+      alignSubrow();
+      window.addEventListener('resize', alignSubrow);
+    }
+
     buildTable('lopezMurphyTable', D.lopez_murphy);
-    buildTable('vencimientosTable', D.vencimientos_mensual);
+    buildVencimientosTable('vencimientosTable', D.vencimientos_mensual);
 
     /* Grafico refinanciamiento — barras apiladas */
     var R = D.refinanciamiento || { categories: [], series: {} };
