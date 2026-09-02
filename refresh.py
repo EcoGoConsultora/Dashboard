@@ -59,6 +59,9 @@ EXCEL_PATHS = {
     "deuda_lopez_murphy":     os.path.join(BASE_EXCEL, "Deuda", "Deuda Lopez Murphy.xlsx"),
     "deuda_en_pesos":         os.path.join(BASE_EXCEL, "Deuda", "Deuda en pesos.xlsx"),
     "deuda_refinanciamiento": os.path.join(BASE_EXCEL, "Deuda", "Ejercicio refinanciamiento.xlsx"),
+    "comex":       os.path.join(BASE_EXCEL, "Comercio", "Comercio exterior.xlsx"),
+    "comex_tdi":   os.path.join(BASE_EXCEL, "Comercio", "Terminos del Intercambio.xlsx"),
+    "comex_proy":  os.path.join(BASE_EXCEL, "Comercio", "01 Proyecciones", "Estimación Comercio Ext.xlsx"),
 }
 
 # Monitor mundial — no es Excel, es un .js con datos del monitor externo
@@ -257,7 +260,8 @@ def _chart_block_categorical(wb, chart_name, scale=1.0):
     return {'categories': labels, 'series': series}
 
 def extract_visible_table(ws, header_rows, data_start_row, max_scan_row, start_col, end_col,
-                           key_col=None, stop_values=(None, '', 'Total', 'TOTAL')):
+                           key_col=None, stop_values=(None, '', 'Total', 'TOTAL'),
+                           stop_on_fill=False, fill_cols=None):
     """Extrae un cuadro de Excel respetando lo que el analista deja oculto:
        - salta columnas ocultas dentro de start_col..end_col
        - salta filas ocultas dentro del rango de datos
@@ -266,6 +270,12 @@ def extract_visible_table(ws, header_rows, data_start_row, max_scan_row, start_c
          columna clave esta vacia o dice 'Total'), asi que si el analista
          agrega una fila nueva al final en Excel, el proximo refresh la toma
          sin tocar el codigo (siempre que no pase de max_scan_row)
+       - con stop_on_fill=True corta ademas en la primera fila VISIBLE que
+         este pintada con un color de fondo. Se usa para dejar afuera el
+         bloque de proyeccion: cuando el analista despinta un mes porque ya
+         tiene el dato observado, ese mes entra solo en el proximo refresh,
+         sin tocar el codigo. fill_cols limita que columnas se miran para
+         decidir si la fila esta pintada (por defecto, todas las visibles).
        - descarta columnas espaciadoras (encabezado y datos vacios) y
          columnas que duplican exactamente la primera columna (ej.: una
          fecha repetida para alinear dos bloques del mismo cuadro)
@@ -288,6 +298,13 @@ def extract_visible_table(ws, header_rows, data_start_row, max_scan_row, start_c
 
     key_col = key_col or start_col
 
+    def row_is_filled(r):
+        for c in (fill_cols or cols):
+            f = ws[f"{c}{r}"].fill
+            if f is not None and f.patternType not in (None, 'none'):
+                return True
+        return False
+
     first_data_row = None
     r = data_start_row
     while r <= max_scan_row:
@@ -303,6 +320,8 @@ def extract_visible_table(ws, header_rows, data_start_row, max_scan_row, start_c
                 continue
             v = ws[f"{key_col}{r}"].value
             if v in stop_values:
+                break
+            if stop_on_fill and row_is_filled(r):
                 break
             data_rows.append(r)
 
@@ -1347,6 +1366,89 @@ def extract_deuda(status):
     return data if data else None
 
 # =====================================================================
+#  COMERCIO EXTERIOR (dashboard clientes)
+# =====================================================================
+def extract_comercio(status):
+    """
+    Seccion Comercio exterior del dashboard clientes:
+      - Importaciones desestacionalizadas ("G impo desest" de Comercio exterior.xlsx)
+      - Saldos comerciales acum. 12 meses ("Gráfico6" del mismo Excel)
+      - Precios y terminos de intercambio ("Gráfico3" de Terminos del Intercambio.xlsx)
+      - Cuadro mensual Expo/Impo/Saldo (hoja Proy_mensual de Estimación Comercio Ext.xlsx)
+
+    Los tres graficos siguen el rango que el propio grafico de Excel
+    referencia: si el analista extiende el rango, el refresh lo toma solo.
+    El cuadro respeta filas y columnas ocultas y corta donde arranca la
+    proyeccion (primera fila pintada), asi que cuando se despinta un mes
+    porque ya hay dato observado, ese mes entra solo.
+    """
+    data = {}
+
+    # ---- Comercio exterior.xlsx: impo desestacionalizadas y saldos ----
+    path1 = EXCEL_PATHS["comex"]
+    if not os.path.exists(path1):
+        status.warn("Comercio - Comercio exterior", f"no se encontro: {path1}")
+    else:
+        try:
+            wb1 = _open_wb(path1)
+            # El grafico repite cada serie una segunda vez, sin nombre, solo
+            # para dibujar el marcador del ultimo nivel: _chart_block deja
+            # afuera las series sin nombre, que son exactamente iguales.
+            data['impo_desest'] = _chart_block(wb1, "G impo desest")
+            status.ok("Comercio - Impo desest", f"{len(data['impo_desest']['dates'])} meses")
+        except Exception as e:
+            status.fail("Comercio - Impo desest", str(e))
+            traceback.print_exc()
+
+        try:
+            wb1b = _open_wb(path1)
+            data['saldos'] = _chart_block(wb1b, "Gráfico6")
+            status.ok("Comercio - Saldos 12M", f"{len(data['saldos']['dates'])} meses")
+        except Exception as e:
+            status.fail("Comercio - Saldos 12M", str(e))
+            traceback.print_exc()
+
+    # ---- Terminos del Intercambio.xlsx: precios X/M y terminos ----
+    path2 = EXCEL_PATHS["comex_tdi"]
+    if not os.path.exists(path2):
+        status.warn("Comercio - Terminos de intercambio", f"no se encontro: {path2}")
+    else:
+        try:
+            wb2 = _open_wb(path2)
+            data['terminos'] = _chart_block(wb2, "Gráfico3")
+            status.ok("Comercio - Terminos de intercambio", f"{len(data['terminos']['dates'])} meses")
+        except Exception as e:
+            status.fail("Comercio - Terminos de intercambio", str(e))
+            traceback.print_exc()
+
+    # ---- Estimación Comercio Ext.xlsx: cuadro mensual observado ----
+    path3 = EXCEL_PATHS["comex_proy"]
+    if not os.path.exists(path3):
+        status.warn("Comercio - Cuadro mensual", f"no se encontro: {path3}")
+    else:
+        try:
+            wb3 = _open_wb(path3, read_only=False)
+            ws3 = wb3["Proy_mensual"]
+            # Columnas A-E (A=fecha, B repite la fecha y se descarta sola,
+            # C/D/E = Expo/Impo/Saldo). F ("Int. Comex") esta oculta en el
+            # Excel, asi que queda afuera por el filtro de columnas ocultas.
+            # El fondo pintado solo aparece en B:E, no en la columna A.
+            tbl = extract_visible_table(
+                ws3, header_rows=(3,), data_start_row=4, max_scan_row=408,
+                start_col="A", end_col="E",
+                stop_on_fill=True, fill_cols=["B", "C", "D", "E"],
+            )
+            tbl['headers'][0] = 'Período'
+            data['cuadro_mensual'] = tbl
+            ultimo = tbl['rows'][-1][0] if tbl['rows'] else '—'
+            status.ok("Comercio - Cuadro mensual", f"{len(tbl['rows'])} meses · hasta {ultimo}")
+        except Exception as e:
+            status.fail("Comercio - Cuadro mensual", str(e))
+            traceback.print_exc()
+
+    return data if data else None
+
+# =====================================================================
 #  GITHUB — copiar datos actualizados al repo clonado y hacer push
 # =====================================================================
 def push_to_github(status):
@@ -1622,7 +1724,7 @@ def main():
         traceback.print_exc()
 
     # ---- Deuda ----
-    print("\n[12/12] Procesando Deuda...")
+    print("\n[12/13] Procesando Deuda...")
     try:
         d = extract_deuda(status)
         if d:
@@ -1630,6 +1732,17 @@ def main():
             status.ok("Deuda", f"{sz:,} bytes")
     except Exception as e:
         status.fail("Deuda", str(e))
+        traceback.print_exc()
+
+    # ---- Comercio exterior ----
+    print("\n[13/13] Procesando Comercio exterior...")
+    try:
+        d = extract_comercio(status)
+        if d:
+            sz = save_data("comercio", d)
+            status.ok("Comercio exterior", f"{sz:,} bytes")
+    except Exception as e:
+        status.fail("Comercio exterior", str(e))
         traceback.print_exc()
 
     # ---- Subir cambios a GitHub ----

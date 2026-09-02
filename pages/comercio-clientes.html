@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Comercio exterior · Eco Go</title>
+  <link rel="stylesheet" href="../assets/css/theme.css"/>
+  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <style>
+    .cx-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:20px 24px 24px;margin-bottom:24px}
+    .cx-title{font-size:1rem;font-weight:700;color:var(--eg-teal-dark);margin:0 0 4px}
+    .cx-sub{font-size:.76rem;color:var(--color-text-muted);margin:0 0 14px}
+    .cx-note{font-size:.72rem;color:var(--color-text-muted);margin-top:10px}
+    .cx-chart-box{position:relative;height:400px}
+    .cx-head{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+    .tl-bar{display:flex;align-items:center;gap:6px}
+    .tl-btn{padding:3px 11px;border-radius:16px;border:1.5px solid var(--color-border);font-size:.74rem;font-weight:700;cursor:pointer;background:transparent;color:var(--color-text-muted);transition:all .15s}
+    .tl-btn.is-active{background:var(--eg-teal-dark);border-color:var(--eg-teal-dark);color:#fff}
+    .tl-sep{width:1px;height:16px;background:var(--color-border);margin:0 4px}
+    /* cuadro mensual */
+    .cx-wrap{overflow-x:auto;overflow-y:auto;max-height:460px;border:1px solid var(--color-border);border-radius:8px}
+    .cx-table{border-collapse:separate!important;border-spacing:0;font-size:.78rem;width:100%}
+    .cx-table th{position:sticky;top:0;background:#fff;z-index:2;padding:7px 12px;border-bottom:2px solid var(--color-border);color:var(--eg-teal-dark);font-weight:700;text-align:right;font-size:.72rem}
+    .cx-table th:first-child{text-align:left}
+    .cx-table td{padding:5px 12px;border-bottom:1px solid var(--color-border);text-align:right;color:var(--color-text);white-space:nowrap}
+    .cx-table td:first-child{text-align:left;font-weight:600}
+    .cx-table tr:hover td{background:rgba(60,151,148,.05)}
+    .cx-neg{color:var(--eg-red)}
+  </style>
+</head>
+<body data-depth="1" data-active-section="comercio">
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+    <main class="eg-main">
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title">Comercio exterior</h1>
+          <p class="eg-page-header__subtitle">Importaciones desestacionalizadas, saldos comerciales, términos de intercambio y cuadro mensual de expo/impo</p>
+        </div>
+      </section>
+
+      <!-- Importaciones desestacionalizadas -->
+      <div class="cx-card">
+        <div class="cx-head">
+          <div>
+            <p class="cx-title">Importaciones desestacionalizadas</p>
+            <p class="cx-sub" style="margin:0">En millones de USD a precios constantes · serie mensual sin estacionalidad</p>
+          </div>
+          <div class="tl-bar" id="impoTlBtns">
+            <button class="tl-btn" onclick="cxSetRange('impo',60)">5A</button>
+            <button class="tl-btn is-active" onclick="cxSetRange('impo',120)">10A</button>
+            <button class="tl-btn" onclick="cxSetRange('impo',0)">Todo</button>
+          </div>
+        </div>
+        <div class="cx-chart-box"><canvas id="chartImpoDesest"></canvas></div>
+        <p class="cx-note">Fuente: Eco Go en base a INDEC</p>
+      </div>
+
+      <!-- Saldos comerciales acumulados 12 meses -->
+      <div class="cx-card">
+        <div class="cx-head">
+          <div>
+            <p class="cx-title">Saldos comerciales</p>
+            <p class="cx-sub" style="margin:0">En millones de USD · acumulado 12 meses · energético y no energético</p>
+          </div>
+          <div class="tl-bar" id="saldosTlBtns">
+            <button class="tl-btn" onclick="cxSetRange('saldos',60)">5A</button>
+            <button class="tl-btn is-active" onclick="cxSetRange('saldos',120)">10A</button>
+            <button class="tl-btn" onclick="cxSetRange('saldos',0)">Todo</button>
+          </div>
+        </div>
+        <div class="cx-chart-box"><canvas id="chartSaldos"></canvas></div>
+        <p class="cx-note">Fuente: Eco Go en base a INDEC</p>
+      </div>
+
+      <!-- Terminos de intercambio -->
+      <div class="cx-card">
+        <div class="cx-head">
+          <div>
+            <p class="cx-title">Términos de intercambio</p>
+            <p class="cx-sub" style="margin:0">Índice 2004 = 100 · serie sin estacionalidad</p>
+          </div>
+          <div class="tl-bar" id="tdiTlBtns">
+            <button class="tl-btn" onclick="cxSetRange('tdi',60)">5A</button>
+            <button class="tl-btn is-active" onclick="cxSetRange('tdi',120)">10A</button>
+            <button class="tl-btn" onclick="cxSetRange('tdi',0)">Todo</button>
+          </div>
+        </div>
+        <div class="cx-chart-box"><canvas id="chartTdi"></canvas></div>
+        <p class="cx-note">Fuente: Eco Go en base a INDEC</p>
+      </div>
+
+      <!-- Cuadro mensual expo / impo / saldo -->
+      <div class="cx-card">
+        <p class="cx-title">Comercio exterior — serie mensual</p>
+        <p class="cx-sub">En millones de USD · datos observados, sin el bloque de proyección</p>
+        <div class="cx-wrap">
+          <table class="cx-table" id="comexTable"></table>
+        </div>
+        <p class="cx-note">Fuente: Eco Go en base a INDEC</p>
+      </div>
+
+      <footer class="eg-footer">
+        <span>Comercio exterior · Eco Go</span>
+        <a href="../index-clientes.html">← Volver al inicio</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../assets/js/layout-clientes.js"></script>
+  <script src="../assets/data/comercio.js"></script>
+  <script>
+  (function(){
+    var C = window.COMERCIO_DATA || {};
+
+    Chart.defaults.font.family = "'HK Grotesk', system-ui, sans-serif";
+    Chart.defaults.color = '#333333';
+
+    var MM = function(v){
+      return Number(v).toLocaleString('es-AR', {maximumFractionDigits:0});
+    };
+
+    /* ---------- helpers de rango temporal ---------- */
+    var REG = {};   // id -> {chart, dates, vals:[serie1, serie2, ...], btns}
+
+    function register(id, chart, dates, vals, btnsSel){
+      REG[id] = { chart: chart, dates: dates, vals: vals, btns: btnsSel };
+    }
+
+    window.cxSetRange = function(id, months){
+      var r = REG[id];
+      if (!r) return;
+      var n = r.dates.length;
+      var start = months === 0 ? 0 : Math.max(0, n - months);
+      r.chart.data.labels = r.dates.slice(start);
+      r.chart.data.datasets.forEach(function(ds, i){ ds.data = r.vals[i].slice(start); });
+      r.chart.update();
+      var order = [60, 120, 0];
+      document.querySelectorAll(r.btns + ' .tl-btn').forEach(function(b, i){
+        b.classList.toggle('is-active', order[i] === months);
+      });
+    };
+
+    /* Devuelve las series de un bloque {dates, series} en el orden pedido;
+       si una etiqueta no está (cambió el nombre en el Excel), cae en las
+       series que haya, en el orden en que vinieron. */
+    function pick(block, labels){
+      var s = (block && block.series) || {};
+      var keys = Object.keys(s);
+      var out = labels.map(function(l){ return s[l] ? { label: l, data: s[l] } : null; });
+      if (out.every(function(x){ return x; })) return out;
+      return keys.map(function(k){ return { label: k, data: s[k] }; });
+    }
+
+    function baseOpts(yCb, tipCb){
+      return {
+        responsive: true, maintainAspectRatio: false, animation: {duration:150},
+        interaction: { mode:'index', intersect:false },
+        plugins: {
+          legend: { display:true, position:'bottom', labels:{ boxWidth:12, boxHeight:12, usePointStyle:true, pointStyle:'circle', font:{size:11} } },
+          tooltip: { callbacks: { label: tipCb } }
+        },
+        scales: {
+          x: { type:'time', time:{ unit:'year', tooltipFormat:'MMM yyyy' }, ticks:{ color:'#6E7679', maxRotation:0 }, grid:{ display:false } },
+          y: { ticks:{ color:'#6E7679', callback:yCb }, grid:{ color:'rgba(0,0,0,0.05)' } }
+        }
+      };
+    }
+
+    var INIT = 120;   // arranca en 10 años
+    function tail(arr){ return arr.slice(Math.max(0, arr.length - INIT)); }
+
+    /* ---------- 1 · Importaciones desestacionalizadas ---------- */
+    var IMPO = C.impo_desest || { dates: [], series: {} };
+    var impoS = pick(IMPO, ['Importaciones', 'Importaciones sin energía']);
+    var impoColors = ['#1B5F5E', '#FE8B5F'];
+    if (IMPO.dates.length) {
+      var chImpo = new Chart(document.getElementById('chartImpoDesest'), {
+        type: 'line',
+        data: {
+          labels: tail(IMPO.dates),
+          datasets: impoS.map(function(s, i){
+            return {
+              label: s.label, data: tail(s.data),
+              borderColor: impoColors[i % impoColors.length],
+              backgroundColor: impoColors[i % impoColors.length],
+              borderWidth: 1.8, pointRadius: 0, pointHoverRadius: 4, tension: 0.15, fill: false
+            };
+          })
+        },
+        options: baseOpts(
+          function(v){ return MM(v); },
+          function(c){ return ' ' + c.dataset.label + ': USD ' + MM(c.raw) + ' M'; }
+        )
+      });
+      register('impo', chImpo, IMPO.dates, impoS.map(function(s){ return s.data; }), '#impoTlBtns');
+    }
+
+    /* ---------- 2 · Saldos comerciales (barras apiladas) ---------- */
+    var SAL = C.saldos || { dates: [], series: {} };
+    var salS = pick(SAL, ['Balanza energética', 'Neto de energía']);
+    var salColors = ['#89C442', '#3C9794'];
+    if (SAL.dates.length) {
+      var chSal = new Chart(document.getElementById('chartSaldos'), {
+        type: 'bar',
+        data: {
+          labels: tail(SAL.dates),
+          datasets: salS.map(function(s, i){
+            return {
+              label: s.label, data: tail(s.data),
+              backgroundColor: salColors[i % salColors.length],
+              borderWidth: 0, stack: 'saldo', barPercentage: 1.0, categoryPercentage: 1.0
+            };
+          })
+        },
+        options: (function(){
+          var o = baseOpts(
+            function(v){ return MM(v); },
+            function(c){ return ' ' + c.dataset.label + ': USD ' + MM(c.raw) + ' M'; }
+          );
+          o.scales.x.stacked = true;
+          o.scales.y.stacked = true;
+          o.plugins.tooltip.callbacks.footer = function(items){
+            var t = items.reduce(function(a, it){ return a + (Number(it.raw) || 0); }, 0);
+            return 'Saldo total: USD ' + MM(t) + ' M';
+          };
+          return o;
+        })()
+      });
+      register('saldos', chSal, SAL.dates, salS.map(function(s){ return s.data; }), '#saldosTlBtns');
+    }
+
+    /* ---------- 3 · Términos de intercambio ---------- */
+    var TDI = C.terminos || { dates: [], series: {} };
+    var tdiS = pick(TDI, ['Precios de exportaciones', 'Precios de importaciones', 'Términos de intercambio']);
+    var tdiColors = ['#1B5F5E', '#DA4531', '#FEB15F'];
+    if (TDI.dates.length) {
+      var chTdi = new Chart(document.getElementById('chartTdi'), {
+        type: 'line',
+        data: {
+          labels: tail(TDI.dates),
+          datasets: tdiS.map(function(s, i){
+            return {
+              label: s.label, data: tail(s.data),
+              borderColor: tdiColors[i % tdiColors.length],
+              backgroundColor: tdiColors[i % tdiColors.length],
+              borderWidth: i === 2 ? 2.6 : 1.6,
+              pointRadius: 0, pointHoverRadius: 4, tension: 0.15, fill: false
+            };
+          })
+        },
+        options: baseOpts(
+          function(v){ return v; },
+          function(c){ return ' ' + c.dataset.label + ': ' + Number(c.raw).toLocaleString('es-AR', {minimumFractionDigits:1, maximumFractionDigits:1}); }
+        )
+      });
+      register('tdi', chTdi, TDI.dates, tdiS.map(function(s){ return s.data; }), '#tdiTlBtns');
+    }
+
+    /* ---------- 4 · Cuadro mensual ---------- */
+    var TBL = C.cuadro_mensual || { headers: [], rows: [] };
+
+    function fmtCell(v){
+      if (v === null || v === undefined || v === '') return '—';
+      if (typeof v !== 'number') return v;
+      return MM(v);
+    }
+
+    (function buildTable(){
+      var el = document.getElementById('comexTable');
+      if (!el || !TBL.headers.length) return;
+      var html = '<thead><tr>';
+      TBL.headers.forEach(function(h){ html += '<th>' + h + '</th>'; });
+      html += '</tr></thead><tbody>';
+      TBL.rows.forEach(function(row){
+        html += '<tr>';
+        row.forEach(function(v, i){
+          var neg = (typeof v === 'number' && v < 0) ? ' class="cx-neg"' : '';
+          html += '<td' + neg + '>' + fmtCell(v) + '</td>';
+        });
+        html += '</tr>';
+      });
+      html += '</tbody>';
+      el.innerHTML = html;
+    })();
+
+    /* ---------- botones de descarga ---------- */
+    if (window.EcoGo) {
+      function dlSeries(sel, file, block, order){
+        if (!block || !block.dates || !block.dates.length) return;
+        EcoGo.dlBtn(sel, file, function(){
+          var s = pick(block, order);
+          return {
+            headers: ['Fecha'].concat(s.map(function(x){ return x.label; })),
+            rows: block.dates.map(function(d, i){
+              return [d].concat(s.map(function(x){
+                var v = x.data[i];
+                return (v === null || v === undefined) ? '' : v;
+              }));
+            })
+          };
+        });
+      }
+      dlSeries('#chartImpoDesest', 'impo_desestacionalizadas.csv', IMPO, ['Importaciones', 'Importaciones sin energía']);
+      dlSeries('#chartSaldos', 'saldos_comerciales_12m.csv', SAL, ['Balanza energética', 'Neto de energía']);
+      dlSeries('#chartTdi', 'terminos_intercambio.csv', TDI, ['Precios de exportaciones', 'Precios de importaciones', 'Términos de intercambio']);
+      if (TBL.rows.length) {
+        EcoGo.dlBtn('#comexTable', 'comercio_exterior_mensual.csv', function(){
+          return { headers: TBL.headers, rows: TBL.rows };
+        });
+      }
+    }
+  })();
+  </script>
+</body>
+</html>

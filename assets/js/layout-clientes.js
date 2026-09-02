@@ -10,6 +10,7 @@ const SECTIONS = [
   { id:'reservas',       label:'Reservas',                 href:'pages/reservas-clientes.html',  group:'Monitor',  icon:'shield',     desc:'Composición RIN, reservas brutas y depósitos.' },
   { id:'monetarias',     label:'Monetarias',              href:'pages/monetarias-clientes.html', group:'Monitor',  icon:'trending-up', desc:'Agregados monetarios en dólares (M3 CCL).' },
   { id:'deuda',          label:'Deuda',                    href:'pages/deuda-clientes.html',      group:'Monitor',  icon:'layers',     desc:'Deuda pública histórica, vencimientos en pesos y perfil con privados.' },
+  { id:'comercio',       label:'Comercio exterior',        href:'pages/comercio-clientes.html',  group:'Externo',  icon:'exchange',   desc:'Importaciones desestacionalizadas, saldos comerciales, términos de intercambio y serie mensual de expo/impo.' },
   { id:'internacional2', label:'Internacional · Consensus', href:'pages/internacional2.html',     group:'Externo',  icon:'map',        desc:'LatinFocus Consensus Forecast — resumen y detalle por país.' },
 ];
 
@@ -22,6 +23,7 @@ const ICONS = {
   map:         '<polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>',
   layers:      '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
   'trending-up': '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+  exchange:    '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
   menu:        '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>'
 };
 
