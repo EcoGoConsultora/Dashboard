@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Monetarias · Eco Go</title>
+  <link rel="stylesheet" href="../assets/css/theme.css"/>
+  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <style>
+    .mon-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:20px 24px 24px;margin-bottom:24px}
+    .mon-title{font-size:1rem;font-weight:700;color:var(--eg-teal-dark);margin:0 0 4px}
+    .mon-sub{font-size:.76rem;color:var(--color-text-muted);margin:0 0 14px}
+    .mon-note{font-size:.72rem;color:var(--color-text-muted);margin-top:24px}
+    .mon-chart-box{position:relative;height:400px}
+    .tl-bar{display:flex;align-items:center;gap:6px}
+    .tl-btn{padding:3px 11px;border-radius:16px;border:1.5px solid var(--color-border);font-size:.74rem;font-weight:700;cursor:pointer;background:transparent;color:var(--color-text-muted);transition:all .15s}
+    .tl-btn.is-active{background:var(--eg-teal-dark);border-color:var(--eg-teal-dark);color:#fff}
+    .tl-sep{width:1px;height:16px;background:var(--color-border);margin:0 4px}
+  </style>
+</head>
+<body data-depth="1" data-active-section="monetarias">
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+    <main class="eg-main">
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title">Monetarias</h1>
+          <p class="eg-page-header__subtitle">Agregados monetarios en dólares · M3 en términos de dólar CCL</p>
+        </div>
+      </section>
+
+      <div class="mon-card">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+          <div>
+            <p class="mon-title">M3 en dólares CCL</p>
+            <p class="mon-sub" style="margin:0">En miles de millones de dólares CCL · serie mensual</p>
+          </div>
+          <div class="tl-bar" id="m3TlBtns">
+            <button class="tl-btn" onclick="m3SetRange(60)">5A</button>
+            <button class="tl-btn is-active" onclick="m3SetRange(120)">10A</button>
+            <button class="tl-btn" onclick="m3SetRange(240)">20A</button>
+            <span class="tl-sep"></span>
+            <button class="tl-btn" onclick="m3SetRange(0)">Todo</button>
+          </div>
+        </div>
+        <div class="mon-chart-box"><canvas id="chartM3Usd"></canvas></div>
+        <p class="mon-note">Fuente: BCRA / Eco Go · Copia de Agregados monetarios.xlsx · Gráfico10</p>
+      </div>
+
+      <footer class="eg-footer">
+        <span>Monetarias · Eco Go</span>
+        <a href="../index-clientes.html">← Volver al inicio</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../assets/js/layout-clientes.js"></script>
+  <script src="../assets/data/monetarias.js"></script>
+  <script>
+  (function(){
+    var M = window.MONETARIAS_DATA || {};
+    var C = M.cliente_m3_usd || { dates: [], series: {} };
+    var DATES = C.dates || [];
+    var VALS  = (C.series && C.series.Total) || Object.values(C.series || {})[0] || [];
+
+    Chart.defaults.font.family = "'HK Grotesk', system-ui, sans-serif";
+    Chart.defaults.color = '#333333';
+
+    var INIT_MONTHS = 120;
+    var INIT_START = Math.max(0, DATES.length - INIT_MONTHS);
+    var chart = new Chart(document.getElementById('chartM3Usd'), {
+      type: 'line',
+      data: {
+        labels: DATES.slice(INIT_START),
+        datasets: [{
+          label: 'M3 (USD CCL)',
+          data: VALS.slice(INIT_START),
+          borderColor: '#1B5F5E',
+          backgroundColor: 'rgba(27,95,94,0.12)',
+          borderWidth: 1.8,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          tension: 0.15,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation:{duration:150},
+        interaction: { mode:'index', intersect:false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(c){ return ' USD ' + Number(c.raw).toLocaleString('es-AR',{maximumFractionDigits:1}) + 'MM'; }
+            }
+          }
+        },
+        scales: {
+          x: { type:'time', time:{ unit:'year', tooltipFormat:'MMM yyyy' }, ticks:{ color:'#6E7679', maxRotation:0 }, grid:{ display:false } },
+          y: { ticks:{ color:'#6E7679', callback:function(v){ return 'USD '+v+'MM'; } }, grid:{ color:'rgba(0,0,0,0.05)' } }
+        }
+      }
+    });
+
+    window.m3SetRange = function(months){
+      var n = DATES.length;
+      var start = months === 0 ? 0 : Math.max(0, n - months);
+      chart.data.labels = DATES.slice(start);
+      chart.data.datasets[0].data = VALS.slice(start);
+      chart.update();
+      var map = {60:0, 120:1, 240:2, 0:3};
+      document.querySelectorAll('#m3TlBtns .tl-btn').forEach(function(b,i){ b.classList.toggle('is-active', i === map[months]); });
+    };
+
+    if (window.EcoGo) {
+      EcoGo.dlBtn('#chartM3Usd', 'm3_usd_ccl.csv', function(){
+        return {
+          headers: ['Fecha', 'M3 (USD CCL, miles de millones)'],
+          rows: DATES.map(function(d, i){ return [d, VALS[i] !== null && VALS[i] !== undefined ? VALS[i] : '']; })
+        };
+      });
+    }
+  })();
+  </script>
+</body>
+</html>

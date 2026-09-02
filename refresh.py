@@ -56,6 +56,9 @@ EXCEL_PATHS = {
     "agregados_mon":  os.path.join(BASE_EXCEL, "Monetarias", "Copia de Agregados monetarios.xlsx"),
     "monitor_mon":    os.path.join(BASE_EXCEL, "Monetarias", "Monitor monetario mensual.xlsx"),
     "rigi":           os.path.join(BASE_EXCEL, "Códigos", "Python", "Patru", "rigi", "Proyectos RIGI.xlsx"),
+    "deuda_lopez_murphy":     os.path.join(BASE_EXCEL, "Deuda", "Deuda Lopez Murphy.xlsx"),
+    "deuda_en_pesos":         os.path.join(BASE_EXCEL, "Deuda", "Deuda en pesos.xlsx"),
+    "deuda_refinanciamiento": os.path.join(BASE_EXCEL, "Deuda", "Ejercicio refinanciamiento.xlsx"),
 }
 
 # Monitor mundial — no es Excel, es un .js con datos del monitor externo
@@ -147,8 +150,38 @@ def _read_range_values(wb, ref):
     min_col, min_row, max_col, max_row = range_boundaries(cell_part)
     vals = []
     for row in ws.iter_rows(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col, values_only=True):
-        vals.append(row[0])
+        vals.extend(row)
     return vals
+
+def _read_ref_values(wb, ref):
+    """Como _read_range_values pero soporta referencias de rango multiple
+    (selecciones no contiguas de Excel) tipo
+    "('Hoja'!$E$1:$G$1,'Hoja'!$I$1:$K$1)". Si el analista agrega o saca
+    columnas de la seleccion del grafico en Excel, el refresh sigue esa
+    seleccion automaticamente."""
+    ref = ref.strip()
+    if ref.startswith('('):
+        inner = ref[1:-1] if ref.endswith(')') else ref[1:]
+        parts = []
+        depth = 0
+        cur = ''
+        for ch in inner:
+            if ch == ',' and depth == 0:
+                parts.append(cur)
+                cur = ''
+                continue
+            if ch == '(':
+                depth += 1
+            elif ch == ')':
+                depth -= 1
+            cur += ch
+        if cur.strip():
+            parts.append(cur)
+        vals = []
+        for p in parts:
+            vals.extend(_read_range_values(wb, p.strip()))
+        return vals
+    return _read_range_values(wb, ref)
 
 def _read_single_value(wb, ref):
     return _read_range_values(wb, ref)[0]
@@ -164,11 +197,11 @@ def get_chart_series(wb, chartsheet_name):
     series_out = []
     for s in chart.series:
         val_ref = s.val.numRef.f
-        vals = _read_range_values(wb, val_ref)
+        vals = _read_ref_values(wb, val_ref)
         if cats is None and s.cat is not None:
             cat_ref = s.cat.numRef.f if s.cat.numRef else (s.cat.strRef.f if s.cat.strRef else None)
             if cat_ref:
-                cats = _read_range_values(wb, cat_ref)
+                cats = _read_ref_values(wb, cat_ref)
         if s.tx is not None and s.tx.strRef is not None:
             label = _read_single_value(wb, s.tx.strRef.f)
         elif s.tx is not None and s.tx.v:
@@ -199,6 +232,138 @@ def _chart_block(wb, chart_name, scale=1.0):
             continue
         series[label] = [round(v * scale, 4) if isinstance(v, (int, float)) else None for v in vals[:n]]
     return {'dates': dates, 'series': series}
+
+def _chart_block_categorical(wb, chart_name, scale=1.0):
+    """Como _chart_block, pero para graficos cuyas categorias NO son fechas
+    (por ejemplo anios sueltos o etiquetas de texto, con selecciones no
+    contiguas de columnas). Devuelve {categories, series} en vez de
+    {dates, series}."""
+    cats, series_list = get_chart_series(wb, chart_name)
+    labels = []
+    for c in (cats or []):
+        if isinstance(c, str):
+            labels.append(c.replace('\n', ' ').strip())
+        elif isinstance(c, (int, float)):
+            labels.append(str(int(c)) if float(c).is_integer() else str(c))
+        elif isinstance(c, datetime):
+            labels.append(c.strftime('%Y-%m-%d'))
+        else:
+            labels.append('' if c is None else str(c))
+    series = {}
+    for label, vals in series_list:
+        if not label:
+            continue
+        series[label] = [round(v * scale, 4) if isinstance(v, (int, float)) else None for v in vals[:len(labels)]]
+    return {'categories': labels, 'series': series}
+
+def extract_visible_table(ws, header_rows, data_start_row, max_scan_row, start_col, end_col,
+                           key_col=None, stop_values=(None, '', 'Total', 'TOTAL')):
+    """Extrae un cuadro de Excel respetando lo que el analista deja oculto:
+       - salta columnas ocultas dentro de start_col..end_col
+       - salta filas ocultas dentro del rango de datos
+       - arma encabezados combinando header_rows (con forward-fill de celdas combinadas)
+       - detecta sola donde termina la tabla (primera fila VISIBLE cuya
+         columna clave esta vacia o dice 'Total'), asi que si el analista
+         agrega una fila nueva al final en Excel, el proximo refresh la toma
+         sin tocar el codigo (siempre que no pase de max_scan_row)
+       - descarta columnas espaciadoras (encabezado y datos vacios) y
+         columnas que duplican exactamente la primera columna (ej.: una
+         fecha repetida para alinear dos bloques del mismo cuadro)
+    Devuelve {'headers': [...], 'rows': [[...], ...]}
+    """
+    from openpyxl.utils import get_column_letter, column_index_from_string
+
+    def is_hidden_col(letter):
+        d = ws.column_dimensions.get(letter)
+        return bool(d and d.hidden)
+
+    def is_hidden_row(r):
+        d = ws.row_dimensions.get(r)
+        return bool(d and d.hidden)
+
+    col_start_idx = column_index_from_string(start_col)
+    col_end_idx = column_index_from_string(end_col)
+    cols = [get_column_letter(i) for i in range(col_start_idx, col_end_idx + 1)
+            if not is_hidden_col(get_column_letter(i))]
+
+    key_col = key_col or start_col
+
+    first_data_row = None
+    r = data_start_row
+    while r <= max_scan_row:
+        if not is_hidden_row(r):
+            first_data_row = r
+            break
+        r += 1
+
+    data_rows = []
+    if first_data_row is not None:
+        for r in range(first_data_row, max_scan_row + 1):
+            if is_hidden_row(r):
+                continue
+            v = ws[f"{key_col}{r}"].value
+            if v in stop_values:
+                break
+            data_rows.append(r)
+
+    def build_header_layer(hr):
+        raw = {c: ws[f"{c}{hr}"].value for c in cols}
+        merges = [mc for mc in ws.merged_cells.ranges if mc.min_row <= hr <= mc.max_row]
+        filled = dict(raw)
+        for c in cols:
+            if filled[c] is not None:
+                continue
+            ci = column_index_from_string(c)
+            for mc in merges:
+                if mc.min_col <= ci <= mc.max_col:
+                    topleft = ws.cell(row=mc.min_row, column=mc.min_col).value
+                    if topleft is not None:
+                        filled[c] = topleft
+                    break
+        return filled
+
+    header_layers = [build_header_layer(hr) for hr in header_rows]
+    headers = []
+    for c in cols:
+        parts = []
+        for layer in header_layers:
+            v = layer.get(c)
+            if v not in (None, ''):
+                s = str(v).replace('\n', ' ').strip()
+                if s and s not in parts:
+                    parts.append(s)
+        headers.append(' · '.join(parts))
+
+    def fmt_cell(v):
+        if isinstance(v, datetime):
+            return v.strftime('%Y-%m')
+        if isinstance(v, float):
+            return round(v, 4)
+        return v
+
+    rows = [[fmt_cell(ws[f"{c}{r}"].value) for c in cols] for r in data_rows]
+
+    keep = []
+    for i in range(len(cols)):
+        has_header = bool(headers[i])
+        has_data = any(row[i] not in (None, '') for row in rows)
+        if has_header or has_data:
+            keep.append(i)
+    cols = [cols[i] for i in keep]
+    headers = [headers[i] for i in keep]
+    rows = [[row[i] for i in keep] for row in rows]
+
+    if len(cols) > 1:
+        keep2 = [0]
+        for i in range(1, len(cols)):
+            dup = all(row[i] == row[0] for row in rows) if rows else False
+            if not dup:
+                keep2.append(i)
+        cols = [cols[i] for i in keep2]
+        headers = [headers[i] for i in keep2]
+        rows = [[row[i] for i in keep2] for row in rows]
+
+    return {'headers': headers, 'rows': rows}
 
 # =====================================================================
 #  PRECIOS
@@ -1076,6 +1241,15 @@ def extract_monetarias(status):
             status.fail("Monetarias - Agregados", str(e))
             traceback.print_exc()
 
+        # ---- M3 en USD CCL (seccion Monetarias del dashboard clientes) ----
+        try:
+            wb1b = _open_wb(path1)
+            data['cliente_m3_usd'] = _chart_block(wb1b, "Gráfico10")
+            status.ok("Monetarias - Cliente M3 USD", f"{len(data['cliente_m3_usd']['dates'])} meses")
+        except Exception as e:
+            status.fail("Monetarias - Cliente M3 USD", str(e))
+            traceback.print_exc()
+
     # ---- Prestamos privados y monetizacion (Monitor monetario mensual) ----
     path2 = EXCEL_PATHS["monitor_mon"]
     if not os.path.exists(path2):
@@ -1101,6 +1275,73 @@ def extract_monetarias(status):
             status.ok("Monetarias - Monetizacion", f"{len(data['monetizacion']['total']['dates'])} meses")
         except Exception as e:
             status.fail("Monetarias - Prestamos/Monetizacion", str(e))
+            traceback.print_exc()
+
+    return data if data else None
+
+# =====================================================================
+#  DEUDA (dashboard clientes)
+# =====================================================================
+def extract_deuda(status):
+    """
+    Cuadro Lopez Murphy (deuda publica bruta/neta, historico anual), cuadro
+    de vencimientos mensuales de deuda en pesos, y grafico de perfil de
+    vencimientos con privados (Ejercicio refinanciamiento). Las tablas se
+    leen respetando las filas/columnas que el analista deja ocultas en el
+    Excel, y detectan solas donde termina la tabla — si se agrega un anio
+    o un mes nuevo en Excel, el proximo refresh lo toma sin tocar el codigo.
+    """
+    data = {}
+
+    # ---- Deuda Lopez Murphy: serie 2005-en adelante, bruta y neta ----
+    path1 = EXCEL_PATHS["deuda_lopez_murphy"]
+    if not os.path.exists(path1):
+        status.warn("Deuda - Lopez Murphy", f"no se encontro: {path1}")
+    else:
+        try:
+            wb1 = _open_wb(path1, read_only=False)
+            ws1 = wb1["2005-2021 (vertical)"]
+            tbl = extract_visible_table(
+                ws1, header_rows=(4, 5), data_start_row=6, max_scan_row=76,
+                start_col="B", end_col="Z",
+            )
+            tbl['headers'][0] = 'Período'
+            data['lopez_murphy'] = tbl
+            status.ok("Deuda - Lopez Murphy", f"{len(tbl['rows'])} períodos · {len(tbl['headers'])} columnas")
+        except Exception as e:
+            status.fail("Deuda - Lopez Murphy", str(e))
+            traceback.print_exc()
+
+    # ---- Deuda en pesos: vencimientos mensuales (Total y con privados) ----
+    path2 = EXCEL_PATHS["deuda_en_pesos"]
+    if not os.path.exists(path2):
+        status.warn("Deuda - Vencimientos mensual", f"no se encontro: {path2}")
+    else:
+        try:
+            wb2 = _open_wb(path2, read_only=False)
+            ws2 = wb2["Vencimientos mensual"]
+            tbl = extract_visible_table(
+                ws2, header_rows=(3, 4), data_start_row=5, max_scan_row=95,
+                start_col="D", end_col="R",
+            )
+            tbl['headers'][0] = 'Período'
+            data['vencimientos_mensual'] = tbl
+            status.ok("Deuda - Vencimientos mensual", f"{len(tbl['rows'])} períodos · {len(tbl['headers'])} columnas")
+        except Exception as e:
+            status.fail("Deuda - Vencimientos mensual", str(e))
+            traceback.print_exc()
+
+    # ---- Ejercicio refinanciamiento: perfil de vencimientos con privados ----
+    path3 = EXCEL_PATHS["deuda_refinanciamiento"]
+    if not os.path.exists(path3):
+        status.warn("Deuda - Refinanciamiento", f"no se encontro: {path3}")
+    else:
+        try:
+            wb3 = _open_wb(path3)
+            data['refinanciamiento'] = _chart_block_categorical(wb3, "Gráfico1")
+            status.ok("Deuda - Refinanciamiento", f"{len(data['refinanciamiento']['categories'])} categorías")
+        except Exception as e:
+            status.fail("Deuda - Refinanciamiento", str(e))
             traceback.print_exc()
 
     return data if data else None
@@ -1370,7 +1611,7 @@ def main():
         traceback.print_exc()
 
     # ---- Monetarias ----
-    print("\n[11/11] Procesando Monetarias...")
+    print("\n[11/12] Procesando Monetarias...")
     try:
         d = extract_monetarias(status)
         if d:
@@ -1378,6 +1619,17 @@ def main():
             status.ok("Monetarias", f"{sz:,} bytes")
     except Exception as e:
         status.fail("Monetarias", str(e))
+        traceback.print_exc()
+
+    # ---- Deuda ----
+    print("\n[12/12] Procesando Deuda...")
+    try:
+        d = extract_deuda(status)
+        if d:
+            sz = save_data("deuda", d)
+            status.ok("Deuda", f"{sz:,} bytes")
+    except Exception as e:
+        status.fail("Deuda", str(e))
         traceback.print_exc()
 
     # ---- Subir cambios a GitHub ----
