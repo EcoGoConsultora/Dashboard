@@ -68,6 +68,7 @@ EXCEL_PATHS = {
 
 # Monitor mundial — no es Excel, es un .js con datos del monitor externo
 MONITOR_MUNDIAL_JS = os.path.join(BASE_EXCEL, "Internacional", "Monitor mundial", "data", "monitor-data.js")
+MONITOR_MUNDIAL_DIR = os.path.dirname(os.path.dirname(MONITOR_MUNDIAL_JS))
 
 # Carpeta donde se dejan los PDF de LatinFocus Consensus Forecast.
 # Se busca de forma recursiva (adentro hay una subcarpeta por anio: 2025, 2026...)
@@ -1761,6 +1762,50 @@ def extract_monitor_actividad(status):
 # =====================================================================
 #  INTERNACIONAL · MERCADOS · LATINFOCUS
 # =====================================================================
+@_nunca_rompe("Monitor mundial")
+def run_monitor_mundial(status):
+    """Corre el updater del Monitor mundial (node scripts/update-data.mjs), que
+    es quien baja los datos de las fuentes oficiales y regenera monitor-data.js.
+
+    Antes esto dependia de una tarea programada aparte: si no corria, el
+    refresh copiaba prolijamente un archivo viejo. Corriendolo aca, una sola
+    corrida del notebook deja la seccion Internacional al dia de verdad."""
+    import shutil, subprocess
+    if not os.path.isdir(MONITOR_MUNDIAL_DIR):
+        status.warn("Monitor mundial", f"no existe {MONITOR_MUNDIAL_DIR}")
+        return False
+    # node esta instalado pero no siempre en el PATH que hereda Jupyter, asi que
+    # si no aparece se lo busca en las ubicaciones tipicas antes de rendirse
+    node = shutil.which("node")
+    if not node:
+        for cand in (os.path.join(os.environ.get("ProgramFiles", r"C:\Program Files"), "nodejs", "node.exe"),
+                     os.path.join(os.environ.get("ProgramFiles(x86)", ""), "nodejs", "node.exe"),
+                     os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "nodejs", "node.exe"),
+                     os.path.join(os.environ.get("APPDATA", ""), "npm", "node.exe")):
+            if cand and os.path.exists(cand):
+                node = cand
+                break
+    if not node:
+        status.warn("Monitor mundial",
+                    "no encontre node (ni en el PATH ni en Program Files); "
+                    "se usa el monitor-data.js que haya")
+        return False
+    script = os.path.join(MONITOR_MUNDIAL_DIR, "scripts", "update-data.mjs")
+    if not os.path.exists(script):
+        status.warn("Monitor mundial", f"no existe {script}")
+        return False
+
+    r = subprocess.run([node, script], cwd=MONITOR_MUNDIAL_DIR,
+                       capture_output=True, text=True, timeout=900)
+    salida = ((r.stdout or "") + (r.stderr or "")).strip().splitlines()
+    ultima = salida[-1] if salida else ""
+    if r.returncode != 0:
+        status.warn("Monitor mundial", f"el updater fallo: {ultima[:180]}")
+        return False
+    alertas = [l for l in salida if " WARN " in l or " ERROR " in l]
+    status.ok("Monitor mundial", f"{ultima[:110]}" + (f" · {len(alertas)} avisos" if alertas else ""))
+    return True
+
 @_nunca_rompe("Internacional")
 def extract_internacional(status):
     """Copia el monitor-data.js del Monitor mundial a internacional.js."""
@@ -1793,10 +1838,12 @@ def extract_internacional(status):
     # responder arrastra el ultimo dato que consiguio. Mirar la fecha del
     # archivo no alcanza, hay que mirar adentro.
     arg = (intl_data.get('series') or {}).get('ARG') or {}
-    for ind in ('inflationYoy', 'unemployment'):
+    # el umbral va por indicador: la inflacion es mensual y sale rapido, el
+    # desempleo es trimestral (EPH) y siempre mira varios meses para atras
+    for ind, tope in (('inflationYoy', 3), ('gdpGrowth', 6), ('unemployment', 7)):
         fechas = sorted(set(re.findall(r'\d{4}-\d{2}', json.dumps(arg.get(ind, ''), default=str))))
         if fechas:
-            _avisar_si_viejo(status, f"Internacional - ARG {ind}", fechas[-1], meses=3,
+            _avisar_si_viejo(status, f"Internacional - ARG {ind}", fechas[-1], meses=tope,
                              extra="el dato viejo viene del Monitor mundial, no del refresh")
     return True
 
@@ -1926,6 +1973,7 @@ def run_resto(status):
         (status.ok if r["ok"] else status.fail)("Series Largas", r["msg"])
     _paso("Series Largas", _series)
 
+    _paso("Monitor mundial",        lambda: run_monitor_mundial(status))
     _paso("Internacional",          lambda: extract_internacional(status))
     _paso("Internacional Consensus", lambda: run_latinfocus(status))
     _paso("Mercados",               lambda: extract_mercados(status))
@@ -2104,6 +2152,7 @@ def main():
     # ---- Internacional ----
     print("\n[7/14] Procesando Internacional (Monitor mundial)...")
     try:
+        run_monitor_mundial(status)
         extract_internacional(status)
         run_latinfocus(status)
     except Exception as e:
