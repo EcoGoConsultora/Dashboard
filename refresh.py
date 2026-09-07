@@ -51,6 +51,7 @@ EXCEL_PATHS = {
     "copia_blue":  os.path.join(BASE_EXCEL, "Tipo de Cambio", "Copia de Blue.xlsx"),  # Blue, MEP, CCL
     "base_esae":      os.path.join(BASE_EXCEL, "Actividad", "02 Indicador de Actividad CN2004", "Base EsAE.xlsx"),
     "emae":           os.path.join(BASE_EXCEL, "Actividad", "EMAE.xlsx"),
+    "monitor_actividad": os.path.join(BASE_EXCEL, "Actividad", "Monitor de Actividad.xlsx"),
     "pasivos_res":    os.path.join(BASE_EXCEL, "Monetarias", "pasivos reservas.xlsx"),
     "res_dep":        os.path.join(BASE_EXCEL, "Monetarias", "Reservas brutas y depósitos.xlsx"),
     "agregados_mon":  os.path.join(BASE_EXCEL, "Monetarias", "Copia de Agregados monetarios.xlsx"),
@@ -68,8 +69,9 @@ EXCEL_PATHS = {
 MONITOR_MUNDIAL_JS = os.path.join(BASE_EXCEL, "Internacional", "Monitor mundial", "data", "monitor-data.js")
 
 # Carpeta donde se dejan los PDF de LatinFocus Consensus Forecast.
-# El refresh toma solo el mas nuevo: no hay que escribir el nombre en ningun lado.
-PROYECCIONES_INTL = os.path.join(os.path.dirname(DASHBOARD_DIR), "Proyecciones internacionales")
+# Se busca de forma recursiva (adentro hay una subcarpeta por anio: 2025, 2026...)
+# y se toma el mas nuevo, asi en enero no hay que tocar nada.
+PROYECCIONES_INTL = os.path.join(BASE_EXCEL, "Proyecciones Bein", "Latin Focus")
 
 DATA_DIR = os.path.join(DASHBOARD_DIR, "assets", "data")
 
@@ -1612,6 +1614,102 @@ def extract_comercio(status):
     return data if data else None
 
 # =====================================================================
+#  MONITOR DE ACTIVIDAD (dashboard clientes)
+# =====================================================================
+def extract_monitor_actividad(status):
+    """
+    Los tres cuadros del Monitor de Actividad, que comparten estructura
+    (mismas series, mismos meses) y en el dashboard se muestran como un solo
+    cuadro con un boton para cambiar de vista:
+
+      'Cuadro Monitor'             -> indice (nivel s.e., 2017=100)
+      'Cuadro Monitor (var%)'      -> variacion mensual
+      'Cuadro Monitor (var%) (2)'  -> variacion interanual
+
+    Los meses salen de la fila 2 del Excel, no de un rango fijo: el cuadro es
+    una ventana movil de 14 meses, asi que cada mes nuevo agrega una columna a
+    la derecha y saca la de la izquierda. Las filas cortan solas en el
+    'Fuente:' del pie.
+    """
+    path = EXCEL_PATHS["monitor_actividad"]
+    if not os.path.exists(path):
+        status.warn("Monitor de Actividad", f"no se encontro: {path}")
+        return None
+
+    VISTAS = [
+        ("indice",  "Cuadro Monitor",             "Índice"),
+        ("var_men", "Cuadro Monitor (var%)",      "Var. % mensual"),
+        ("var_ia",  "Cuadro Monitor (var%) (2)",  "Var. % i.a."),
+    ]
+
+    wb = _open_wb(path)
+    hojas = {n.strip().lower(): n for n in wb.sheetnames}
+
+    def _hoja(nombre):
+        return wb[hojas[nombre.strip().lower()]] if nombre.strip().lower() in hojas else None
+
+    base = _hoja(VISTAS[0][1])
+    if base is None:
+        status.fail("Monitor de Actividad",
+                    f"no encontre la hoja 'Cuadro Monitor'. Hay: {wb.sheetnames}")
+        return None
+
+    # meses = columnas con fecha en la fila 2
+    cols_mes = [(c, base.cell(2, c).value) for c in range(1, 40)
+                if isinstance(base.cell(2, c).value, datetime)]
+    if not cols_mes:
+        status.fail("Monitor de Actividad", "no encontre columnas con fecha en la fila 2")
+        return None
+    meses = [d.strftime('%Y-%m') for _, d in cols_mes]
+
+    # filas: desde la 3 hasta el 'Fuente:' del pie
+    filas, fuente = [], ""
+    grupo = ""
+    for r in range(3, (base.max_row or 60) + 1):
+        a = base.cell(r, 1).value
+        b = base.cell(r, 2).value
+        if a and str(a).strip().lower().startswith('fuente'):
+            fuente = str(a).replace('\n', ' ').strip()
+            break
+        def _limpio(v):
+            return re.sub(r'\s+', ' ', str(v).replace('\n', ' ')).strip()
+        if a:
+            grupo = _limpio(a)
+        if not b:
+            continue
+        filas.append({"fila": r, "grupo": grupo, "serie": _limpio(b),
+                      "nivel": fmt_n(base.cell(r, 3).value)})
+
+    vistas = {}
+    for clave, hoja, label in VISTAS:
+        ws = _hoja(hoja)
+        if ws is None:
+            status.warn("Monitor de Actividad", f"falta la hoja '{hoja}' — esa vista no se publica")
+            continue
+        # cada hoja se lee con sus propias columnas de mes, por si alguna
+        # quedo desfasada respecto de las otras
+        cm = [c for c in range(1, 40) if isinstance(ws.cell(2, c).value, datetime)]
+        if [ws.cell(2, c).value.strftime('%Y-%m') for c in cm] != meses:
+            status.warn("Monitor de Actividad",
+                        f"'{hoja}' no tiene los mismos meses que 'Cuadro Monitor' — revisar el Excel")
+        datos = [[fmt_n(ws.cell(f["fila"], c).value) for c in cm] for f in filas]
+        vistas[clave] = {"label": label,
+                         "titulo": str(ws.cell(2, 1).value or '').replace('\n', ' ').strip(),
+                         "datos": datos}
+
+    data = {
+        "meses": meses,
+        "fuente": fuente or "Fuente: Eco Go",
+        "series": [{"grupo": f["grupo"], "serie": f["serie"], "nivel": f["nivel"]} for f in filas],
+        "vistas": vistas,
+    }
+    status.ok("Monitor de Actividad",
+              f"{len(filas)} series · {len(meses)} meses ({meses[0]} a {meses[-1]}) · "
+              f"{len(vistas)} vistas")
+    _avisar_si_viejo(status, "Monitor de Actividad", meses[-1], meses=3)
+    return data
+
+# =====================================================================
 #  INTERNACIONAL · MERCADOS · LATINFOCUS
 # =====================================================================
 def extract_internacional(status):
@@ -1669,42 +1767,57 @@ def extract_mercados(status):
     return True
 
 def run_latinfocus(status):
-    """Busca el PDF de LatinFocus mas nuevo en PROYECCIONES_INTL y lo procesa.
-    No hay que escribir el nombre del archivo en ningun lado: alcanza con
-    dejar el PDF del mes en esa carpeta."""
+    """Busca el PDF de LatinFocus mas nuevo dentro de PROYECCIONES_INTL
+    (recursivo: hay una subcarpeta por anio) y lo procesa. No hay que escribir
+    el nombre del archivo en ningun lado: alcanza con dejar el PDF del mes ahi.
+
+    Que no haya un PDF nuevo es lo normal la mayor parte del mes, asi que no
+    es un error: avisa "no se encontro actualizacion" y sigue de largo. Nada
+    de lo que pase aca corta el refresh."""
     import subprocess
     if not os.path.isdir(PROYECCIONES_INTL):
         status.warn("Internacional Consensus", f"no existe la carpeta {PROYECCIONES_INTL}")
         return False
+
     MESES = {m: i for i, m in enumerate(
         ['january','february','march','april','may','june',
          'july','august','september','october','november','december'], 1)}
     cands = []
-    for f in os.listdir(PROYECCIONES_INTL):
-        if not f.lower().endswith('.pdf') or 'latinfocus' not in f.lower():
-            continue
-        m = re.search(r'(' + '|'.join(MESES) + r')\s+(\d{4})', f, re.IGNORECASE)
-        # si el nombre no dice el mes, ordena por fecha de modificacion
-        clave = ((int(m.group(2)), MESES[m.group(1).lower()]) if m else (0, 0),
-                 os.path.getmtime(os.path.join(PROYECCIONES_INTL, f)))
-        cands.append((clave, f))
+    for raiz, _dirs, archivos in os.walk(PROYECCIONES_INTL):
+        for f in archivos:
+            if not f.lower().endswith('.pdf') or 'latinfocus' not in f.lower():
+                continue
+            ruta = os.path.join(raiz, f)
+            m = re.search(r'(' + '|'.join(MESES) + r')\s+(\d{4})', f, re.IGNORECASE)
+            # si el nombre no dice el mes, desempata por fecha de modificacion
+            clave = ((int(m.group(2)), MESES[m.group(1).lower()]) if m else (0, 0),
+                     os.path.getmtime(ruta))
+            cands.append((clave, ruta, f))
     if not cands:
-        status.warn("Internacional Consensus", f"no hay PDFs de LatinFocus en {PROYECCIONES_INTL}")
+        status.warn("Internacional Consensus",
+                    f"no se encontro actualizacion (no hay PDFs de LatinFocus en {PROYECCIONES_INTL})")
         return False
-    cands.sort()
-    pdf = os.path.join(PROYECCIONES_INTL, cands[-1][1])
+
+    cands.sort(key=lambda x: x[0])
+    _, pdf, nombre = cands[-1]
 
     js_path = os.path.join(DATA_DIR, "internacional2.js")
     if os.path.exists(js_path) and os.path.getmtime(js_path) >= os.path.getmtime(pdf):
-        status.ok("Internacional Consensus", f"ya al dia con {cands[-1][1]}")
+        status.ok("Internacional Consensus",
+                  f"no se encontro actualizacion — el mas nuevo sigue siendo {nombre}")
         return True
 
-    r = subprocess.run([sys.executable, os.path.join(DASHBOARD_DIR, "parse_latinfocus.py"), pdf],
-                       capture_output=True, text=True, cwd=DASHBOARD_DIR)
-    if r.returncode != 0:
-        status.fail("Internacional Consensus", (r.stderr or r.stdout).strip()[:200])
+    try:
+        r = subprocess.run([sys.executable, os.path.join(DASHBOARD_DIR, "parse_latinfocus.py"), pdf],
+                           capture_output=True, text=True, cwd=DASHBOARD_DIR, timeout=600)
+    except Exception as e:
+        status.warn("Internacional Consensus", f"no se pudo procesar {nombre}: {e}")
         return False
-    status.ok("Internacional Consensus", f"procesado {cands[-1][1]}")
+    if r.returncode != 0:
+        status.warn("Internacional Consensus",
+                    f"no se pudo procesar {nombre}: {(r.stderr or r.stdout).strip()[:180]}")
+        return False
+    status.ok("Internacional Consensus", f"procesado {nombre}")
     return True
 
 def run_resto(status):
@@ -1855,7 +1968,7 @@ def main():
     status = Status()
 
     # ---- Precios ----
-    print("[1/13] Procesando Precios...")
+    print("[1/14] Procesando Precios...")
     try:
         d = extract_precios(status)
         if d:
@@ -1866,7 +1979,7 @@ def main():
         traceback.print_exc()
 
     # ---- EMAE Series ----
-    print("\n[2/13] Procesando EMAE Series (actividad)...")
+    print("\n[2/14] Procesando EMAE Series (actividad)...")
     try:
         d = extract_emae_series(status)
         if d:
@@ -1877,7 +1990,7 @@ def main():
         traceback.print_exc()
 
     # ---- Empleo ----
-    print("\n[3/13] Procesando Empleo...")
+    print("\n[3/14] Procesando Empleo...")
     try:
         d = extract_empleo(status)
         if d:
@@ -1888,7 +2001,7 @@ def main():
         traceback.print_exc()
 
     # ---- Salarios ----
-    print("\n[4/13] Procesando Salarios...")
+    print("\n[4/14] Procesando Salarios...")
     try:
         d = extract_salarios(status)
         if d:
@@ -1899,7 +2012,7 @@ def main():
         traceback.print_exc()
 
     # ---- Tipo de Cambio ----
-    print("\n[5/13] Procesando Tipo de Cambio...")
+    print("\n[5/14] Procesando Tipo de Cambio...")
     try:
         d = extract_tipo_cambio(status)
         if d:
@@ -1910,7 +2023,7 @@ def main():
         traceback.print_exc()
 
     # ---- Reservas ----
-    print("\n[6/13] Procesando Reservas...")
+    print("\n[6/14] Procesando Reservas...")
     try:
         d = extract_reservas(status)
         if d:
@@ -1921,7 +2034,7 @@ def main():
         traceback.print_exc()
 
     # ---- Internacional ----
-    print("\n[7/13] Procesando Internacional (Monitor mundial)...")
+    print("\n[7/14] Procesando Internacional (Monitor mundial)...")
     try:
         extract_internacional(status)
         run_latinfocus(status)
@@ -1930,14 +2043,14 @@ def main():
         traceback.print_exc()
 
     # ---- Mercados (API) ----
-    print("\n[8/13] Actualizando Mercados (EcoGo Markets API)...")
+    print("\n[8/14] Actualizando Mercados (EcoGo Markets API)...")
     try:
         extract_mercados(status)
     except Exception as e:
         status.warn("Mercados", f"no se pudo actualizar desde la API: {e}")
 
     # ---- Actividad IPI (Indicadores de actividad) ----
-    print("\n[9/13] Actualizando Indicadores de Actividad (IPI - Todos.xlsx)...")
+    print("\n[9/14] Actualizando Indicadores de Actividad (IPI - Todos.xlsx)...")
     try:
         from extract_actividad_ipi import run_extraction as run_ipi
         ipi_path = os.path.join(BASE_EXCEL, "Actividad", "IPI - Todos.xlsx")
@@ -1951,7 +2064,7 @@ def main():
         traceback.print_exc()
 
     # ---- Series Largas (Anexo histórico) ----
-    print("\n[10/13] Actualizando Series Largas (Anexo.xlsx)...")
+    print("\n[10/14] Actualizando Series Largas (Anexo.xlsx)...")
     try:
         from extract_series_largas import run_extraction
         anexo_path = os.path.join(BASE_EXCEL, "03 Informes y Anexos", "Cuadros y Anexos", "Anexos nuevos", "Anexo.xlsx")
@@ -1965,7 +2078,7 @@ def main():
         traceback.print_exc()
 
     # ---- Monetarias ----
-    print("\n[11/13] Procesando Monetarias...")
+    print("\n[11/14] Procesando Monetarias...")
     try:
         d = extract_monetarias(status)
         if d:
@@ -1976,7 +2089,7 @@ def main():
         traceback.print_exc()
 
     # ---- Deuda ----
-    print("\n[12/13] Procesando Deuda...")
+    print("\n[12/14] Procesando Deuda...")
     try:
         d = extract_deuda(status)
         if d:
@@ -1986,8 +2099,18 @@ def main():
         status.fail("Deuda", str(e))
         traceback.print_exc()
 
+    # ---- Monitor de Actividad ----
+    print("\n[13/14] Procesando Monitor de Actividad...")
+    try:
+        d = extract_monitor_actividad(status)
+        if d:
+            status.ok("Monitor de Actividad", f"{save_data('monitor_actividad', d):,} bytes")
+    except Exception as e:
+        status.fail("Monitor de Actividad", str(e))
+        traceback.print_exc()
+
     # ---- Comercio exterior ----
-    print("\n[13/13] Procesando Comercio exterior...")
+    print("\n[14/14] Procesando Comercio exterior...")
     try:
         d = extract_comercio(status)
         if d:

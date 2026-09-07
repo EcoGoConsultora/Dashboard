@@ -14,6 +14,15 @@ que contiene toda la tabla con GDP / Inflación / Fiscal / Cuenta Corriente.
 import sys, re, json, os
 from datetime import datetime
 
+# Cuando el refresh llama a este script capturando la salida, Windows usa cp1252
+# y cualquier acento o flecha de los mensajes de progreso lo hacia abortar
+# DESPUES de haber parseado todo el PDF. Forzar UTF-8 evita perder esa corrida.
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
 try:
     import pdfplumber
 except ImportError:

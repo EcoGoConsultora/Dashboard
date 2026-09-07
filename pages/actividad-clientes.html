@@ -60,6 +60,19 @@
     .esae-sel-btn{padding:5px 16px;border-radius:20px;border:1.5px solid;font-size:.8rem;font-weight:700;cursor:pointer;background:transparent;transition:all .15s}
     .esae-sel-btn.is-active{color:#fff}
     .esae-sel-btn:not(.is-active){opacity:.55}
+    /* Monitor de Actividad */
+    .mon-wrap{overflow:auto;max-height:560px;border:1px solid var(--color-border);border-radius:8px}
+    .mon-table{border-collapse:separate!important;border-spacing:0;font-size:.74rem;width:100%}
+    .mon-table th{position:sticky;top:0;z-index:2;background:#fff;padding:6px 8px;border-bottom:2px solid var(--color-border);color:var(--eg-teal-dark);font-weight:700;text-align:right;font-size:.68rem;white-space:nowrap}
+    .mon-table th:first-child{text-align:left;left:0;z-index:4;box-shadow:3px 0 6px rgba(0,0,0,.08)}
+    .mon-table th:first-child,.mon-table td:first-child{position:sticky!important;left:0;background:#fff!important;min-width:230px;max-width:230px}
+    .mon-table td{padding:4px 8px;border-bottom:1px solid var(--color-border);text-align:right;color:var(--color-text);white-space:nowrap}
+    .mon-table td:first-child{z-index:1;text-align:left;font-weight:600;white-space:normal;box-shadow:3px 0 6px rgba(0,0,0,.08)}
+    .mon-table tr:hover td{background:rgba(60,151,148,.06)}
+    .mon-table tr:hover td:first-child{background:rgba(60,151,148,.06)!important}
+    .mon-grupo td{background:#e3f0ee!important;color:var(--eg-teal-dark);font-weight:800;font-size:.72rem;text-transform:uppercase;letter-spacing:.03em}
+    .mon-pos{color:#2a9d5e}
+    .mon-neg{color:#d94032}
   </style>
 </head>
 <body data-depth="1" data-active-section="actividad">
@@ -156,6 +169,28 @@
 
       </div><!-- /panelEsae -->
 
+      <!-- Monitor de Actividad: un solo cuadro con 3 vistas -->
+      <div class="act-section" id="monitorSection">
+        <div class="act-card">
+          <div class="act-card__head">
+            <div>
+              <p class="act-card__title">Monitor de Actividad</p>
+              <p class="act-card__sub" id="monSub">Índices sin estacionalidad (2017=100)</p>
+            </div>
+          </div>
+          <div class="esae-selector" id="monBtns">
+            <button class="esae-sel-btn is-active" data-vista="indice"
+                    style="border-color:#2890A4;color:#2890A4;background:rgba(40,144,164,.12)">Índice</button>
+            <button class="esae-sel-btn" data-vista="var_men"
+                    style="border-color:#FE8B5F;color:#FE8B5F">Var. % mensual</button>
+            <button class="esae-sel-btn" data-vista="var_ia"
+                    style="border-color:#89C442;color:#89C442">Var. % i.a.</button>
+          </div>
+          <div class="mon-wrap"><table class="mon-table" id="monitorTable"></table></div>
+          <p class="act-note" id="monFuente">Fuente: Eco Go</p>
+        </div>
+      </div>
+
       <footer class="eg-footer">
         <span>Actividad · Eco Go</span>
         <a href="../index-clientes.html">← Volver al inicio</a>
@@ -165,6 +200,83 @@
 
   <script src="../assets/js/layout-clientes.js"></script>
   <script src="../assets/data/emae_series.js"></script>
+  <script src="../assets/data/monitor_actividad.js"></script>
+  <script>
+  /* Monitor de Actividad — los tres cuadros del Excel comparten series y meses,
+     asi que se dibuja uno solo y el boton cambia que valores se muestran. */
+  (function(){
+    var M = window.MONITOR_ACTIVIDAD_DATA;
+    var sec = document.getElementById('monitorSection');
+    if (!M || !M.series || !M.series.length) { if (sec) sec.style.display = 'none'; return; }
+
+    var MESES_CORTOS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    function etiquetaMes(iso){
+      var p = String(iso).split('-');
+      return MESES_CORTOS[(parseInt(p[1], 10) || 1) - 1] + '-' + p[0].slice(2);
+    }
+
+    function fmt(v, vista){
+      if (v === null || v === undefined || v === '') return '—';
+      if (vista === 'indice') return v.toLocaleString('es-AR', {minimumFractionDigits:1, maximumFractionDigits:1});
+      return (v * 100).toLocaleString('es-AR', {minimumFractionDigits:1, maximumFractionDigits:1}) + '%';
+    }
+
+    function pintar(vista){
+      var V = M.vistas && M.vistas[vista];
+      if (!V) return;
+      var html = '<thead><tr><th>Serie</th>';
+      M.meses.forEach(function(m){ html += '<th>' + etiquetaMes(m) + '</th>'; });
+      html += '</tr></thead><tbody>';
+
+      var grupoActual = null;
+      M.series.forEach(function(s, i){
+        if (s.grupo && s.grupo !== grupoActual){
+          grupoActual = s.grupo;
+          html += '<tr class="mon-grupo"><td colspan="' + (M.meses.length + 1) + '">' + s.grupo + '</td></tr>';
+        }
+        html += '<tr><td>' + s.serie + '</td>';
+        (V.datos[i] || []).forEach(function(v){
+          var cls = '';
+          if (vista !== 'indice' && typeof v === 'number') cls = v < 0 ? ' class="mon-neg"' : (v > 0 ? ' class="mon-pos"' : '');
+          html += '<td' + cls + '>' + fmt(v, vista) + '</td>';
+        });
+        html += '</tr>';
+      });
+      html += '</tbody>';
+      document.getElementById('monitorTable').innerHTML = html;
+      document.getElementById('monSub').textContent = V.titulo || '';
+      document.querySelectorAll('#monBtns .esae-sel-btn').forEach(function(b){
+        var on = b.dataset.vista === vista;
+        b.classList.toggle('is-active', on);
+        b.style.background = on ? b.style.borderColor : 'transparent';
+        b.style.color = on ? '#fff' : b.style.borderColor;
+      });
+    }
+
+    document.querySelectorAll('#monBtns .esae-sel-btn').forEach(function(b){
+      b.addEventListener('click', function(){ pintar(b.dataset.vista); });
+    });
+    document.getElementById('monFuente').textContent = M.fuente || 'Fuente: Eco Go';
+    pintar('indice');
+
+    if (window.EcoGo) {
+      EcoGo.dlBtn('#monitorTable', 'monitor_actividad.csv', function(){
+        // baja las tres vistas juntas, que es lo que uno querria en Excel
+        var headers = ['Grupo', 'Serie', 'Vista'].concat(M.meses);
+        var rows = [];
+        Object.keys(M.vistas).forEach(function(k){
+          var V = M.vistas[k];
+          M.series.forEach(function(s, i){
+            rows.push([s.grupo, s.serie, V.label].concat((V.datos[i] || []).map(function(v){
+              return (v === null || v === undefined) ? '' : v;
+            })));
+          });
+        });
+        return { headers: headers, rows: rows };
+      });
+    }
+  })();
+  </script>
   <script>
   
 
