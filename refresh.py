@@ -1762,6 +1762,38 @@ def extract_monitor_actividad(status):
 # =====================================================================
 #  INTERNACIONAL · MERCADOS · LATINFOCUS
 # =====================================================================
+@_nunca_rompe("Version de datos")
+def sellar_versiones(status):
+    """Le pone ?v=<fecha> a los <script src=".../assets/data/*.js"> de todas las
+    paginas.
+
+    Sin esto, la URL de cada archivo de datos no cambia nunca: GitHub Pages los
+    sirve con cache y el navegador te sigue mostrando el archivo viejo aunque
+    el refresh haya corrido bien y el push haya salido. Con el sello, cada
+    actualizacion genera una URL distinta y el navegador la baja si o si.
+
+    Trabaja sobre bytes a proposito: algunas paginas tienen bytes que no son
+    UTF-8 valido y releerlas como texto las corromperia."""
+    sello = datetime.now().strftime('%Y%m%d%H%M').encode()
+    patron = re.compile(rb'(src=["\'][^"\']*assets/data/[^"\'?]+\.js)(\?v=[0-9]+)?(["\'])')
+    tocadas = 0
+    for carpeta in (DASHBOARD_DIR, os.path.join(DASHBOARD_DIR, 'pages')):
+        if not os.path.isdir(carpeta):
+            continue
+        for nombre in os.listdir(carpeta):
+            if not nombre.endswith('.html'):
+                continue
+            ruta = os.path.join(carpeta, nombre)
+            with open(ruta, 'rb') as f:
+                orig = f.read()
+            nuevo_b = patron.sub(rb'\1?v=' + sello + rb'\3', orig)
+            if nuevo_b != orig:
+                with open(ruta, 'wb') as f:
+                    f.write(nuevo_b)
+                tocadas += 1
+    status.ok("Version de datos", f"{tocadas} paginas selladas con ?v={sello.decode()}")
+    return True
+
 @_nunca_rompe("Monitor mundial")
 def run_monitor_mundial(status):
     """Corre el updater del Monitor mundial (node scripts/update-data.mjs), que
@@ -2236,6 +2268,10 @@ def main():
     except Exception as e:
         status.fail("Comercio exterior", str(e))
         traceback.print_exc()
+
+    # ---- Sellar la version de los datos en las paginas ----
+    # Va justo antes del push para que el cambio de HTML entre en el commit.
+    sellar_versiones(status)
 
     # ---- Subir cambios a GitHub ----
     print("\nSubiendo cambios a GitHub...")
