@@ -14,6 +14,7 @@ import os
 import sys
 import json
 import re
+import functools
 import traceback
 from datetime import datetime
 
@@ -159,6 +160,22 @@ def _a_fecha(v):
         except ValueError:
             pass
     return None
+
+def _nunca_rompe(nombre):
+    """Convierte cualquier excepcion del paso en un WARN. Estos pasos dependen
+    de archivos que pueden estar bloqueados, a medio sincronizar o directamente
+    no estar: que falte el PDF del mes no puede cortar el refresh entero."""
+    def deco(fn):
+        @functools.wraps(fn)
+        def wrapper(status, *a, **kw):
+            try:
+                return fn(status, *a, **kw)
+            except Exception as e:
+                status.warn(nombre, f"{type(e).__name__}: {e}")
+                traceback.print_exc()
+                return False
+        return wrapper
+    return deco
 
 def _avisar_si_viejo(status, nombre, ultima_fecha, meses=3, extra=""):
     """Marca WARN cuando el ultimo dato de una serie quedo mas de `meses`
@@ -1712,6 +1729,7 @@ def extract_monitor_actividad(status):
 # =====================================================================
 #  INTERNACIONAL · MERCADOS · LATINFOCUS
 # =====================================================================
+@_nunca_rompe("Internacional")
 def extract_internacional(status):
     """Copia el monitor-data.js del Monitor mundial a internacional.js."""
     if not os.path.exists(MONITOR_MUNDIAL_JS):
@@ -1739,6 +1757,7 @@ def extract_internacional(status):
               f"(origen del {origen})")
     return True
 
+@_nunca_rompe("Mercados")
 def extract_mercados(status):
     """Baja el payload de la API de mercados. Avisa si la propia API viene
     con datos viejos: el script puede estar corriendo bien y aun asi
@@ -1766,6 +1785,7 @@ def extract_mercados(status):
                      extra="la fuente es el worker ecogomarkets, no el refresh")
     return True
 
+@_nunca_rompe("Internacional Consensus")
 def run_latinfocus(status):
     """Busca el PDF de LatinFocus mas nuevo dentro de PROYECCIONES_INTL
     (recursivo: hay una subcarpeta por anio) y lo procesa. No hay que escribir
@@ -1789,9 +1809,14 @@ def run_latinfocus(status):
                 continue
             ruta = os.path.join(raiz, f)
             m = re.search(r'(' + '|'.join(MESES) + r')\s+(\d{4})', f, re.IGNORECASE)
+            # OneDrive puede tener el archivo "solo en la nube" y hacer fallar el
+            # getmtime; ese PDF se saltea en vez de cortar el refresh
+            try:
+                mtime = os.path.getmtime(ruta)
+            except OSError:
+                continue
             # si el nombre no dice el mes, desempata por fecha de modificacion
-            clave = ((int(m.group(2)), MESES[m.group(1).lower()]) if m else (0, 0),
-                     os.path.getmtime(ruta))
+            clave = ((int(m.group(2)), MESES[m.group(1).lower()]) if m else (0, 0), mtime)
             cands.append((clave, ruta, f))
     if not cands:
         status.warn("Internacional Consensus",

@@ -1,8 +1,8 @@
-// internacional2.js — generado por parse_latinfocus.py el 2026-09-07 16:40
+// internacional2.js — generado por parse_latinfocus.py el 2026-09-07 16:57
 // Edición LatinFocus: August 2026
 window.CF_DATA = {
   "edition": "August 2026",
-  "generated": "2026-09-07 16:40",
+  "generated": "2026-09-07 16:57",
   "years": [
     "2023",
     "2024",
