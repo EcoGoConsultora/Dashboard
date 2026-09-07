@@ -50,7 +50,7 @@ EXCEL_PATHS = {
     "com3500":     os.path.join(BASE_EXCEL, "Tipo de Cambio", "com3500.xls"),  # TCN A3500 historico
     "copia_blue":  os.path.join(BASE_EXCEL, "Tipo de Cambio", "Copia de Blue.xlsx"),  # Blue, MEP, CCL
     "base_esae":      os.path.join(BASE_EXCEL, "Actividad", "02 Indicador de Actividad CN2004", "Base EsAE.xlsx"),
-    "emae_nuevo":     os.path.join(BASE_EXCEL, "Actividad", "EMAE - NUEVO.xlsx"),
+    "emae":           os.path.join(BASE_EXCEL, "Actividad", "EMAE.xlsx"),
     "pasivos_res":    os.path.join(BASE_EXCEL, "Monetarias", "pasivos reservas.xlsx"),
     "res_dep":        os.path.join(BASE_EXCEL, "Monetarias", "Reservas brutas y depósitos.xlsx"),
     "agregados_mon":  os.path.join(BASE_EXCEL, "Monetarias", "Copia de Agregados monetarios.xlsx"),
@@ -66,6 +66,10 @@ EXCEL_PATHS = {
 
 # Monitor mundial — no es Excel, es un .js con datos del monitor externo
 MONITOR_MUNDIAL_JS = os.path.join(BASE_EXCEL, "Internacional", "Monitor mundial", "data", "monitor-data.js")
+
+# Carpeta donde se dejan los PDF de LatinFocus Consensus Forecast.
+# El refresh toma solo el mas nuevo: no hay que escribir el nombre en ningun lado.
+PROYECCIONES_INTL = os.path.join(os.path.dirname(DASHBOARD_DIR), "Proyecciones internacionales")
 
 DATA_DIR = os.path.join(DASHBOARD_DIR, "assets", "data")
 
@@ -139,6 +143,81 @@ def col_idx(letter):
 
 def fmt_n(v):
     return v if isinstance(v, (int, float)) else None
+
+def _a_fecha(v):
+    """Interpreta 'YYYY-MM', 'YYYY-MM-DD' o un datetime. None si no puede."""
+    if isinstance(v, datetime):
+        return v
+    if not isinstance(v, str):
+        return None
+    s = v.strip()[:10]
+    for fmt in ("%Y-%m-%d", "%Y-%m"):
+        try:
+            return datetime.strptime(s if fmt == "%Y-%m-%d" else s[:7], fmt)
+        except ValueError:
+            pass
+    return None
+
+def _avisar_si_viejo(status, nombre, ultima_fecha, meses=3, extra=""):
+    """Marca WARN cuando el ultimo dato de una serie quedo mas de `meses`
+    atras. Es la red de seguridad de todo esto: un rango que se queda corto,
+    una hoja que se renombra o una fuente que se apaga no rompen nada — el
+    refresh termina diciendo LISTO igual. Sin este chequeo, la unica forma de
+    enterarse es que alguien mire el grafico semanas despues."""
+    d = _a_fecha(ultima_fecha)
+    if d is None:
+        return
+    atraso = (datetime.now().year - d.year) * 12 + (datetime.now().month - d.month)
+    if atraso > meses:
+        status.warn(nombre, f"ultimo dato {d.strftime('%b-%y')} — {atraso} meses de atraso"
+                            + (f" ({extra})" if extra else ""))
+
+def cols_por_encabezado(ws, fila_label, fila_unidad=None, col_ini=3, col_fin=30):
+    """Devuelve [(columna, etiqueta, unidad)] leyendo los encabezados del propio
+    Excel, en vez de tenerlos escritos a mano en el codigo. Toma toda columna de
+    col_ini..col_fin que tenga algo en fila_label; las fechas las formatea
+    'mmm-aa'.
+
+    Los mapeos fijos de columna son la peor version del problema de los rangos
+    fijos: cuando el analista intercala una columna, no falta un dato — se
+    muestra el dato correcto bajo la etiqueta equivocada."""
+    out = []
+    for c in range(col_ini, col_fin + 1):
+        lab = ws.cell(fila_label, c).value
+        if isinstance(lab, datetime):
+            lab = lab.strftime('%b-%y')
+        elif isinstance(lab, str):
+            lab = lab.replace('\n', ' ').strip()
+        else:
+            lab = None
+        if not lab:
+            continue
+        uni = ws.cell(fila_unidad, c).value if fila_unidad else None
+        uni = str(uni).replace('\n', ' ').strip() if uni else ''
+        out.append((c, lab, uni))
+    return out
+
+def last_data_row(ws, cols, start_row, hard_max=3000, gap=18):
+    """Ultima fila, desde start_row, con algun valor numerico en alguna de
+    `cols` (letras de columna). Corta despues de `gap` filas seguidas sin
+    datos, asi no se come las filas de meses futuros que el analista deja
+    preparadas y todavia vacias.
+
+    Sirve para no dejar topes de fila fijos en el codigo: cuando el Excel
+    suma un mes, el refresh lo toma solo. Si el rango se hardcodea, la serie
+    se queda corta en silencio y nadie se entera hasta que alguien mira el
+    grafico."""
+    idxs = [col_idx(c) for c in cols]
+    limite = min(ws.max_row or hard_max, hard_max)
+    last, vacias = start_row - 1, 0
+    for r in range(start_row, limite + 1):
+        if any(isinstance(ws.cell(r, i).value, (int, float)) for i in idxs):
+            last, vacias = r, 0
+        else:
+            vacias += 1
+            if vacias >= gap:
+                break
+    return last
 
 def _parse_ref(ref):
     """Separa una referencia de Excel tipo "'Hoja X'!$A$1:$A$10" en (hoja, rango)."""
@@ -449,26 +528,35 @@ def extract_precios(status):
             out.append(v)
         return out
 
-    cats = range_get(ws, 'A', 17, 114)
+    # el final lo detecta solo: antes estaba fijo en la fila 114 y la serie
+    # se quedo clavada en ene-26 aunque el Excel siguiera creciendo
+    fin21 = last_data_row(ws, ['DJ', 'DK', 'AT'], 17)
+    cats = range_get(ws, 'A', 17, fin21)
     chart21 = []
+    mensual21 = range_get(ws, 'DJ', 17, fin21)
+    prom21    = range_get(ws, 'DK', 17, fin21)
+    varia21   = range_get(ws, 'AT', 17, fin21)
     for i, c in enumerate(cats):
         if c is None: continue
         chart21.append({
             "fecha": c.strftime("%Y-%m-%d") if isinstance(c, datetime) else str(c),
-            "mensual": range_get(ws,'DJ',17,114)[i],
-            "promedio_anual": range_get(ws,'DK',17,114)[i],
-            "var_ia": range_get(ws,'AT',17,114)[i]
+            "mensual": mensual21[i],
+            "promedio_anual": prom21[i],
+            "var_ia": varia21[i]
         })
     data['chart21'] = chart21
+    if chart21:
+        _avisar_si_viejo(status, "Precios - chart21", chart21[-1]['fecha'], meses=3)
 
-    # ---- Chart 23: A6:A115, AF, AT, U, W, DK ----
-    cats5 = range_get(ws, 'A', 6, 115)
+    # ---- Chart 23: A6:.., AF, AT, U, W, DK (el final tambien se detecta solo) ----
+    fin23 = last_data_row(ws, ['AF', 'AT', 'U', 'W', 'DK'], 6)
+    cats5 = range_get(ws, 'A', 6, fin23)
     chart23 = []
-    var_men = range_get(ws,'AF',6,115)
-    var_ia5 = range_get(ws,'AT',6,115)
-    nucleo_ia = range_get(ws,'U',6,115)
-    w_series = range_get(ws,'W',6,115)
-    prom_men = range_get(ws,'DK',6,115)
+    var_men = range_get(ws,'AF',6,fin23)
+    var_ia5 = range_get(ws,'AT',6,fin23)
+    nucleo_ia = range_get(ws,'U',6,fin23)
+    w_series = range_get(ws,'W',6,fin23)
+    prom_men = range_get(ws,'DK',6,fin23)
     for i, c in enumerate(cats5):
         if c is None: continue
         chart23.append({
@@ -482,7 +570,8 @@ def extract_precios(status):
     # ---- Chart 22 (RPM): '4. Proyecciones'!B100:B201, C/E/F/H ----
     ws2 = wb["4. Proyecciones"]
     chart22 = []
-    for r in range(100, 202):
+    fin22 = last_data_row(ws2, ['C', 'E', 'F', 'H'], 100)
+    for r in range(100, fin22 + 1):
         fecha = ws2.cell(r, 2).value
         if fecha is None: continue
         chart22.append({
@@ -660,37 +749,58 @@ def extract_empleo(status):
     data['eph_ultimo'] = eph[-1] if eph else None
 
     # ---- Cuadro empleo trim ----
+    # Los periodos salen de la fila 3 del propio Excel. Antes estaban escritos
+    # a mano en el codigo: cuando el analista intercalo una columna, las
+    # etiquetas quedaron corridas y el dashboard mostraba cada valor bajo el
+    # trimestre equivocado, sin que nada avisara.
     ws = wb["Cuadro empleo trim"]
-    COLS_TRIM = [(3,'2012 (est.)'), (4,'II-18'), (5,'II-23'), (7,'IV-23'), (8,'I-24'),
-                 (9,'II-24'), (10,'IV-24'), (12,'I-25'), (13,'III-25'), (14,'IV-25')]
-    trim = {"periodos": [c[1] for c in COLS_TRIM], "filas": []}
+    cols_trim = cols_por_encabezado(ws, fila_label=3, fila_unidad=4)
+    trim = {"periodos": [lab for _, lab, _ in cols_trim], "filas": []}
+    _dup = [p for p in set(trim["periodos"]) if trim["periodos"].count(p) > 1]
+    if _dup:
+        status.warn("Empleo - Cuadro trim",
+                    f"hay periodos repetidos en la fila 3 del Excel: {_dup} — revisar los encabezados")
     for r in range(5, 20):
         cat = ws.cell(r, 2).value
         if not cat: continue
         valores = []
-        for col_idx_n, _ in COLS_TRIM:
-            v = ws.cell(r, col_idx_n).value
+        for col_n, _, _ in cols_trim:
+            v = ws.cell(r, col_n).value
             valores.append(v if isinstance(v, (int, float)) else None)
         trim["filas"].append({"categoria": str(cat).strip(), "valores": valores})
     data['trim'] = trim
 
     # ---- Cuadro SIPA ext (2) ----
+    # Mismo criterio: los meses salen de la fila 2 y las columnas "Dif." de la
+    # fila 3, en vez de estar escritos a mano. El "vs <mes>" de cada diferencia
+    # se arma resolviendo el (n) contra el mes que lleva ese numero.
     ws = wb["Cuadro SIPA ext (2)"]
-    COLS_SIPA = [
-        (3,'Jun-12','en miles','stock'),(4,'Ago-18*','en miles','stock'),
-        (5,'Dic-23*','en miles','stock'),(6,'Feb-25*','en miles','stock'),
-        (9,'Ene-26*','en miles','stock'),(12,'Feb-26*','en miles','stock'),
-        (13,'Dif. (6)-(1)','vs Jun-12','diff'),(14,'Dif. (6)-(2)','vs Ago-18','diff'),
-        (15,'Dif. (6)-(3)','vs Dic-23','diff'),(16,'Dif. (6)-(4)','vs Feb-25','diff'),
-        (17,'Dif. (6)-(5)','vs Ene-26','diff')
-    ]
-    sipa = {"cols": [{"header":c[1],"sub":c[2],"tipo":c[3]} for c in COLS_SIPA], "filas":[]}
+    cols_sipa = []
+    ref_mes = {}          # "(1)" -> "jun-12"
+    for c, lab, uni in cols_por_encabezado(ws, fila_label=2, fila_unidad=3, col_fin=20):
+        m = re.search(r'\((\d+)\)', uni or '')
+        if m:
+            ref_mes[m.group(1)] = lab
+        cols_sipa.append({"col": c, "header": lab, "sub": (uni or '').split('(')[0].strip(), "tipo": "stock"})
+    for c in range(3, 21):
+        v = ws.cell(3, c).value
+        txt = str(v).replace('\n', ' ').strip() if v else ''
+        if not txt.lower().startswith('dif'):
+            continue
+        nums = re.findall(r'\((\d+)\)', txt)
+        contra = ref_mes.get(nums[1]) if len(nums) > 1 else None
+        cols_sipa.append({"col": c, "header": re.sub(r'\s+', ' ', txt),
+                          "sub": f"vs {contra}" if contra else '', "tipo": "diff"})
+    cols_sipa.sort(key=lambda x: x["col"])
+
+    sipa = {"cols": [{"header": c["header"], "sub": c["sub"], "tipo": c["tipo"]} for c in cols_sipa],
+            "filas": []}
     for r in range(4, 13):
         cat = ws.cell(r, 2).value
         if not cat: continue
         valores = []
-        for col_idx_n, _, _, _ in COLS_SIPA:
-            v = ws.cell(r, col_idx_n).value
+        for c in cols_sipa:
+            v = ws.cell(r, c["col"]).value
             valores.append(v if isinstance(v, (int, float)) else None)
         sipa["filas"].append({"categoria": str(cat).strip(), "valores": valores})
     data['sipa'] = sipa
@@ -727,10 +837,12 @@ def extract_salarios(status):
     wb = _open_wb(EXCEL_PATHS["salarios"])
     data = {}
 
-    # ---- G Sal real: 1.1 INDEC A186:A298, CE/CF/CH/CI ----
+    # ---- G Sal real: 1.1 INDEC desde A186, CE/CF/CH/CI ----
+    # el final se detecta solo (antes estaba fijo en 298 y se cortaba en abr-26)
     ws = wb["1.1 INDEC"]
     sal_real = []
-    for r in range(186, 299):
+    fin_sal = last_data_row(ws, ['CE', 'CF', 'CH', 'CI'], 186)
+    for r in range(186, fin_sal + 1):
         fecha = ws.cell(r, 1).value
         if not isinstance(fecha, datetime): continue
         priv = fmt_n(ws.cell(r, 83).value)  # CE
@@ -744,6 +856,8 @@ def extract_salarios(status):
                 "priv": priv, "pub": pub, "nor": nor, "tot": tot
             })
     data['sal_real'] = sal_real
+    if sal_real:
+        _avisar_si_viejo(status, "Salarios - serie real", sal_real[-1]['fecha'], meses=4)
 
     # ---- Cuadro INDEC 1.3 ----
     ws = wb["1.3 Cuadro INDEC"]
@@ -771,12 +885,14 @@ def extract_salarios(status):
         cuadro["filas"].append({"categoria": str(cat).strip(), "valores": valores})
     data['cuadro'] = cuadro
 
-    # ---- G real 21: 1.6. Datos grafico base 21 A5:A56 B-H ----
+    # ---- G real 21: 1.6. Datos grafico base 21 desde A5, cols B-H ----
+    # el final se detecta solo (antes estaba fijo en 56 y se cortaba en mar-26)
     ws = wb["1.6. Datos grafico base 21"]
     real_21 = []
     keys = [(2,'sal_priv'),(3,'sal_pub_nac'),(4,'sal_pub_prov'),
             (5,'jub_min'),(6,'jub_no_min'),(7,'no_reg'),(8,'auh')]
-    for r in range(5, 57):
+    fin_21 = last_data_row(ws, ['B', 'C', 'D', 'E', 'F', 'G', 'H'], 5)
+    for r in range(5, fin_21 + 1):
         fecha = ws.cell(r, 1).value
         if not isinstance(fecha, datetime): continue
         point = {"fecha": fecha.strftime("%Y-%m-%d"), "label": fecha.strftime("%b-%y")}
@@ -962,14 +1078,15 @@ def extract_emae_series(status):
         sector_se: [{date, vals:[16]}],
         sector_labels: [16 strings] }
 
-    Estructura esperada en Base EsAE.xlsx:
-      - Hoja "EMAE"   (o similar): col A=fecha, B=original, C=desest
-      - Hoja "Sector CE": col A=fecha, cols B-Q = 16 sectores (con estacionalidad)
-      - Hoja "Sector SE": col A=fecha, cols B-Q = 16 sectores (sin estacionalidad)
-      - Hoja "Labels" o fila 1 de Sector CE: nombres de los 16 sectores
+    Lee BD/Actividad/EMAE.xlsx:
+      - Hoja "EMAE": col A=fecha, B=serie original, C=serie desestacionalizada
+      - Hoja "EMAE por sector de actividad CE": col A=fecha, B-Q = 16 sectores
+      - Hoja "EMAE por sector de actividad SE": idem, sin estacionalidad
 
-    Si la hoja exacta no coincide, el código busca por nombre parcial.
-    Ajustá SHEET_MAP abajo si los nombres reales difieren.
+    No asume en que fila arranca cada cuadro: busca la primera fila cuya
+    columna A es una fecha y toma los nombres de los sectores de la fila
+    inmediatamente anterior. Si el analista agrega filas arriba (titulos,
+    ponderadores) o meses nuevos abajo, el refresh lo sigue solo.
     """
     import io as _io
     import openpyxl as _opx
@@ -982,7 +1099,7 @@ def extract_emae_series(status):
         'Enseñanza', 'Serv. sociales', 'Otras act.', 'Imp. netos'
     ]
 
-    path = EXCEL_PATHS["base_esae"]
+    path = EXCEL_PATHS["emae"]
     if not os.path.exists(path):
         status.warn("EMAE Series", f"no se encontró {path}")
         return None
@@ -990,7 +1107,9 @@ def extract_emae_series(status):
     try:
         with open(path, 'rb') as _f:
             _data = _f.read()
-        wb = _opx.load_workbook(_io.BytesIO(_data), data_only=True, read_only=True)
+        # read_only=False: hace falta ver el relleno de las celdas para
+        # detectar donde arranca el bloque de proyeccion.
+        wb = _opx.load_workbook(_io.BytesIO(_data), data_only=True, read_only=False)
     except Exception as e:
         status.warn("EMAE Series", f"no se pudo abrir el Excel: {e}")
         return None
@@ -1022,50 +1141,86 @@ def extract_emae_series(status):
         try: return v.strftime("%Y-%m")
         except: return str(v)[:7]
 
+    def _read_dated_block(ws, ncols, stop_on_fill=False):
+        """Lee un cuadro cuya columna A son fechas, sin asumir en que fila
+           arranca: busca la primera fila con fecha y toma los encabezados de
+           la fila anterior.
+
+           Con stop_on_fill=True corta ademas en la primera fila pintada, que
+           es como el analista marca la proyeccion en la hoja EMAE — cuando
+           despinta un mes porque ya salio el dato observado, entra solo en el
+           proximo refresh. Si la PRIMERA fila de datos ya viene pintada, el
+           relleno es el estilo del cuadro y no una marca (pasa en las hojas de
+           sectores): en ese caso se ignora el color y se lee todo.
+
+           Devuelve (encabezados, filas)."""
+        max_row = ws.max_row or 0
+        first = next((r for r in range(1, min(max_row, 40) + 1)
+                      if _parse_date(ws.cell(r, 1).value) is not None), None)
+        if first is None:
+            return [], []
+        labels = [str(ws.cell(first - 1, c).value).strip().replace('\n', ' ')
+                  if first > 1 and ws.cell(first - 1, c).value is not None else ''
+                  for c in range(2, ncols + 2)]
+
+        def _pintada(r):
+            for c in range(2, ncols + 2):
+                f = ws.cell(r, c).fill
+                if f is not None and f.patternType not in (None, 'none'):
+                    return True
+            return False
+
+        # si el cuadro entero esta pintado, el color no marca proyeccion
+        usar_color = stop_on_fill and not _pintada(first)
+
+        out = []
+        for r in range(first, max_row + 1):
+            d = _parse_date(ws.cell(r, 1).value)
+            if d is None:
+                continue
+            if usar_color and _pintada(r):
+                break
+            vals = [fmt_n(ws.cell(r, c).value) for c in range(2, ncols + 2)]
+            if all(v is None for v in vals):
+                continue
+            out.append({"date": _fmt_date(d), "vals": vals})
+        return labels, out
+
     # ---- Serie original + desestacionalizada ----
-    ws_orig = _find_sheet(wb, ['EMAE', 'Original', 'Serie', 'Mensual', 'emae'])
+    ws_orig = _find_sheet(wb, ['EMAE'])
     original = []
     if ws_orig:
-        for row in ws_orig.iter_rows(min_row=2, max_col=3, values_only=True):
-            d = _parse_date(row[0])
-            if d is None: continue
-            orig_val = fmt_n(row[1])
-            dest_val = fmt_n(row[2])
-            if orig_val is None and dest_val is None: continue
-            original.append({"date": _fmt_date(d), "original": orig_val, "desest": dest_val})
+        _, filas = _read_dated_block(ws_orig, 2, stop_on_fill=True)
+        original = [{"date": f["date"], "original": f["vals"][0], "desest": f["vals"][1]}
+                    for f in filas]
     else:
-        status.warn("EMAE Series", "no se encontró hoja de serie original (buscando: EMAE/Original/Serie/Mensual)")
+        status.warn("EMAE Series", "no se encontró la hoja 'EMAE'")
 
     # ---- Sectores con estacionalidad ----
-    ws_ce = _find_sheet(wb, ['CE', 'Sector CE', 'Con estacionalidad', 'sector_ce', 'sectores ce'])
+    ws_ce = _find_sheet(wb, ['EMAE por sector de actividad CE', 'sector de actividad ce', 'sector ce'])
     sector_ce = []
     if ws_ce:
-        rows_ce = list(ws_ce.iter_rows(min_row=2, max_col=17, values_only=True))
-        # Fila 1 puede tener labels — intentar leerlos
-        hdr = list(ws_ce.iter_rows(min_row=1, max_row=1, max_col=17, values_only=True))
-        if hdr and any(isinstance(v, str) for v in hdr[0][1:]):
-            SECTOR_LABELS[:] = [str(v).strip() for v in hdr[0][1:17] if v is not None]
-        for row in rows_ce:
-            d = _parse_date(row[0])
-            if d is None: continue
-            vals = [fmt_n(row[i]) for i in range(1, 17)]
-            if all(v is None for v in vals): continue
-            sector_ce.append({"date": _fmt_date(d), "vals": vals})
+        labels_ce, sector_ce = _read_dated_block(ws_ce, 16)
+        # Los nombres cortos de SECTOR_LABELS se muestran en el dashboard, pero
+        # dependen de que el orden de columnas del Excel no cambie. El Excel los
+        # rotula "A - Agricultura...", "B - Pesca", ...: si esa secuencia deja de
+        # ser A,B,C,... el orden cambio y hay que revisar SECTOR_LABELS.
+        letras = [l.split('-')[0].strip() for l in labels_ce if l]
+        esperado = [chr(ord('A') + i) for i in range(15)]
+        if letras[:15] != esperado:
+            status.warn("EMAE Series",
+                        f"cambió el orden de los sectores en el Excel (leí {letras[:6]}...): "
+                        f"revisar SECTOR_LABELS antes de confiar en las etiquetas")
     else:
-        status.warn("EMAE Series", "no se encontró hoja de sectores CE")
+        status.warn("EMAE Series", "no se encontró la hoja de sectores CE")
 
     # ---- Sectores sin estacionalidad ----
-    ws_se = _find_sheet(wb, ['SE', 'Sector SE', 'Sin estacionalidad', 'sector_se', 'sectores se'])
+    ws_se = _find_sheet(wb, ['EMAE por sector de actividad SE', 'sector de actividad se', 'sector se'])
     sector_se = []
     if ws_se:
-        for row in ws_se.iter_rows(min_row=2, max_col=17, values_only=True):
-            d = _parse_date(row[0])
-            if d is None: continue
-            vals = [fmt_n(row[i]) for i in range(1, 17)]
-            if all(v is None for v in vals): continue
-            sector_se.append({"date": _fmt_date(d), "vals": vals})
+        _, sector_se = _read_dated_block(ws_se, 16)
     else:
-        status.warn("EMAE Series", "no se encontró hoja de sectores SE")
+        status.warn("EMAE Series", "no se encontró la hoja de sectores SE")
 
     if not original and not sector_ce and not sector_se:
         status.fail("EMAE Series", f"no se extrajo ningún dato de {os.path.basename(path)}. Verificar nombres de hojas: {wb.sheetnames[:8]}")
@@ -1077,7 +1232,12 @@ def extract_emae_series(status):
         "sector_se":     sector_se,
         "sector_labels": SECTOR_LABELS,
     }
-    status.ok("EMAE Series", f"{len(original)} meses - {len(sector_ce)} CE - {len(sector_se)} SE")
+    status.ok("EMAE Series", f"{len(original)} meses - {len(sector_ce)} CE - {len(sector_se)} SE"
+                             + (f" - hasta {original[-1]['date']}" if original else ""))
+    if original:
+        _avisar_si_viejo(status, "EMAE Series", original[-1]['date'], meses=4)
+    if sector_ce:
+        _avisar_si_viejo(status, "EMAE sectores", sector_ce[-1]['date'], meses=4)
     return result
 
 def save_emae_series(data):
@@ -1223,6 +1383,9 @@ def extract_reservas(status):
                 g5.append({'d': dt.strftime('%Y-%m-%d'), 'r': r, 'dep': dep, 'pre': pre})
             data['g5'] = g5
             status.ok("Reservas - G5", f"{len(g5)} dias - ultimo: {g5[-1]['d'] if g5 else '?'}")
+            if g5:
+                _avisar_si_viejo(status, "Reservas - serie diaria", g5[-1]['d'], meses=2,
+                                 extra="la hoja 'Datos' del Excel dejo de cargarse")
         except Exception as e:
             status.fail("Reservas - G5", str(e))
             traceback.print_exc()
@@ -1449,6 +1612,144 @@ def extract_comercio(status):
     return data if data else None
 
 # =====================================================================
+#  INTERNACIONAL · MERCADOS · LATINFOCUS
+# =====================================================================
+def extract_internacional(status):
+    """Copia el monitor-data.js del Monitor mundial a internacional.js."""
+    if not os.path.exists(MONITOR_MUNDIAL_JS):
+        status.warn("Internacional", f"no se encontro {MONITOR_MUNDIAL_JS}")
+        return False
+    src = _read_text(MONITOR_MUNDIAL_JS)
+    m = re.search(r'window\.MONITOR_DATA\s*=\s*(\{.*\});?\s*$', src, re.DOTALL)
+    if not m:
+        status.fail("Internacional", "no pude parsear monitor-data.js")
+        return False
+    intl_data = json.loads(m.group(1))
+    _intl_str = json.dumps(intl_data, ensure_ascii=False, default=str)
+    try:
+        with open(os.path.join(DATA_DIR, "internacional.json"), "w", encoding="utf-8") as f:
+            f.write(_intl_str)
+    except OSError:
+        pass
+    js_path = os.path.join(DATA_DIR, "internacional.js")
+    with open(js_path, "w", encoding="utf-8") as f:
+        f.write(f"// Datos Internacional - regenerado por refresh.py el {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
+                f"window.INTERNACIONAL_DATA = {_intl_str};\n")
+    origen = datetime.fromtimestamp(os.path.getmtime(MONITOR_MUNDIAL_JS)).strftime('%d/%m %H:%M')
+    status.ok("Internacional",
+              f"{os.path.getsize(js_path):,} bytes - {len(intl_data.get('countries',[]))} paises "
+              f"(origen del {origen})")
+    return True
+
+def extract_mercados(status):
+    """Baja el payload de la API de mercados. Avisa si la propia API viene
+    con datos viejos: el script puede estar corriendo bien y aun asi
+    publicar algo desactualizado porque la fuente esta parada."""
+    import urllib.request
+    MERCADOS_API = "https://ecogomarkets.honorio-zabaleta.workers.dev/data/dashboard_payload.json"
+    req = urllib.request.Request(MERCADOS_API, headers={"User-Agent": "EcoGo-Dashboard-Refresh/1.0"})
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        payload = json.loads(resp.read().decode("utf-8"))
+    subset = {k: payload.get(k, d) for k, d in [
+        ("meta", {}), ("external_context", {}), ("overview", {}),
+        ("fixed_curve", []), ("fixed_curve_history", {"dates": [], "curves": {}}),
+        ("cer_curve", []), ("cer_curve_history", {"dates": [], "curves": {}}),
+        ("dollar_linked", {}), ("hard_dollar", {}),
+        ("hard_dollar_curve_history", {"dates": [], "curves": {}}), ("hero_metrics", []),
+    ]}
+    js_path = os.path.join(DATA_DIR, "mercados.js")
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+    with open(js_path, "w", encoding="utf-8") as f:
+        f.write("// Mercados data - extraido de dashboard_payload - " + ts + "\n"
+                "window.MERCADOS_DATA = " + json.dumps(subset, ensure_ascii=False, default=str) + ";\n")
+    fin = (subset.get("meta") or {}).get("end_date", "")
+    status.ok("Mercados", f"{os.path.getsize(js_path):,} bytes - la API llega hasta {fin or '?'}")
+    _avisar_si_viejo(status, "Mercados", fin, meses=2,
+                     extra="la fuente es el worker ecogomarkets, no el refresh")
+    return True
+
+def run_latinfocus(status):
+    """Busca el PDF de LatinFocus mas nuevo en PROYECCIONES_INTL y lo procesa.
+    No hay que escribir el nombre del archivo en ningun lado: alcanza con
+    dejar el PDF del mes en esa carpeta."""
+    import subprocess
+    if not os.path.isdir(PROYECCIONES_INTL):
+        status.warn("Internacional Consensus", f"no existe la carpeta {PROYECCIONES_INTL}")
+        return False
+    MESES = {m: i for i, m in enumerate(
+        ['january','february','march','april','may','june',
+         'july','august','september','october','november','december'], 1)}
+    cands = []
+    for f in os.listdir(PROYECCIONES_INTL):
+        if not f.lower().endswith('.pdf') or 'latinfocus' not in f.lower():
+            continue
+        m = re.search(r'(' + '|'.join(MESES) + r')\s+(\d{4})', f, re.IGNORECASE)
+        # si el nombre no dice el mes, ordena por fecha de modificacion
+        clave = ((int(m.group(2)), MESES[m.group(1).lower()]) if m else (0, 0),
+                 os.path.getmtime(os.path.join(PROYECCIONES_INTL, f)))
+        cands.append((clave, f))
+    if not cands:
+        status.warn("Internacional Consensus", f"no hay PDFs de LatinFocus en {PROYECCIONES_INTL}")
+        return False
+    cands.sort()
+    pdf = os.path.join(PROYECCIONES_INTL, cands[-1][1])
+
+    js_path = os.path.join(DATA_DIR, "internacional2.js")
+    if os.path.exists(js_path) and os.path.getmtime(js_path) >= os.path.getmtime(pdf):
+        status.ok("Internacional Consensus", f"ya al dia con {cands[-1][1]}")
+        return True
+
+    r = subprocess.run([sys.executable, os.path.join(DASHBOARD_DIR, "parse_latinfocus.py"), pdf],
+                       capture_output=True, text=True, cwd=DASHBOARD_DIR)
+    if r.returncode != 0:
+        status.fail("Internacional Consensus", (r.stderr or r.stdout).strip()[:200])
+        return False
+    status.ok("Internacional Consensus", f"procesado {cands[-1][1]}")
+    return True
+
+def run_resto(status):
+    """Corre las secciones que el notebook de clientes no cubre: Empleo,
+    Salarios, Tipo de cambio, Actividad IPI, Series largas, Internacional
+    (Monitor mundial + LatinFocus) y Mercados.
+
+    Existe para no tener que correr el notebook y ademas refresh.bat: con
+    esto, una sola corrida deja todo el dashboard al dia."""
+    def _paso(nombre, fn):
+        try:
+            fn()
+        except Exception as e:
+            status.fail(nombre, str(e))
+            traceback.print_exc()
+
+    def _guardar(nombre, extractor, archivo):
+        d = extractor(status)
+        if d:
+            sz = save_data(archivo, d)
+            status.ok(nombre, f"{sz:,} bytes")
+
+    _paso("Empleo",         lambda: _guardar("Empleo", extract_empleo, "empleo"))
+    _paso("Salarios",       lambda: _guardar("Salarios", extract_salarios, "salarios"))
+    _paso("Tipo de Cambio", lambda: _guardar("Tipo de Cambio", extract_tipo_cambio, "tipo-cambio"))
+
+    def _ipi():
+        from extract_actividad_ipi import run_extraction as run_ipi
+        r = run_ipi(os.path.join(BASE_EXCEL, "Actividad", "IPI - Todos.xlsx"), DASHBOARD_DIR)
+        (status.ok if r["ok"] else status.fail)("Actividad IPI", r["msg"])
+    _paso("Actividad IPI", _ipi)
+
+    def _series():
+        from extract_series_largas import run_extraction
+        anexo = os.path.join(BASE_EXCEL, "03 Informes y Anexos", "Cuadros y Anexos",
+                             "Anexos nuevos", "Anexo.xlsx")
+        r = run_extraction(anexo, DASHBOARD_DIR)
+        (status.ok if r["ok"] else status.fail)("Series Largas", r["msg"])
+    _paso("Series Largas", _series)
+
+    _paso("Internacional",          lambda: extract_internacional(status))
+    _paso("Internacional Consensus", lambda: run_latinfocus(status))
+    _paso("Mercados",               lambda: extract_mercados(status))
+
+# =====================================================================
 #  GITHUB — copiar datos actualizados al repo clonado y hacer push
 # =====================================================================
 def push_to_github(status):
@@ -1554,7 +1855,7 @@ def main():
     status = Status()
 
     # ---- Precios ----
-    print("[1/8] Procesando Precios...")
+    print("[1/13] Procesando Precios...")
     try:
         d = extract_precios(status)
         if d:
@@ -1565,7 +1866,7 @@ def main():
         traceback.print_exc()
 
     # ---- EMAE Series ----
-    print("\n[2/8] Procesando EMAE Series (actividad)...")
+    print("\n[2/13] Procesando EMAE Series (actividad)...")
     try:
         d = extract_emae_series(status)
         if d:
@@ -1576,7 +1877,7 @@ def main():
         traceback.print_exc()
 
     # ---- Empleo ----
-    print("\n[3/8] Procesando Empleo...")
+    print("\n[3/13] Procesando Empleo...")
     try:
         d = extract_empleo(status)
         if d:
@@ -1587,7 +1888,7 @@ def main():
         traceback.print_exc()
 
     # ---- Salarios ----
-    print("\n[4/8] Procesando Salarios...")
+    print("\n[4/13] Procesando Salarios...")
     try:
         d = extract_salarios(status)
         if d:
@@ -1598,7 +1899,7 @@ def main():
         traceback.print_exc()
 
     # ---- Tipo de Cambio ----
-    print("\n[5/8] Procesando Tipo de Cambio...")
+    print("\n[5/13] Procesando Tipo de Cambio...")
     try:
         d = extract_tipo_cambio(status)
         if d:
@@ -1609,7 +1910,7 @@ def main():
         traceback.print_exc()
 
     # ---- Reservas ----
-    print("\n[6/8] Procesando Reservas...")
+    print("\n[6/13] Procesando Reservas...")
     try:
         d = extract_reservas(status)
         if d:
@@ -1620,72 +1921,23 @@ def main():
         traceback.print_exc()
 
     # ---- Internacional ----
-    print("\n[7/8] Procesando Internacional (Monitor mundial)...")
+    print("\n[7/13] Procesando Internacional (Monitor mundial)...")
     try:
-        if not os.path.exists(MONITOR_MUNDIAL_JS):
-            status.warn("Internacional", f"no se encontro {MONITOR_MUNDIAL_JS}")
-        else:
-            src = _read_text(MONITOR_MUNDIAL_JS)
-            m = re.search(r'window\.MONITOR_DATA\s*=\s*(\{.*\});?\s*$', src, re.DOTALL)
-            if not m:
-                status.fail("Internacional", "no pude parsear monitor-data.js")
-            else:
-                intl_data = json.loads(m.group(1))
-                json_path = os.path.join(DATA_DIR, "internacional.json")
-                js_path   = os.path.join(DATA_DIR, "internacional.js")
-                _intl_str = json.dumps(intl_data, ensure_ascii=False, default=str)
-                try:
-                    with open(json_path, "w", encoding="utf-8") as f:
-                        f.write(_intl_str)
-                except OSError:
-                    pass
-                js = f"// Datos Internacional - regenerado por refresh.py el {datetime.now().strftime('%Y-%m-%d %H:%M')}\nwindow.INTERNACIONAL_DATA = {_intl_str};\n"
-                with open(js_path, "w", encoding="utf-8") as f:
-                    f.write(js)
-                sz = os.path.getsize(js_path)
-                status.ok("Internacional", f"{sz:,} bytes - {len(intl_data.get('countries',[]))} paises")
+        extract_internacional(status)
+        run_latinfocus(status)
     except Exception as e:
         status.fail("Internacional", str(e))
         traceback.print_exc()
 
     # ---- Mercados (API) ----
-    print("\n[8/8] Actualizando Mercados (EcoGo Markets API)...")
+    print("\n[8/13] Actualizando Mercados (EcoGo Markets API)...")
     try:
-        import urllib.request
-        MERCADOS_API = "https://ecogomarkets.honorio-zabaleta.workers.dev/data/dashboard_payload.json"
-        req = urllib.request.Request(MERCADOS_API, headers={"User-Agent": "EcoGo-Dashboard-Refresh/1.0"})
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            payload = json.loads(resp.read().decode("utf-8"))
-        subset = {
-            "meta":                      payload.get("meta", {}),
-            "external_context":          payload.get("external_context", {}),
-            "overview":                  payload.get("overview", {}),
-            "fixed_curve":               payload.get("fixed_curve", []),
-            "fixed_curve_history":       payload.get("fixed_curve_history", {"dates": [], "curves": {}}),
-            "cer_curve":                 payload.get("cer_curve", []),
-            "cer_curve_history":         payload.get("cer_curve_history", {"dates": [], "curves": {}}),
-            "dollar_linked":             payload.get("dollar_linked", {}),
-            "hard_dollar":               payload.get("hard_dollar", {}),
-            "hard_dollar_curve_history": payload.get("hard_dollar_curve_history", {"dates": [], "curves": {}}),
-            "hero_metrics":              payload.get("hero_metrics", []),
-        }
-        js_path = os.path.join(DATA_DIR, "mercados.js")
-        ts = datetime.now().strftime("%Y-%m-%d %H:%M")
-        js_content = (
-            "// Mercados data - extraido de dashboard_payload - " + ts + "\n"
-            "window.MERCADOS_DATA = "
-            + json.dumps(subset, ensure_ascii=False, default=str)
-            + ";\n"
-        )
-        with open(js_path, "w", encoding="utf-8") as f:
-            f.write(js_content)
-        sz = os.path.getsize(js_path)
-        status.ok("Mercados", f"{sz:,} bytes - {ts}")
+        extract_mercados(status)
     except Exception as e:
         status.warn("Mercados", f"no se pudo actualizar desde la API: {e}")
 
     # ---- Actividad IPI (Indicadores de actividad) ----
-    print("\n[9/11] Actualizando Indicadores de Actividad (IPI - Todos.xlsx)...")
+    print("\n[9/13] Actualizando Indicadores de Actividad (IPI - Todos.xlsx)...")
     try:
         from extract_actividad_ipi import run_extraction as run_ipi
         ipi_path = os.path.join(BASE_EXCEL, "Actividad", "IPI - Todos.xlsx")
@@ -1699,7 +1951,7 @@ def main():
         traceback.print_exc()
 
     # ---- Series Largas (Anexo histórico) ----
-    print("\n[10/11] Actualizando Series Largas (Anexo.xlsx)...")
+    print("\n[10/13] Actualizando Series Largas (Anexo.xlsx)...")
     try:
         from extract_series_largas import run_extraction
         anexo_path = os.path.join(BASE_EXCEL, "03 Informes y Anexos", "Cuadros y Anexos", "Anexos nuevos", "Anexo.xlsx")
@@ -1713,7 +1965,7 @@ def main():
         traceback.print_exc()
 
     # ---- Monetarias ----
-    print("\n[11/12] Procesando Monetarias...")
+    print("\n[11/13] Procesando Monetarias...")
     try:
         d = extract_monetarias(status)
         if d:
