@@ -737,12 +737,23 @@ def extract_empleo(status):
     wb = _open_wb(EXCEL_PATHS["empleo"])
     data = {}
 
-    # ---- Tasas EPH (sección principal R8-R124, cols B,E,H,K,N,Q,T) ----
+    # ---- Tasas EPH (desde R8, cols B,E,H,K,N,Q,T) ----
+    # El final se detecta solo. Antes estaba fijo en la fila 124 y el cuadro se
+    # quedaba en IV-25 aunque I-26 ya estuviera cargado justo debajo.
+    # Dos guardas para saber donde termina, porque abajo del cuadro la hoja
+    # sigue con otro bloque ("Datos gráfico") que arranca de nuevo en I-19:
+    #   - cortar tras varias filas seguidas sin periodo (hay huecos sueltos
+    #     adentro del cuadro, asi que una sola no alcanza)
+    #   - cortar si el periodo deja de avanzar en el tiempo
     ws = wb["Tasas EPH"]
     eph = []
-    for r in range(8, 125):
+    _vacias, _ult_ord = 0, None
+    for r in range(8, 220):
         fecha = ws.cell(r, 1).value
-        if fecha is None: continue
+        if fecha is None:
+            _vacias += 1
+            if eph and _vacias >= 4: break
+            continue
         if isinstance(fecha, datetime):
             fecha_str = fecha.strftime("%Y-%m-%d")
             ord_idx = (fecha.year * 4) + (fecha.month - 1) // 3
@@ -757,14 +768,23 @@ def extract_empleo(status):
                 label = fecha.strip()
             else:
                 m2 = re.match(r'(\d)\s*º?\s*trim\s*(\d{4})', fecha.strip(), re.IGNORECASE)
-                if not m2: continue
+                if not m2:
+                    _vacias += 1
+                    if eph and _vacias >= 4: break
+                    continue
                 q = int(m2.group(1))
                 yy = int(m2.group(2))
                 label = f"{['','I','II','III','IV'][q]}-{str(yy)[2:]}"
             fecha_str = f"{yy}-{(q-1)*3+1:02d}-01"
             ord_idx = (yy * 4) + (q - 1)
         else:
+            _vacias += 1
+            if eph and _vacias >= 4: break
             continue
+        # si el periodo dejo de avanzar, esto ya es otro bloque de la hoja
+        if _ult_ord is not None and ord_idx <= _ult_ord:
+            break
+        _vacias, _ult_ord = 0, ord_idx
         eph.append({
             "fecha": fecha_str, "ord": ord_idx, "label": label,
             "actividad":     fmt_n(ws.cell(r, 2).value),
@@ -1767,6 +1787,17 @@ def extract_internacional(status):
     status.ok("Internacional",
               f"{os.path.getsize(js_path):,} bytes - {len(intl_data.get('countries',[]))} paises "
               f"(origen del {origen})")
+
+    # El archivo puede estar recien generado y aun asi traer series viejas: el
+    # Monitor mundial se regenera todos los dias, pero si una fuente deja de
+    # responder arrastra el ultimo dato que consiguio. Mirar la fecha del
+    # archivo no alcanza, hay que mirar adentro.
+    arg = (intl_data.get('series') or {}).get('ARG') or {}
+    for ind in ('inflationYoy', 'unemployment'):
+        fechas = sorted(set(re.findall(r'\d{4}-\d{2}', json.dumps(arg.get(ind, ''), default=str))))
+        if fechas:
+            _avisar_si_viejo(status, f"Internacional - ARG {ind}", fechas[-1], meses=3,
+                             extra="el dato viejo viene del Monitor mundial, no del refresh")
     return True
 
 @_nunca_rompe("Mercados")
