@@ -90,14 +90,19 @@ def _open_wb(path, data_only=True, read_only=True):
     return _opx.load_workbook(_io.BytesIO(_data), data_only=data_only, read_only=read_only)
 
 def _read_text(path, encoding='utf-8'):
-    """Lee un archivo de texto evitando [Errno 22] del mount de OneDrive."""
-    import subprocess as _sub
-    r = _sub.run(['cat', path], capture_output=True)
-    if r.returncode == 0:
-        return r.stdout.decode(encoding)
-    # fallback directo
-    with open(path, encoding=encoding) as f:
-        return f.read()
+    """Lee un archivo de texto sorteando el [Errno 22] que a veces tira el
+    mount de OneDrive: si la lectura de texto falla, se reintenta en binario.
+
+    Antes esto se resolvia llamando a 'cat', que existe en Git Bash pero no en
+    Windows a secas. Desde Jupyter no estaba en el PATH y subprocess LEVANTABA
+    FileNotFoundError en vez de devolver un codigo de error, asi que el
+    fallback de mas abajo nunca llegaba a ejecutarse."""
+    try:
+        with open(path, encoding=encoding) as f:
+            return f.read()
+    except OSError:
+        with open(path, 'rb') as f:
+            return f.read().decode(encoding, errors='replace')
 
 class Status:
     def __init__(self):
@@ -172,7 +177,14 @@ def _nunca_rompe(nombre):
                 return fn(status, *a, **kw)
             except Exception as e:
                 status.warn(nombre, f"{type(e).__name__}: {e}")
-                traceback.print_exc()
+                # Detalle en una linea, no un traceback: el paso quedo en WARN y
+                # el refresh sigue. Un traceback entero acá hace pensar que se
+                # corto la corrida cuando en realidad no paso nada de eso.
+                tb = traceback.extract_tb(sys.exc_info()[2])
+                if tb:
+                    ult = tb[-1]
+                    print(f"         (el refresh sigue · origen: {os.path.basename(ult.filename)}"
+                          f":{ult.lineno} {ult.name})")
                 return False
         return wrapper
     return deco
