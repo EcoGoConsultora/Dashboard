@@ -40,7 +40,7 @@ Eso requiere que yo (Claude) ajuste el script. Avisame y lo arreglamos.
 
 Esta misma carpeta (`EcoGo-Dashboard`) es un clon de `github.com/EcoGoConsultora/Dashboard` — ya no depende de una carpeta puente aparte.
 
-Al final de `refresh.py` (y de los notebooks `Actualizar_Dashboard_Clientes.ipynb` / `Actualizar_Dashboard_EcoGo.ipynb`) se agregó un paso que:
+Al final de `refresh.py` (y del notebook `Actualizar_Dashboard_EcoGo.ipynb`) se agregó un paso que:
 
 1. Hace `git add` + `git commit` de los cambios (código y datos) directo acá.
 2. Trae los cambios de GitHub (`git fetch` + `git merge`) por si algo se subió desde otro lado.
