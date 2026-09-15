@@ -1,0 +1,151 @@
+{
+  "worldBank": {
+    "name": "World Bank Indicators API",
+    "baseUrl": "https://api.worldbank.org/v2",
+    "url": "https://datahelpdesk.worldbank.org/knowledgebase/articles/889392-about-the-indicators-api-documentation"
+  },
+  "argentinaSeries": {
+    "name": "INDEC / datos.gob.ar Series de Tiempo",
+    "baseUrl": "https://apis.datos.gob.ar/series/api/series/",
+    "url": "https://www.argentina.gob.ar/datos-abiertos/api-series-de-tiempo",
+    "series": {
+      "cpiIndex": "148.3_INIVELNAL_DICI_M_26",
+      "emaeSeasonallyAdjustedMom": "143.3_ICE_SER_VM_2004_A_34",
+      "unemployment": "42.3_EPH_PUNTUATAL_0_M_30"
+    }
+  },
+  "bcraTamar": {
+    "name": "BCRA TAMAR",
+    "baseUrl": "https://api.bcra.gob.ar/estadisticas/v4.0/monetarias",
+    "url": "https://www.bcra.gob.ar/catalogo_de_datos/principales-variables-monetarias-y-financieras/",
+    "series": {
+      "tamarNominalAnnualPublicPrivate": 135
+    }
+  },
+  "blsPublic": {
+    "name": "U.S. Bureau of Labor Statistics Public Data API",
+    "timeseriesUrl": "https://api.bls.gov/publicAPI/v2/timeseries/data/",
+    "url": "https://www.bls.gov/bls/api_features.htm",
+    "series": {
+      "cpiAllItemsNsa": "CUUR0000SA0",
+      "cpiAllItemsSa": "CUSR0000SA0",
+      "unemploymentRate": "LNS14000000"
+    }
+  },
+  "beaDbnomics": {
+    "name": "U.S. Bureau of Economic Analysis via DBnomics mirror",
+    "gdpSeriesUrl": "https://api.db.nomics.world/v22/series/BEA/NIPA-T10101/A191RL-Q?observations=1",
+    "url": "https://www.bea.gov/data/gdp/gross-domestic-product"
+  },
+  "oecdDbnomics": {
+    "name": "OECD via DBnomics mirror",
+    "baseUrl": "https://api.db.nomics.world/v22/series",
+    "url": "https://www.oecd.org/en/data/insights/data-explainers/2024/09/api.html",
+    "datasets": {
+      "g20Prices": "DSD_G20_PRICES@DF_G20_PRICES",
+      "g20Gdp": "DSD_NAMAIN1@DF_QNA_EXPENDITURE_GROWTH_G20",
+      "monthlyUnemployment": "DSD_LFS@DF_IALFS_UNE_M"
+    }
+  },
+  "eurostat": {
+    "name": "Eurostat",
+    "baseUrl": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data",
+    "url": "https://ec.europa.eu/eurostat/web/user-guides/data-browser/api-data-access/"
+  },
+  "ibgeSidra": {
+    "name": "IBGE SIDRA",
+    "ipcaMonthlyUrl": "https://apisidra.ibge.gov.br/values/t/1737/n1/all/v/63/p/last%2084?formato=json",
+    "url": "https://apisidra.ibge.gov.br/"
+  },
+  "onsDbnomics": {
+    "name": "UK Office for National Statistics via DBnomics mirror",
+    "baseUrl": "https://api.db.nomics.world/v22/series",
+    "url": "https://www.ons.gov.uk/",
+    "series": {
+      "inflationYoy": {
+        "provider": "ONS",
+        "dataset": "MM23",
+        "code": "D7G7.M"
+      },
+      "inflationMom": {
+        "provider": "ONS",
+        "dataset": "MM23",
+        "code": "D7OE.M"
+      },
+      "gdpGrowth": {
+        "provider": "ONS",
+        "dataset": "QNA",
+        "code": "IHYQ.Q"
+      },
+      "unemployment": {
+        "provider": "ONS",
+        "dataset": "LMS",
+        "code": "MGSX.M"
+      }
+    }
+  },
+  "rbaDbnomics": {
+    "name": "Reserve Bank of Australia via DBnomics mirror",
+    "baseUrl": "https://api.db.nomics.world/v22/series",
+    "url": "https://www.rba.gov.au/statistics/tables/",
+    "series": {
+      "inflationYoy": {
+        "provider": "RBA",
+        "dataset": "G4",
+        "code": "GCPIAGYPM"
+      },
+      "inflationMom": {
+        "provider": "RBA",
+        "dataset": "G4",
+        "code": "GCPIAGSAMP"
+      },
+      "unemployment": {
+        "provider": "RBA",
+        "dataset": "H5",
+        "code": "GLFSURSA"
+      }
+    }
+  },
+  "statJapanDbnomics": {
+    "name": "Statistics Japan via DBnomics mirror",
+    "baseUrl": "https://api.db.nomics.world/v22/series",
+    "url": "https://www.stat.go.jp/english/",
+    "series": {
+      "cpiAllItems": {
+        "provider": "STATJP",
+        "dataset": "CPIm",
+        "code": "001"
+      },
+      "cpiAllItemsSa": {
+        "provider": "STATJP",
+        "dataset": "CPIm",
+        "code": "901"
+      },
+      "unemployment": {
+        "provider": "STATJP",
+        "dataset": "MIm",
+        "code": "M.UR.B.PCT.SA"
+      }
+    }
+  },
+  "bis": {
+    "name": "BIS Central Bank Policy Rates",
+    "bulkCsvZipUrl": "https://data.bis.org/static/bulk/WS_CBPOL_csv_col.zip",
+    "url": "https://data.bis.org/topics/CBPOL"
+  },
+  "ilostat": {
+    "name": "ILOSTAT Labour Force Statistics",
+    "indicatorUrl": "https://rplumber.ilo.org/data/indicator/?id=UNE_DEAP_SEX_AGE_RT_Q",
+    "url": "https://ilostat.ilo.org/data/bulk/"
+  },
+  "imfDsbb": {
+    "name": "IMF DSBB The Week Ahead",
+    "weekAheadUrl": "https://dsbb.imf.org/api/report/getWeekAheadInfoList?countryType=SDDS",
+    "url": "https://dsbb.imf.org/sdds/the-week-ahead"
+  },
+  "bls": {
+    "name": "U.S. Bureau of Labor Statistics Calendar",
+    "icsUrl": "https://www.bls.gov/schedule/news_release/bls.ics",
+    "url": "https://www.bls.gov/schedule/news_release/"
+  }
+}

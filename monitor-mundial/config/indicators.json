@@ -1,0 +1,77 @@
+[
+  {
+    "id": "inflationYoy",
+    "group": "inflation",
+    "label": "Inflacion interanual",
+    "shortLabel": "IPC YoY",
+    "unit": "%",
+    "precision": 1,
+    "rank": "descending",
+    "color": "#DA4531",
+    "staleAfterMonths": 4,
+    "fallbackSource": {
+      "type": "worldBank",
+      "indicator": "FP.CPI.TOTL.ZG"
+    }
+  },
+  {
+    "id": "inflationMom",
+    "group": "inflation",
+    "label": "Inflacion mensual",
+    "shortLabel": "IPC MoM",
+    "unit": "%",
+    "precision": 1,
+    "rank": "descending",
+    "color": "#FE8B5F",
+    "staleAfterMonths": 4
+  },
+  {
+    "id": "gdpGrowth",
+    "group": "growth",
+    "label": "PIB real / actividad",
+    "shortLabel": "PIB",
+    "unit": "%",
+    "precision": 1,
+    "rank": "descending",
+    "color": "#2890A4",
+    "staleAfterMonths": 8,
+    "fallbackSource": {
+      "type": "worldBank",
+      "indicator": "NY.GDP.MKTP.KD.ZG"
+    }
+  },
+  {
+    "id": "policyRate",
+    "group": "rates",
+    "label": "Tasa de referencia",
+    "shortLabel": "Tasa ref.",
+    "unit": "%",
+    "precision": 2,
+    "rank": "descending",
+    "color": "#1B5F5E",
+    "staleAfterMonths": 4,
+    "primarySource": {
+      "type": "bis",
+      "dataset": "WS_CBPOL"
+    }
+  },
+  {
+    "id": "unemployment",
+    "group": "employment",
+    "label": "Desempleo",
+    "shortLabel": "Desempleo",
+    "unit": "%",
+    "precision": 1,
+    "rank": "ascending",
+    "color": "#66706F",
+    "staleAfterMonths": 8,
+    "primarySource": {
+      "type": "ilostat",
+      "indicator": "UNE_DEAP_SEX_AGE_RT_Q"
+    },
+    "fallbackSource": {
+      "type": "worldBank",
+      "indicator": "SL.UEM.TOTL.ZS"
+    }
+  }
+]

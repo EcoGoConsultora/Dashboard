@@ -1,0 +1,89 @@
+{
+  "windowDays": 7,
+  "timezone": "America/Argentina/Buenos_Aires",
+  "imfDsbb": {
+    "enabled": true,
+    "includeCountryCodes": [
+      "ARG",
+      "AUS",
+      "BRA",
+      "CAN",
+      "CHN",
+      "DEU",
+      "FRA",
+      "GBR",
+      "IND",
+      "IDN",
+      "ITA",
+      "JPN",
+      "KOR",
+      "MEX",
+      "RUS",
+      "SAU",
+      "ZAF",
+      "TUR",
+      "USA"
+    ],
+    "categoryRules": [
+      {
+        "contains": "price index: consumer",
+        "indicator": "inflationYoy",
+        "importance": "alta"
+      },
+      {
+        "contains": "price index: producer",
+        "indicator": "inflationYoy",
+        "importance": "media"
+      },
+      {
+        "contains": "national accounts",
+        "indicator": "gdpGrowth",
+        "importance": "alta"
+      },
+      {
+        "contains": "labor market",
+        "indicator": "unemployment",
+        "importance": "alta"
+      },
+      {
+        "contains": "central bank",
+        "indicator": "policyRate",
+        "importance": "media"
+      }
+    ]
+  },
+  "bls": {
+    "enabled": true,
+    "countryIso3": "USA",
+    "keywordRules": [
+      {
+        "contains": "consumer price index",
+        "indicator": "inflationYoy",
+        "importance": "alta"
+      },
+      {
+        "contains": "producer price index",
+        "indicator": "inflationYoy",
+        "importance": "media"
+      },
+      {
+        "contains": "employment situation",
+        "indicator": "unemployment",
+        "importance": "alta"
+      },
+      {
+        "contains": "job openings",
+        "indicator": "unemployment",
+        "importance": "media"
+      },
+      {
+        "contains": "productivity",
+        "indicator": "gdpGrowth",
+        "importance": "media"
+      }
+    ]
+  },
+  "futureAdapterSlot": {
+    "description": "Reservado para una API agregada futura, por ejemplo Trading Economics, si se necesita consenso/actual/previo global."
+  }
+}

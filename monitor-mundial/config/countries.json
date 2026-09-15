@@ -1,0 +1,155 @@
+[
+  {
+    "iso3": "ARG",
+    "name": "Argentina",
+    "region": "America Latina",
+    "highlight": true,
+    "worldBankCode": "ARG",
+    "iloCode": "ARG",
+    "policyRateArea": "AR"
+  },
+  {
+    "iso3": "AUS",
+    "name": "Australia",
+    "region": "Asia-Pacifico",
+    "worldBankCode": "AUS",
+    "iloCode": "AUS",
+    "policyRateArea": "AU"
+  },
+  {
+    "iso3": "BRA",
+    "name": "Brasil",
+    "region": "America Latina",
+    "worldBankCode": "BRA",
+    "iloCode": "BRA",
+    "policyRateArea": "BR"
+  },
+  {
+    "iso3": "CAN",
+    "name": "Canada",
+    "region": "America del Norte",
+    "worldBankCode": "CAN",
+    "iloCode": "CAN",
+    "policyRateArea": "CA"
+  },
+  {
+    "iso3": "CHN",
+    "name": "China",
+    "region": "Asia-Pacifico",
+    "worldBankCode": "CHN",
+    "iloCode": "CHN",
+    "policyRateArea": "CN"
+  },
+  {
+    "iso3": "DEU",
+    "name": "Alemania",
+    "region": "Europa",
+    "worldBankCode": "DEU",
+    "iloCode": "DEU",
+    "policyRateArea": "XM"
+  },
+  {
+    "iso3": "FRA",
+    "name": "Francia",
+    "region": "Europa",
+    "worldBankCode": "FRA",
+    "iloCode": "FRA",
+    "policyRateArea": "XM"
+  },
+  {
+    "iso3": "GBR",
+    "name": "Reino Unido",
+    "region": "Europa",
+    "worldBankCode": "GBR",
+    "iloCode": "GBR",
+    "policyRateArea": "GB"
+  },
+  {
+    "iso3": "IND",
+    "name": "India",
+    "region": "Asia-Pacifico",
+    "worldBankCode": "IND",
+    "iloCode": "IND",
+    "policyRateArea": "IN"
+  },
+  {
+    "iso3": "IDN",
+    "name": "Indonesia",
+    "region": "Asia-Pacifico",
+    "worldBankCode": "IDN",
+    "iloCode": "IDN",
+    "policyRateArea": "ID"
+  },
+  {
+    "iso3": "ITA",
+    "name": "Italia",
+    "region": "Europa",
+    "worldBankCode": "ITA",
+    "iloCode": "ITA",
+    "policyRateArea": "XM"
+  },
+  {
+    "iso3": "JPN",
+    "name": "Japon",
+    "region": "Asia-Pacifico",
+    "worldBankCode": "JPN",
+    "iloCode": "JPN",
+    "policyRateArea": "JP"
+  },
+  {
+    "iso3": "KOR",
+    "name": "Corea del Sur",
+    "region": "Asia-Pacifico",
+    "worldBankCode": "KOR",
+    "iloCode": "KOR",
+    "policyRateArea": "KR"
+  },
+  {
+    "iso3": "MEX",
+    "name": "Mexico",
+    "region": "America Latina",
+    "worldBankCode": "MEX",
+    "iloCode": "MEX",
+    "policyRateArea": "MX"
+  },
+  {
+    "iso3": "RUS",
+    "name": "Rusia",
+    "region": "Europa",
+    "worldBankCode": "RUS",
+    "iloCode": "RUS",
+    "policyRateArea": "RU"
+  },
+  {
+    "iso3": "SAU",
+    "name": "Arabia Saudita",
+    "region": "Medio Oriente",
+    "worldBankCode": "SAU",
+    "iloCode": "SAU",
+    "policyRateArea": "SA"
+  },
+  {
+    "iso3": "ZAF",
+    "name": "Sudafrica",
+    "region": "Africa",
+    "worldBankCode": "ZAF",
+    "iloCode": "ZAF",
+    "policyRateArea": "ZA"
+  },
+  {
+    "iso3": "TUR",
+    "name": "Turquia",
+    "region": "Europa",
+    "worldBankCode": "TUR",
+    "iloCode": "TUR",
+    "policyRateArea": "TR"
+  },
+  {
+    "iso3": "USA",
+    "name": "Estados Unidos",
+    "region": "America del Norte",
+    "worldBankCode": "USA",
+    "iloCode": "USA",
+    "policyRateArea": "US"
+  }
+]

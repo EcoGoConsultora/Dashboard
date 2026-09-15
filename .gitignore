@@ -31,3 +31,8 @@ desktop.ini
 # OneDrive
 *.tmp
 ~$*
+
+# Monitor mundial: el codigo y la config SI van al repo; lo generado no
+# (el dato ya viaja destilado en assets/data/internacional.js)
+monitor-mundial/data/
+monitor-mundial/logs/

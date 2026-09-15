@@ -66,9 +66,17 @@ EXCEL_PATHS = {
     "comex_proy":  os.path.join(BASE_EXCEL, "Comercio", "01 Proyecciones", "Estimación Comercio Ext.xlsx"),
 }
 
-# Monitor mundial — no es Excel, es un .js con datos del monitor externo
-MONITOR_MUNDIAL_JS = os.path.join(BASE_EXCEL, "Internacional", "Monitor mundial", "data", "monitor-data.js")
-MONITOR_MUNDIAL_DIR = os.path.dirname(os.path.dirname(MONITOR_MUNDIAL_JS))
+# Monitor mundial — el updater que baja los datos oficiales de la seccion
+# Internacional. La copia que corre el refresh vive DENTRO del repo, asi queda
+# versionada en git: antes estaba suelta en OneDrive y cualquier arreglo se
+# podia perder sin que nadie se enterara.
+MONITOR_MUNDIAL_DIR = os.path.join(DASHBOARD_DIR, "monitor-mundial")
+MONITOR_MUNDIAL_JS = os.path.join(MONITOR_MUNDIAL_DIR, "data", "monitor-data.js")
+
+# Carpeta original del Monitor mundial. El resultado se copia tambien ahi para
+# que el dashboard standalone (su propio index.html) siga funcionando igual.
+MONITOR_MUNDIAL_ESPEJO = os.path.join(BASE_EXCEL, "Internacional", "Monitor mundial",
+                                      "data", "monitor-data.js")
 
 # Carpeta donde se dejan los PDF de LatinFocus Consensus Forecast.
 # Se busca de forma recursiva (adentro hay una subcarpeta por anio: 2025, 2026...)
@@ -1835,16 +1843,36 @@ def run_monitor_mundial(status):
         status.warn("Monitor mundial", f"el updater fallo: {ultima[:180]}")
         return False
     alertas = [l for l in salida if " WARN " in l or " ERROR " in l]
-    status.ok("Monitor mundial", f"{ultima[:110]}" + (f" · {len(alertas)} avisos" if alertas else ""))
+
+    # Espejar el resultado a la carpeta original para que el Monitor mundial
+    # standalone siga viendo los mismos datos. Si falla la copia no pasa nada
+    # grave: el dashboard usa el del repo, que es el que acaba de generarse.
+    espejo = ""
+    try:
+        if os.path.exists(MONITOR_MUNDIAL_JS) and MONITOR_MUNDIAL_ESPEJO != MONITOR_MUNDIAL_JS:
+            os.makedirs(os.path.dirname(MONITOR_MUNDIAL_ESPEJO), exist_ok=True)
+            import shutil as _sh
+            _sh.copy2(MONITOR_MUNDIAL_JS, MONITOR_MUNDIAL_ESPEJO)
+            espejo = " · espejado a la carpeta original"
+    except OSError as e:
+        espejo = f" · no se pudo espejar ({type(e).__name__})"
+
+    status.ok("Monitor mundial", f"{ultima[:110]}"
+              + (f" · {len(alertas)} avisos" if alertas else "") + espejo)
     return True
 
 @_nunca_rompe("Internacional")
 def extract_internacional(status):
     """Copia el monitor-data.js del Monitor mundial a internacional.js."""
-    if not os.path.exists(MONITOR_MUNDIAL_JS):
+    # Normalmente usa el que genera la copia del repo; si todavia no corrio
+    # (clon nuevo, node faltante), cae en el de la carpeta original.
+    origen = MONITOR_MUNDIAL_JS
+    if not os.path.exists(origen) and os.path.exists(MONITOR_MUNDIAL_ESPEJO):
+        origen = MONITOR_MUNDIAL_ESPEJO
+    if not os.path.exists(origen):
         status.warn("Internacional", f"no se encontro {MONITOR_MUNDIAL_JS}")
         return False
-    src = _read_text(MONITOR_MUNDIAL_JS)
+    src = _read_text(origen)
     m = re.search(r'window\.MONITOR_DATA\s*=\s*(\{.*\});?\s*$', src, re.DOTALL)
     if not m:
         status.fail("Internacional", "no pude parsear monitor-data.js")
@@ -1860,10 +1888,10 @@ def extract_internacional(status):
     with open(js_path, "w", encoding="utf-8") as f:
         f.write(f"// Datos Internacional - regenerado por refresh.py el {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
                 f"window.INTERNACIONAL_DATA = {_intl_str};\n")
-    origen = datetime.fromtimestamp(os.path.getmtime(MONITOR_MUNDIAL_JS)).strftime('%d/%m %H:%M')
+    sello_origen = datetime.fromtimestamp(os.path.getmtime(origen)).strftime('%d/%m %H:%M')
     status.ok("Internacional",
               f"{os.path.getsize(js_path):,} bytes - {len(intl_data.get('countries',[]))} paises "
-              f"(origen del {origen})")
+              f"(origen del {sello_origen})")
 
     # El archivo puede estar recien generado y aun asi traer series viejas: el
     # Monitor mundial se regenera todos los dias, pero si una fuente deja de
