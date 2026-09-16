@@ -85,6 +85,12 @@ PROYECCIONES_INTL = os.path.join(BASE_EXCEL, "Proyecciones Bein", "Latin Focus")
 
 DATA_DIR = os.path.join(DASHBOARD_DIR, "assets", "data")
 
+# Pipeline local de Mercados. Es una copia autocontenida del núcleo de datos
+# del antiguo Markets Dashboard; el frontend original no forma parte del flujo.
+MARKETS_PIPELINE_DIR = os.path.join(DASHBOARD_DIR, "markets_pipeline")
+MARKETS_PIPELINE_RUNNER = os.path.join(MARKETS_PIPELINE_DIR, "run_dashboard_export.py")
+MARKETS_PIPELINE_PAYLOAD = os.path.join(MARKETS_PIPELINE_DIR, "output", "dashboard_payload.json")
+
 # =====================================================================
 #  Helpers
 # =====================================================================
@@ -1907,16 +1913,13 @@ def extract_internacional(status):
                              extra="el dato viejo viene del Monitor mundial, no del refresh")
     return True
 
-@_nunca_rompe("Mercados")
-def extract_mercados(status):
-    """Baja el payload de la API de mercados. Avisa si la propia API viene
-    con datos viejos: el script puede estar corriendo bien y aun asi
-    publicar algo desactualizado porque la fuente esta parada."""
-    import urllib.request
-    MERCADOS_API = "https://ecogomarkets.honorio-zabaleta.workers.dev/data/dashboard_payload.json"
-    req = urllib.request.Request(MERCADOS_API, headers={"User-Agent": "EcoGo-Dashboard-Refresh/1.0"})
-    with urllib.request.urlopen(req, timeout=20) as resp:
-        payload = json.loads(resp.read().decode("utf-8"))
+def _publicar_mercados_payload(status, payload_path):
+    """Valida y publica un payload local ya generado, sin recalcularlo."""
+    if not os.path.isfile(payload_path):
+        status.warn("Mercados", "el pipeline termino pero no genero dashboard_payload.json")
+        return False
+
+    payload = json.loads(_read_text(payload_path))
     subset = {k: payload.get(k, d) for k, d in [
         ("meta", {}), ("external_context", {}), ("overview", {}),
         ("fixed_curve", []), ("fixed_curve_history", {"dates": [], "curves": {}}),
@@ -1924,16 +1927,77 @@ def extract_mercados(status):
         ("dollar_linked", {}), ("hard_dollar", {}),
         ("hard_dollar_curve_history", {"dates": [], "curves": {}}), ("hero_metrics", []),
     ]}
+    required_blocks = ("external_context", "fixed_curve", "cer_curve", "dollar_linked", "hard_dollar")
+    missing_blocks = [key for key in required_blocks if not subset.get(key)]
+    if missing_blocks:
+        status.warn("Mercados", f"el pipeline genero un payload incompleto ({', '.join(missing_blocks)}); se conserva mercados.js")
+        return False
+
     js_path = os.path.join(DATA_DIR, "mercados.js")
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
-    with open(js_path, "w", encoding="utf-8") as f:
-        f.write("// Mercados data - extraido de dashboard_payload - " + ts + "\n"
+    # Forzamos LF para que Git no marque como whitespace toda la línea JSON
+    # cuando el refresh se ejecuta desde Windows.
+    with open(js_path, "w", encoding="utf-8", newline="\n") as f:
+        f.write("// Mercados data - generado por pipeline local - " + ts + "\n"
                 "window.MERCADOS_DATA = " + json.dumps(subset, ensure_ascii=False, default=str) + ";\n")
     fin = (subset.get("meta") or {}).get("end_date", "")
-    status.ok("Mercados", f"{os.path.getsize(js_path):,} bytes - la API llega hasta {fin or '?'}")
-    _avisar_si_viejo(status, "Mercados", fin, meses=2,
-                     extra="la fuente es el worker ecogomarkets, no el refresh")
+    externo = (subset.get("external_context") or {}).get("latest_date", "")
+    status.ok(
+        "Mercados",
+        f"{os.path.getsize(js_path):,} bytes - mercado local hasta {fin or '?'} · externo hasta {externo or '?'}",
+    )
+    _avisar_si_viejo(status, "Mercados", externo or fin, meses=1,
+                     extra="verificar fuentes de mercado del pipeline local")
     return True
+
+
+@_nunca_rompe("Mercados")
+def extract_mercados(status):
+    """Genera Mercados localmente y publica el subconjunto usado por la web.
+
+    Antes esta funcion descargaba un JSON armado por un Cloudflare Worker que
+    quedo detenido. Ahora corre el pipeline local (BCRA, Ambito,
+    ArgentinaDatos, IOL, BYMA, Yahoo Finance y FRED), conserva sus caches y
+    recien reemplaza mercados.js cuando obtuvo un payload valido.
+    """
+    import importlib.util
+    import subprocess
+
+    if not os.path.isfile(MARKETS_PIPELINE_RUNNER):
+        status.warn("Mercados", "no existe el pipeline local de Mercados; se conserva mercados.js")
+        return False
+
+    # El refresh puede partir de una instalacion nueva. Instalamos solo las
+    # dependencias que faltan y en el mismo interprete que ejecuto el notebook.
+    required_modules = ("pandas", "numpy", "requests", "openpyxl", "xlrd", "selenium", "lxml")
+    missing = [name for name in required_modules if importlib.util.find_spec(name) is None]
+    if missing:
+        requirements = os.path.join(MARKETS_PIPELINE_DIR, "requirements.txt")
+        r = subprocess.run(
+            [sys.executable, "-m", "pip", "install", "-r", requirements],
+            cwd=MARKETS_PIPELINE_DIR,
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+        if r.returncode != 0:
+            detail = ((r.stderr or r.stdout) or "fallo sin detalle").strip().splitlines()
+            status.warn("Mercados", f"no pude instalar dependencias ({', '.join(missing)}): {detail[-1][:180] if detail else 'sin detalle'}")
+            return False
+
+    r = subprocess.run(
+        [sys.executable, MARKETS_PIPELINE_RUNNER],
+        cwd=MARKETS_PIPELINE_DIR,
+        capture_output=True,
+        text=True,
+        timeout=900,
+    )
+    output = ((r.stdout or "") + "\n" + (r.stderr or "")).strip().splitlines()
+    last_line = output[-1][:240] if output else "sin salida"
+    if r.returncode != 0:
+        status.warn("Mercados", f"el pipeline local fallo; se conserva mercados.js: {last_line}")
+        return False
+    return _publicar_mercados_payload(status, MARKETS_PIPELINE_PAYLOAD)
 
 @_nunca_rompe("Internacional Consensus")
 def run_latinfocus(status):

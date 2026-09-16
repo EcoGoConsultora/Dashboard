@@ -1,0 +1,40 @@
+date,label,official_type,trading_closed,settlement_closed,source_url,notes
+2025-01-01,Ano Nuevo,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,
+2025-03-03,Carnaval,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,
+2025-03-04,Carnaval,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,
+2025-03-24,Dia Nacional de la Memoria por la Verdad y la Justicia,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,
+2025-04-02,Dia del Veterano y de los Caidos en la Guerra de Malvinas,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,
+2025-04-17,Jueves Santo Festividad Cristiana,no_laborable_christian,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,Explicitly tracked because the legacy spreadsheet treated it as non-business.
+2025-04-18,Viernes Santo Festividad Cristiana,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,
+2025-05-01,Dia del Trabajador,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,
+2025-05-02,Dia no laborable con fines turisticos,turistico,false,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,Treated as settlement-closed by default; trading status can be refined with BYMA operating circulars.
+2025-05-25,Dia de la Revolucion de Mayo,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,
+2025-06-16,Paso a la Inmortalidad del Gral. Don Martin Miguel de Guemes (17/6),trasladable,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,
+2025-06-20,Paso a la Inmortalidad del Gral. Manuel Belgrano,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,
+2025-07-09,Dia de la Independencia,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,
+2025-08-15,Dia no laborable con fines turisticos,turistico,false,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,Treated as settlement-closed by default; trading status can be refined with BYMA operating circulars.
+2025-08-17,Paso a la Inmortalidad del Gral. Jose de San Martin,trasladable,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,
+2025-10-10,Dia de la Raza (12/10),trasladable,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,
+2025-11-21,Dia no laborable con fines turisticos,turistico,false,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,Treated as settlement-closed by default; trading status can be refined with BYMA operating circulars.
+2025-11-24,Dia de la Soberania Nacional (20/11),trasladable,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,
+2025-12-08,Inmaculada Concepcion de Maria,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,
+2025-12-25,Navidad,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2025,
+2026-01-01,Ano Nuevo,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,
+2026-02-16,Carnaval,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,
+2026-02-17,Carnaval,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,
+2026-03-23,Dia no laborable con fines turisticos,turistico,false,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,Treated as settlement-closed by default; trading status can be refined with BYMA operating circulars.
+2026-03-24,Dia Nacional de la Memoria por la Verdad y la Justicia,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,
+2026-04-02,Dia del Veterano y de los Caidos en la Guerra de Malvinas,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,This date also matches Jueves Santo in the official 2026 calendar.
+2026-04-03,Viernes Santo Festividad Cristiana,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,
+2026-05-01,Dia del Trabajador,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,
+2026-05-25,Dia de la Revolucion de Mayo,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,
+2026-06-15,Paso a la Inmortalidad del Gral. Don Martin Miguel de Guemes (17/6),trasladable,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,
+2026-06-20,Paso a la Inmortalidad del Gral. Manuel Belgrano,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,
+2026-07-09,Dia de la Independencia,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,
+2026-07-10,Dia no laborable con fines turisticos,turistico,false,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,Treated as settlement-closed by default; trading status can be refined with BYMA operating circulars.
+2026-08-17,Paso a la Inmortalidad del Gral. Jose de San Martin,trasladable,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,
+2026-10-12,Dia de la Raza,trasladable,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,
+2026-11-23,Dia de la Soberania Nacional (20/11),trasladable,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,
+2026-12-07,Dia no laborable con fines turisticos,turistico,false,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,Treated as settlement-closed by default; trading status can be refined with BYMA operating circulars.
+2026-12-08,Inmaculada Concepcion de Maria,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,
+2026-12-25,Navidad,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,

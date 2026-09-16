@@ -1,0 +1,1002 @@
+﻿{
+  "project": {
+    "name": "Mercados Argentinos Dashboard",
+    "subtitle": "Scaffold aligned with the Commodities Monitor architecture",
+    "base_currency": "ARS",
+    "real_deflator": "National CPI placeholder",
+    "frequency": "Daily",
+    "cpi_source": "bcra_cpi_index",
+    "iol_reference_refresh": {
+      "enabled": true,
+      "metadata_path": "legacy/iol_reference/Instrumentos.xlsx",
+      "market": "BCBA",
+      "show_browser": false
+    },
+    "cer_reference_refresh": {
+      "enabled": true,
+      "market": "BCBA",
+      "headless": true,
+      "timeout_seconds": 20,
+      "page_size": 50,
+      "iol_cache_path": "data/raw/iol_cer_prices_history.csv",
+      "history_path": "data/raw/cer_bond_prices_history.csv",
+      "cer_index_path": "data/raw/bcra_cer_index_daily.csv",
+      "cer_index_start_date": "2025-01-01",
+      "cer_index_variable_id": 30,
+      "verify_ssl": false
+    }
+  },
+  "defaults": {
+    "price_source": "synthetic_prices",
+    "fundamentals_source": "synthetic_fundamentals",
+    "cpi_source": "bcra_cpi_index"
+  },
+  "sources": {
+    "synthetic_prices": {
+      "kind": "synthetic_prices",
+      "start_date": "2022-01-03"
+    },
+    "synthetic_cpi": {
+      "kind": "synthetic_cpi",
+      "start_date": "2021-12-01"
+    },
+    "synthetic_fundamentals": {
+      "kind": "synthetic_fundamentals",
+      "history_years": 6,
+      "min_year": 2018
+    },
+    "bcra_principales_variables_prices": {
+      "kind": "bcra_principales_variables_prices",
+      "start_date": "2022-01-01",
+      "verify_ssl": false,
+      "series": [
+        {
+          "asset": "usd_ars_official",
+          "id_variable": 5
+        },
+        {
+          "asset": "badlar",
+          "id_variable": 7
+        }
+      ]
+    },
+    "bcra_estadisticas_cambiarias_prices": {
+      "kind": "bcra_estadisticas_cambiarias_prices",
+      "start_date": "2022-01-01",
+      "verify_ssl": false,
+      "series": [
+        {
+          "asset": "brl_ars",
+          "currency_code": "BRL",
+          "value_field": "tipo_cotizacion"
+        }
+      ]
+    },
+    "ambito_ccl_prices": {
+      "kind": "ambito_chart_prices",
+      "cache_path": "data/raw/ambito_ccl_history.csv",
+      "allow_partial": true,
+      "base_url": "https://mercados.ambito.com",
+      "period": "anual",
+      "timeout_seconds": 30,
+      "series": [
+        {
+          "asset": "usd_ars_ccl",
+          "chart_path": "dolarrava/cl/grafico"
+        }
+      ]
+    },
+    "bondterminal_country_risk_prices": {
+      "kind": "bondterminal_embi_prices",
+      "cache_path": "data/raw/bondterminal_country_risk_history.csv",
+      "allow_partial": true,
+      "base_url": "https://bondterminal.com",
+      "start_date": "2022-01-01",
+      "timeout_seconds": 30,
+      "series": [
+        {
+          "asset": "country_risk",
+          "snapshot_value_fields": [
+            "weightedSpreadBps",
+            "ambitoValue"
+          ],
+          "snapshot_date_fields": [
+            "valuationDate",
+            "asOf",
+            "lastDataTickIso",
+            "ambitoDate"
+          ]
+        }
+      ]
+    },
+    "argentinadatos_country_risk_prices": {
+      "kind": "argentinadatos_riesgo_pais_prices",
+      "cache_path": "data/raw/argentinadatos_country_risk_history.csv",
+      "allow_partial": true,
+      "base_url": "https://api.argentinadatos.com/v1",
+      "start_date": "1999-01-22",
+      "timeout_seconds": 30,
+      "series": [
+        {
+          "asset": "country_risk"
+        }
+      ]
+    },
+    "bcra_cpi_index": {
+      "kind": "bcra_cpi_index",
+      "id_variable": 27,
+      "start_date": "2021-12-01",
+      "verify_ssl": false,
+      "base_value": 100.0
+    },
+    "bcra_principales_variables_fundamentals": {
+      "kind": "bcra_principales_variables_fundamentals",
+      "start_date": "2018-01-01",
+      "verify_ssl": false,
+      "series": [
+        {
+          "asset": "usd_ars_official",
+          "id_variable": 1
+        },
+        {
+          "asset": "usd_ars_ccl",
+          "id_variable": 1
+        },
+        {
+          "asset": "brl_ars",
+          "id_variable": 1
+        },
+        {
+          "asset": "badlar",
+          "id_variable": 28
+        },
+        {
+          "asset": "lecap_3m_yield",
+          "id_variable": 28
+        },
+        {
+          "asset": "cer_1y_breakeven",
+          "id_variable": 28
+        }
+      ]
+    },
+    "iol_zero_coupon_roll_prices": {
+      "kind": "iol_zero_coupon_roll_prices",
+      "path": "data/processed/iol_zero_coupon_metrics.csv",
+      "allow_partial": true,
+      "series": [
+        {
+          "asset": "lecap_3m_yield",
+          "instrument_families": [
+            "lecap"
+          ],
+          "metric_column": "tea",
+          "target_days_360": 90,
+          "min_days_360": 45,
+          "max_days_360": 135,
+          "min_volume": 1.0,
+          "value_scale": 100.0
+        }
+      ]
+    },
+    "cer_breakeven_roll_prices": {
+      "kind": "cer_breakeven_roll_prices",
+      "allow_partial": true,
+      "fixed_metrics_path": "data/processed/iol_zero_coupon_metrics.csv",
+      "cer_price_history_path": "data/raw/cer_bond_prices_history.csv",
+      "cer_index_path": "data/raw/bcra_cer_index_daily.csv",
+      "series": [
+        {
+          "asset": "cer_1y_breakeven",
+          "metric_column": "breakeven_annual_equivalent",
+          "target_horizon_days": 365,
+          "min_horizon_days": 240,
+          "max_horizon_days": 420,
+          "value_scale": 100.0
+        }
+      ]
+    },
+    "iol_bond_prices": {
+      "kind": "iol_symbol_prices",
+      "cache_path": "data/raw/iol_market_prices_history.csv",
+      "allow_partial": true,
+      "market": "BCBA",
+      "headless": true,
+      "timeout_seconds": 20,
+      "quote_overlay": true,
+      "quote_timeout_seconds": 30,
+      "page_size": 50,
+      "series": [
+        {
+          "asset": "al30d_price",
+          "symbol": "AL30D",
+          "field": "price"
+        },
+        {
+          "asset": "al29d_price",
+          "symbol": "AL29D",
+          "field": "price"
+        },
+        {
+          "asset": "al35d_price",
+          "symbol": "AL35D",
+          "field": "price"
+        },
+        {
+          "asset": "ae38d_price",
+          "symbol": "AE38D",
+          "field": "price"
+        },
+        {
+          "asset": "al41d_price",
+          "symbol": "AL41D",
+          "field": "price"
+        },
+        {
+          "asset": "an29d_price",
+          "symbol": "AN29D",
+          "field": "price"
+        },
+        {
+          "asset": "ao27d_price",
+          "symbol": "AO27D",
+          "field": "price"
+        },
+        {
+          "asset": "ao28d_price",
+          "symbol": "AO28D",
+          "field": "price"
+        },
+        {
+          "asset": "gd30d_price",
+          "symbol": "GD30D",
+          "field": "price"
+        },
+        {
+          "asset": "gd29d_price",
+          "symbol": "GD29D",
+          "field": "price"
+        },
+        {
+          "asset": "gd35d_price",
+          "symbol": "GD35D",
+          "field": "price"
+        },
+        {
+          "asset": "gd38d_price",
+          "symbol": "GD38D",
+          "field": "price"
+        },
+        {
+          "asset": "gd41d_price",
+          "symbol": "GD41D",
+          "field": "price"
+        },
+        {
+          "asset": "gd46d_price",
+          "symbol": "GD46D",
+          "field": "price"
+        }
+      ]
+    },
+    "iol_equity_prices": {
+      "kind": "iol_symbol_prices",
+      "cache_path": "data/raw/iol_equity_prices_history.csv",
+      "allow_partial": true,
+      "market": "BCBA",
+      "headless": true,
+      "timeout_seconds": 20,
+      "quote_overlay": true,
+      "quote_timeout_seconds": 30,
+      "page_size": 100,
+      "series": [
+        {
+          "asset": "ggal_price",
+          "symbol": "GGAL",
+          "field": "price"
+        },
+        {
+          "asset": "pamp_price",
+          "symbol": "PAMP",
+          "field": "price"
+        },
+        {
+          "asset": "ypfd_price",
+          "symbol": "YPFD",
+          "field": "price"
+        },
+        {
+          "asset": "bma_price",
+          "symbol": "BMA",
+          "field": "price"
+        },
+        {
+          "asset": "cepu_price",
+          "symbol": "CEPU",
+          "field": "price"
+        },
+        {
+          "asset": "bbar_price",
+          "symbol": "BBAR",
+          "field": "price"
+        },
+        {
+          "asset": "byma_price",
+          "symbol": "BYMA",
+          "field": "price"
+        },
+        {
+          "asset": "tgsu2_price",
+          "symbol": "TGSU2",
+          "field": "price"
+        },
+        {
+          "asset": "txar_price",
+          "symbol": "TXAR",
+          "field": "price"
+        },
+        {
+          "asset": "supv_price",
+          "symbol": "SUPV",
+          "field": "price"
+        }
+      ]
+    },
+    "iol_byma_bond_prices": {
+      "kind": "merged_prices",
+      "allow_partial": true,
+      "primary_source": "iol_bond_prices",
+      "secondary_source": "byma_browser_prices"
+    },
+    "byma_merval_index_prices": {
+      "kind": "byma_direct_prices",
+      "quote_cache_path": "data/raw/byma_open_quotes_history.csv",
+      "verify_ssl": false,
+      "allow_partial": true,
+      "series": [
+        {
+          "asset": "merval_usd",
+          "endpoint": "index-price",
+          "symbol": "M",
+          "field": "price",
+          "fallback_fields": [
+            "previousClosingPrice"
+          ],
+          "treat_zero_as_missing": true
+        }
+      ]
+    },
+    "byma_merval_index_history_prices": {
+      "kind": "byma_chart_index_prices",
+      "cache_path": "data/raw/byma_merval_index_history.csv",
+      "verify_ssl": false,
+      "allow_partial": true,
+      "start_date": "2024-04-01",
+      "series": [
+        {
+          "asset": "merval_usd",
+          "symbol": "M",
+          "resolution": "D",
+          "start_date": "2024-04-01"
+        }
+      ]
+    },
+    "byma_merval_index_merged_prices": {
+      "kind": "merged_prices",
+      "allow_partial": true,
+      "primary_source": "byma_merval_index_history_prices",
+      "secondary_source": "byma_merval_index_prices"
+    },
+    "merval_usd_prices": {
+      "kind": "derived_ratio_prices",
+      "allow_partial": true,
+      "series": [
+        {
+          "asset": "merval_usd",
+          "operation": "divide",
+          "numerator_source": "byma_merval_index_merged_prices",
+          "numerator_asset": "merval_usd",
+          "denominator_source": "ambito_ccl_prices",
+          "denominator_asset": "usd_ars_ccl"
+        }
+      ]
+    },
+    "byma_browser_prices": {
+      "kind": "byma_browser_prices",
+      "quote_cache_path": "data/raw/byma_open_quotes_history.csv",
+      "snapshot_path": "data/raw/byma_open_snapshot_latest.json",
+      "allow_partial": true,
+      "wait_seconds": 8.0,
+      "poll_attempts": 3,
+      "poll_wait_seconds": 2.0,
+      "series": [
+        {
+          "asset": "banks_index",
+          "endpoint": "index-price",
+          "symbol": "SPBYMAIG40",
+          "field": "closingPrice",
+          "fallback_fields": [
+            "price"
+          ],
+          "treat_zero_as_missing": true
+        },
+        {
+          "asset": "al30d_price",
+          "endpoint": "public-bonds",
+          "symbol": "AL30D",
+          "field": "closingPrice",
+          "fallback_fields": [
+            "settlementPrice",
+            "trade",
+            "previousSettlementPrice",
+            "previousClosingPrice"
+          ],
+          "treat_zero_as_missing": true
+        },
+        {
+          "asset": "gd30d_price",
+          "endpoint": "public-bonds",
+          "symbol": "GD30D",
+          "field": "closingPrice",
+          "fallback_fields": [
+            "settlementPrice",
+            "trade",
+            "previousSettlementPrice",
+            "previousClosingPrice"
+          ],
+          "treat_zero_as_missing": true
+        }
+      ]
+    },
+    "fred_external_prices": {
+      "kind": "fred_graph_prices",
+      "cache_path": "data/raw/fred_external_history.csv",
+      "base_url": "https://fred.stlouisfed.org",
+      "start_date": "2022-01-01",
+      "timeout_seconds": 30,
+      "allow_partial": true,
+      "series": [
+        {
+          "asset": "sp500",
+          "series_id": "SP500"
+        },
+        {
+          "asset": "nasdaq",
+          "series_id": "NASDAQCOM"
+        },
+        {
+          "asset": "us_2y",
+          "series_id": "DGS2"
+        },
+        {
+          "asset": "us_10y",
+          "series_id": "DGS10"
+        },
+        {
+          "asset": "usd_broad",
+          "series_id": "DTWEXBGS"
+        },
+        {
+          "asset": "brent",
+          "series_id": "DCOILBRENTEU"
+        },
+        {
+          "asset": "bitcoin",
+          "series_id": "CBBTCUSD"
+        }
+      ]
+    },
+    "yahoo_external_prices": {
+      "kind": "yahoo_chart_prices",
+      "cache_path": "data/raw/yahoo_external_history.csv",
+      "base_url": "https://query1.finance.yahoo.com",
+      "start_date": "2022-01-01",
+      "timeout_seconds": 30,
+      "allow_partial": true,
+      "series": [
+        {
+          "asset": "sp500",
+          "symbol": "^GSPC"
+        },
+        {
+          "asset": "nasdaq",
+          "symbol": "^IXIC"
+        },
+        {
+          "asset": "russell2000",
+          "symbol": "^RUT"
+        },
+        {
+          "asset": "nikkei225",
+          "symbol": "^N225"
+        },
+        {
+          "asset": "hang_seng",
+          "symbol": "^HSI"
+        },
+        {
+          "asset": "eurusd",
+          "symbol": "EURUSD=X"
+        },
+        {
+          "asset": "brent",
+          "symbol": "BZ=F"
+        },
+        {
+          "asset": "gold",
+          "symbol": "GC=F"
+        },
+        {
+          "asset": "copper",
+          "symbol": "HG=F"
+        },
+        {
+          "asset": "bitcoin",
+          "symbol": "BTC-USD"
+        }
+      ]
+    }
+  },
+  "assets": [
+    {
+      "asset": "usd_ars_official",
+      "label": "USD/ARS Official",
+      "category": "FX",
+      "unit": "ARS per USD",
+      "price_source": "bcra_principales_variables_prices",
+      "fundamentals_source": "bcra_principales_variables_fundamentals",
+      "base_value": 920.0,
+      "daily_drift": 0.0006,
+      "daily_vol": 0.0040,
+      "fundamental_metric": "fx_reserves_bn_usd",
+      "fundamental_label": "FX Reserves",
+      "fundamental_base": 28.0
+    },
+    {
+      "asset": "usd_ars_ccl",
+      "label": "USD/ARS CCL",
+      "category": "FX",
+      "unit": "ARS per USD",
+      "price_source": "ambito_ccl_prices",
+      "fundamentals_source": "bcra_principales_variables_fundamentals",
+      "base_value": 1080.0,
+      "daily_drift": 0.0008,
+      "daily_vol": 0.0060,
+      "fundamental_metric": "fx_reserves_bn_usd",
+      "fundamental_label": "FX Reserves",
+      "fundamental_base": 28.0
+    },
+    {
+      "asset": "brl_ars",
+      "label": "BRL/ARS",
+      "category": "FX",
+      "unit": "ARS per BRL",
+      "price_source": "bcra_estadisticas_cambiarias_prices",
+      "fundamentals_source": "bcra_principales_variables_fundamentals",
+      "base_value": 185.0,
+      "daily_drift": 0.0004,
+      "daily_vol": 0.0050,
+      "fundamental_metric": "fx_reserves_bn_usd",
+      "fundamental_label": "FX Reserves",
+      "fundamental_base": 28.0
+    },
+    {
+      "asset": "badlar",
+      "label": "BADLAR",
+      "category": "Rates",
+      "unit": "% nominal annual",
+      "price_source": "bcra_principales_variables_prices",
+      "fundamentals_source": "bcra_principales_variables_fundamentals",
+      "base_value": 31.0,
+      "daily_drift": 0.0002,
+      "daily_vol": 0.0030,
+      "fundamental_metric": "inflation_yoy_pct",
+      "fundamental_label": "Inflation YoY",
+      "fundamental_base": 98.0
+    },
+    {
+      "asset": "lecap_3m_yield",
+      "label": "Lecap 3M Yield",
+      "category": "Rates",
+      "unit": "% nominal annual",
+      "price_source": "iol_zero_coupon_roll_prices",
+      "fundamentals_source": "bcra_principales_variables_fundamentals",
+      "base_value": 36.0,
+      "daily_drift": 0.0002,
+      "daily_vol": 0.0035,
+      "fundamental_metric": "inflation_yoy_pct",
+      "fundamental_label": "Inflation YoY",
+      "fundamental_base": 98.0
+    },
+    {
+      "asset": "cer_1y_breakeven",
+      "label": "CER 1Y Breakeven",
+      "category": "Rates",
+      "unit": "% implied annual",
+      "price_source": "cer_breakeven_roll_prices",
+      "fundamentals_source": "bcra_principales_variables_fundamentals",
+      "base_value": 22.0,
+      "daily_drift": 0.0001,
+      "daily_vol": 0.0030,
+      "fundamental_metric": "inflation_yoy_pct",
+      "fundamental_label": "Inflation YoY",
+      "fundamental_base": 98.0
+    },
+    {
+      "asset": "merval_usd",
+      "label": "Merval USD",
+      "category": "Equities",
+      "unit": "Index points",
+      "price_source": "merval_usd_prices",
+      "base_value": 820.0,
+      "daily_drift": 0.0005,
+      "daily_vol": 0.0120,
+      "fundamental_metric": "earnings_proxy_index",
+      "fundamental_label": "Earnings Proxy",
+      "fundamental_base": 100.0
+    },
+    {
+      "asset": "ggal_price",
+      "label": "GGAL",
+      "category": "Equities",
+      "unit": "ARS price",
+      "price_source": "iol_equity_prices",
+      "fundamental_metric": "earnings_proxy_index",
+      "fundamental_label": "Earnings Proxy",
+      "fundamental_base": 100.0
+    },
+    {
+      "asset": "pamp_price",
+      "label": "PAMP",
+      "category": "Equities",
+      "unit": "ARS price",
+      "price_source": "iol_equity_prices",
+      "fundamental_metric": "earnings_proxy_index",
+      "fundamental_label": "Earnings Proxy",
+      "fundamental_base": 100.0
+    },
+    {
+      "asset": "ypfd_price",
+      "label": "YPFD",
+      "category": "Equities",
+      "unit": "ARS price",
+      "price_source": "iol_equity_prices",
+      "fundamental_metric": "earnings_proxy_index",
+      "fundamental_label": "Earnings Proxy",
+      "fundamental_base": 100.0
+    },
+    {
+      "asset": "bma_price",
+      "label": "BMA",
+      "category": "Equities",
+      "unit": "ARS price",
+      "price_source": "iol_equity_prices",
+      "fundamental_metric": "earnings_proxy_index",
+      "fundamental_label": "Earnings Proxy",
+      "fundamental_base": 100.0
+    },
+    {
+      "asset": "cepu_price",
+      "label": "CEPU",
+      "category": "Equities",
+      "unit": "ARS price",
+      "price_source": "iol_equity_prices",
+      "fundamental_metric": "earnings_proxy_index",
+      "fundamental_label": "Earnings Proxy",
+      "fundamental_base": 100.0
+    },
+    {
+      "asset": "bbar_price",
+      "label": "BBAR",
+      "category": "Equities",
+      "unit": "ARS price",
+      "price_source": "iol_equity_prices",
+      "fundamental_metric": "earnings_proxy_index",
+      "fundamental_label": "Earnings Proxy",
+      "fundamental_base": 100.0
+    },
+    {
+      "asset": "byma_price",
+      "label": "BYMA",
+      "category": "Equities",
+      "unit": "ARS price",
+      "price_source": "iol_equity_prices",
+      "fundamental_metric": "earnings_proxy_index",
+      "fundamental_label": "Earnings Proxy",
+      "fundamental_base": 100.0
+    },
+    {
+      "asset": "tgsu2_price",
+      "label": "TGSU2",
+      "category": "Equities",
+      "unit": "ARS price",
+      "price_source": "iol_equity_prices",
+      "fundamental_metric": "earnings_proxy_index",
+      "fundamental_label": "Earnings Proxy",
+      "fundamental_base": 100.0
+    },
+    {
+      "asset": "txar_price",
+      "label": "TXAR",
+      "category": "Equities",
+      "unit": "ARS price",
+      "price_source": "iol_equity_prices",
+      "fundamental_metric": "earnings_proxy_index",
+      "fundamental_label": "Earnings Proxy",
+      "fundamental_base": 100.0
+    },
+    {
+      "asset": "supv_price",
+      "label": "SUPV",
+      "category": "Equities",
+      "unit": "ARS price",
+      "price_source": "iol_equity_prices",
+      "fundamental_metric": "earnings_proxy_index",
+      "fundamental_label": "Earnings Proxy",
+      "fundamental_base": 100.0
+    },
+    {
+      "asset": "banks_index",
+      "label": "Banks Index",
+      "category": "Equities",
+      "unit": "Index points",
+      "price_source": "byma_browser_prices",
+      "base_value": 1450.0,
+      "daily_drift": 0.0004,
+      "daily_vol": 0.0130,
+      "fundamental_metric": "earnings_proxy_index",
+      "fundamental_label": "Earnings Proxy",
+      "fundamental_base": 100.0
+    },
+    {
+      "asset": "country_risk",
+      "label": "Country Risk",
+      "category": "Sovereign Risk",
+      "unit": "Basis points",
+      "price_source": "argentinadatos_country_risk_prices",
+      "base_value": 1750.0,
+      "daily_drift": -0.0002,
+      "daily_vol": 0.0100,
+      "fundamental_metric": "public_debt_bn_usd",
+      "fundamental_label": "Public Debt",
+      "fundamental_base": 405.0
+    },
+    {
+      "asset": "al30d_price",
+      "label": "AL30D",
+      "category": "Sovereign Risk",
+      "unit": "USD price",
+      "price_source": "iol_byma_bond_prices",
+      "base_value": 43.0,
+      "daily_drift": 0.0002,
+      "daily_vol": 0.0090,
+      "fundamental_metric": "public_debt_bn_usd",
+      "fundamental_label": "Public Debt",
+      "fundamental_base": 405.0
+    },
+    {
+      "asset": "gd30d_price",
+      "label": "GD30D",
+      "category": "Sovereign Risk",
+      "unit": "USD price",
+      "price_source": "iol_byma_bond_prices",
+      "base_value": 46.0,
+      "daily_drift": 0.0002,
+      "daily_vol": 0.0090,
+      "fundamental_metric": "public_debt_bn_usd",
+      "fundamental_label": "Public Debt",
+      "fundamental_base": 405.0
+    },
+    {
+      "asset": "al29d_price",
+      "label": "AL29D",
+      "category": "Sovereign Risk",
+      "unit": "USD price",
+      "price_source": "iol_bond_prices",
+      "fundamental_metric": "public_debt_bn_usd",
+      "fundamental_label": "Public Debt",
+      "fundamental_base": 405.0
+    },
+    {
+      "asset": "al35d_price",
+      "label": "AL35D",
+      "category": "Sovereign Risk",
+      "unit": "USD price",
+      "price_source": "iol_bond_prices",
+      "fundamental_metric": "public_debt_bn_usd",
+      "fundamental_label": "Public Debt",
+      "fundamental_base": 405.0
+    },
+    {
+      "asset": "ae38d_price",
+      "label": "AE38D",
+      "category": "Sovereign Risk",
+      "unit": "USD price",
+      "price_source": "iol_bond_prices",
+      "fundamental_metric": "public_debt_bn_usd",
+      "fundamental_label": "Public Debt",
+      "fundamental_base": 405.0
+    },
+    {
+      "asset": "al41d_price",
+      "label": "AL41D",
+      "category": "Sovereign Risk",
+      "unit": "USD price",
+      "price_source": "iol_bond_prices",
+      "fundamental_metric": "public_debt_bn_usd",
+      "fundamental_label": "Public Debt",
+      "fundamental_base": 405.0
+    },
+    {
+      "asset": "gd29d_price",
+      "label": "GD29D",
+      "category": "Sovereign Risk",
+      "unit": "USD price",
+      "price_source": "iol_bond_prices",
+      "fundamental_metric": "public_debt_bn_usd",
+      "fundamental_label": "Public Debt",
+      "fundamental_base": 405.0
+    },
+    {
+      "asset": "gd35d_price",
+      "label": "GD35D",
+      "category": "Sovereign Risk",
+      "unit": "USD price",
+      "price_source": "iol_bond_prices",
+      "fundamental_metric": "public_debt_bn_usd",
+      "fundamental_label": "Public Debt",
+      "fundamental_base": 405.0
+    },
+    {
+      "asset": "gd38d_price",
+      "label": "GD38D",
+      "category": "Sovereign Risk",
+      "unit": "USD price",
+      "price_source": "iol_bond_prices",
+      "fundamental_metric": "public_debt_bn_usd",
+      "fundamental_label": "Public Debt",
+      "fundamental_base": 405.0
+    },
+    {
+      "asset": "gd41d_price",
+      "label": "GD41D",
+      "category": "Sovereign Risk",
+      "unit": "USD price",
+      "price_source": "iol_bond_prices",
+      "fundamental_metric": "public_debt_bn_usd",
+      "fundamental_label": "Public Debt",
+      "fundamental_base": 405.0
+    },
+    {
+      "asset": "gd46d_price",
+      "label": "GD46D",
+      "category": "Sovereign Risk",
+      "unit": "USD price",
+      "price_source": "iol_bond_prices",
+      "fundamental_metric": "public_debt_bn_usd",
+      "fundamental_label": "Public Debt",
+      "fundamental_base": 405.0
+    },
+    {
+      "asset": "an29d_price",
+      "label": "AN29D",
+      "category": "Sovereign Risk",
+      "unit": "USD price",
+      "price_source": "iol_bond_prices",
+      "fundamental_metric": "public_debt_bn_usd",
+      "fundamental_label": "Public Debt",
+      "fundamental_base": 405.0
+    },
+    {
+      "asset": "ao27d_price",
+      "label": "AO27D",
+      "category": "Sovereign Risk",
+      "unit": "USD price",
+      "price_source": "iol_bond_prices",
+      "fundamental_metric": "public_debt_bn_usd",
+      "fundamental_label": "Public Debt",
+      "fundamental_base": 405.0
+    },
+    {
+      "asset": "ao28d_price",
+      "label": "AO28D",
+      "category": "Sovereign Risk",
+      "unit": "USD price",
+      "price_source": "iol_bond_prices",
+      "fundamental_metric": "public_debt_bn_usd",
+      "fundamental_label": "Public Debt",
+      "fundamental_base": 405.0
+    },
+    {
+      "asset": "sp500",
+      "label": "S&P 500",
+      "category": "External",
+      "unit": "Index points",
+      "price_source": "yahoo_external_prices"
+    },
+    {
+      "asset": "nasdaq",
+      "label": "Nasdaq",
+      "category": "External",
+      "unit": "Index points",
+      "price_source": "yahoo_external_prices"
+    },
+    {
+      "asset": "us_2y",
+      "label": "US 2Y",
+      "category": "External",
+      "unit": "% annual yield",
+      "price_source": "fred_external_prices"
+    },
+    {
+      "asset": "us_10y",
+      "label": "US 10Y",
+      "category": "External",
+      "unit": "% annual yield",
+      "price_source": "fred_external_prices"
+    },
+    {
+      "asset": "russell2000",
+      "label": "Russell 2000",
+      "category": "External",
+      "unit": "Index points",
+      "price_source": "yahoo_external_prices"
+    },
+    {
+      "asset": "nikkei225",
+      "label": "Nikkei 225",
+      "category": "External",
+      "unit": "Index points",
+      "price_source": "yahoo_external_prices"
+    },
+    {
+      "asset": "hang_seng",
+      "label": "Hang Seng",
+      "category": "External",
+      "unit": "Index points",
+      "price_source": "yahoo_external_prices"
+    },
+    {
+      "asset": "usd_broad",
+      "label": "USD Broad",
+      "category": "External",
+      "unit": "Index points",
+      "price_source": "fred_external_prices"
+    },
+    {
+      "asset": "eurusd",
+      "label": "EUR/USD",
+      "category": "External",
+      "unit": "FX rate",
+      "price_source": "yahoo_external_prices"
+    },
+    {
+      "asset": "brent",
+      "label": "Brent",
+      "category": "External",
+      "unit": "USD per barrel",
+      "price_source": "yahoo_external_prices"
+    },
+    {
+      "asset": "gold",
+      "label": "Gold",
+      "category": "External",
+      "unit": "USD per troy ounce",
+      "price_source": "yahoo_external_prices"
+    },
+    {
+      "asset": "copper",
+      "label": "Copper",
+      "category": "External",
+      "unit": "USD per pound",
+      "price_source": "yahoo_external_prices"
+    },
+    {
+      "asset": "bitcoin",
+      "label": "Bitcoin",
+      "category": "External",
+      "unit": "USD",
+      "price_source": "yahoo_external_prices"
+    }
+  ]
+}

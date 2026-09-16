@@ -28,6 +28,27 @@ Las rutas están fijadas en `refresh.py` (sección **CONFIGURACIÓN** al princip
 - Python 3 instalado (https://www.python.org/downloads/ · marcar "Add Python to PATH" al instalar)
 - `openpyxl` se instala solo la primera vez que corre el .bat
 
+## Mercados
+
+Las secciones **Mercados** e **Internacional · Mercados** se generan ahora en
+esta misma carpeta; ya no dependen del Cloudflare Worker de EcoGo Markets que
+había quedado sin actualizar.
+
+Al correr cualquiera de los notebooks de actualización, `refresh.py` ejecuta
+`markets_pipeline/run_dashboard_export.py`. El proceso consulta y consolida
+BCRA, Ámbito, ArgentinaDatos, IOL, BYMA, Yahoo Finance y FRED, calcula las
+curvas de tasa fija, CER, dólar linked y hard-dollar, y publica el resultado
+en `assets/data/mercados.js`.
+
+- En una instalación nueva la primera corrida puede demorar varios minutos:
+  descarga históricos y crea cachés en `markets_pipeline/data/`.
+- Las siguientes corridas reutilizan esas cachés y vuelven a consultar las
+  fuentes en vivo.
+- Si una fuente falla, el pipeline conserva su última lectura válida. Si no
+  puede construir un payload completo, el refresh conserva el `mercados.js`
+  anterior y lo informa como advertencia en vez de publicar datos parciales.
+- Las dependencias adicionales se instalan automáticamente solo si faltan.
+
 ## Si cambia la ubicación de un Excel
 
 Abrí `refresh.py` con cualquier editor, buscá la sección **CONFIGURACIÓN** y cambiá la ruta del archivo. Guardá y volvé a correr el .bat.

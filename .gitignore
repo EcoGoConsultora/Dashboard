@@ -36,3 +36,9 @@ desktop.ini
 # (el dato ya viaja destilado en assets/data/internacional.js)
 monitor-mundial/data/
 monitor-mundial/logs/
+
+# Cachés y salidas regenerables del pipeline local de Mercados
+markets_pipeline/data/raw/
+markets_pipeline/data/processed/
+markets_pipeline/output/
+markets_pipeline/**/__pycache__/
