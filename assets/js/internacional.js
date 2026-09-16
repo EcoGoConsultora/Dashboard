@@ -52,11 +52,32 @@
 
   function setupLastUpdate(){
     const dt = new Date(D.metadata.generatedAt);
-    document.getElementById('intlLastUpdate').textContent = 'Actualizado: ' + dt.toLocaleDateString('es-AR', {day:'2-digit', month:'long', year:'numeric'});
+    let nonCurrent = 0;
+    Object.keys(D.series || {}).forEach(function(iso){
+      Object.keys(D.series[iso] || {}).forEach(function(indicatorId){
+        const metric = D.series[iso][indicatorId];
+        if (!metric || metric.status !== 'current') nonCurrent += 1;
+      });
+    });
+    const tag = document.getElementById('intlLastUpdate');
+    tag.textContent = 'Actualizado: ' + dt.toLocaleDateString('es-AR', {day:'2-digit', month:'long', year:'numeric'}) +
+      (nonCurrent ? ' · ' + nonCurrent + ' sin vigencia' : '');
+    if (nonCurrent) tag.title = 'Hay series con un dato vencido o sin observación; están identificadas dentro del panel.';
   }
 
   function getIndicator(id){ return D.indicators.find(function(i){ return i.id === id; }); }
   function getCountry(iso){  return D.countries.find(function(c){ return c.iso3 === iso; }); }
+  function metricStatus(metric){
+    const status = metric && metric.status || 'missing';
+    if (status === 'current') return { key:'current', label:'Al día' };
+    if (status === 'cached') return { key:'cached', label:'En caché' };
+    if (status === 'stale') return { key:'stale', label:'Dato vencido' };
+    return { key:'missing', label:'Sin dato' };
+  }
+  function statusBadge(metric){
+    const state = metricStatus(metric);
+    return '<span class="intl-status intl-status--' + state.key + '">' + state.label + '</span>';
+  }
 
   /* ============================================================
      TAB 1 · HERO CHART + SIDE FILTER
@@ -87,18 +108,20 @@
     const c = getCountry(heroState.country);
     const ind = getIndicator(heroState.indicator);
     const s = getSeries(heroState.country, heroState.indicator);
+    const state = metricStatus(s);
 
     document.getElementById('heroChartTitle').textContent = (FLAGS[c.iso3]||'') + ' ' + c.name + ' · ' + ind.label;
     const subt = (s && s.latest) ?
       fmt(s.latest.value, ind.precision) + ind.unit + ' en ' + fmtPeriod(s.latest.period) +
-      (s.latest.change !== null && s.latest.change !== undefined ? '; ' + fmtChange(s.latest.change, 1) + ' p.p. vs previo' : '')
+      (s.latest.change !== null && s.latest.change !== undefined ? '; ' + fmtChange(s.latest.change, 1) + ' p.p. vs previo' : '') +
+      (state.key === 'current' ? '' : ' · ' + state.label)
       : 'Sin datos';
     document.getElementById('heroChartSub').textContent = subt;
     document.getElementById('heroSource').textContent = s ? (s.sourceName || s.source || '—') : '—';
 
     // KPI lateral
     const kpiHtml = (s && s.latest) ?
-      '<div class="intl-filter-card__kpi-label">Último dato</div>' +
+      '<div class="intl-filter-card__kpi-label">Último dato ' + statusBadge(s) + '</div>' +
       '<div class="intl-filter-card__kpi-value">' + fmt(s.latest.value, ind.precision) + ind.unit + '</div>' +
       '<div class="intl-filter-card__kpi-sub">' + fmtPeriod(s.latest.period) + ' · ' +
         (s.latest.change!=null ? (fmtChange(s.latest.change, 1) + ' p.p. vs previo') : 's/d') +
@@ -226,7 +249,8 @@
         change: latest ? latest.change : null,
         prevValue: latest ? latest.previousValue : null,
         prevPeriod: latest ? latest.previousPeriod : null,
-        source: s ? (s.sourceName || s.source) : '—'
+        source: s ? (s.sourceName || s.source) : '—',
+        metric: s
       });
     });
     // Ordenar
@@ -252,7 +276,7 @@
         '<td class="num">' + (i+1) + '</td>' +
         '<td><span class="flag">' + flag + '</span>' + r.name + '</td>' +
         '<td class="num">' + fmt(r.value, ind.precision) + ind.unit + '</td>' +
-        '<td>' + fmtPeriod(r.period) + '</td>' +
+        '<td>' + fmtPeriod(r.period) + ' ' + statusBadge(r.metric) + '</td>' +
         '<td class="num' + chCls + '">' + (r.change !== null ? fmtChange(r.change, 1) + ' p.p.' : '—') + '</td>' +
         '<td style="font-size:.72rem; color:var(--color-text-muted)">' + (r.source || '—') + '</td>' +
         '</tr>';
@@ -269,14 +293,17 @@
     let html = '';
     D.indicators.forEach(function(ind){
       const rows = [];
+      let omittedCount = 0;
       D.countries.forEach(function(c){
         const s = getSeries(c.iso3, ind.id);
-        if (s && s.latest && s.latest.value !== null) {
-          rows.push({
-            iso:c.iso3, name:c.name, highlight: !!c.highlight,
-            value: s.latest.value, period: s.latest.period, change: s.latest.change
-          });
+        if (!s || !s.latest || s.latest.value === null || metricStatus(s).key !== 'current') {
+          omittedCount += 1;
+          return;
         }
+        rows.push({
+          iso:c.iso3, name:c.name, highlight: !!c.highlight,
+          value: s.latest.value, period: s.latest.period, change: s.latest.change
+        });
       });
       const desc = ind.rank !== 'ascending';
       rows.sort(function(a,b){ return desc ? (b.value - a.value) : (a.value - b.value); });
@@ -284,7 +311,8 @@
       html += '<div class="ranking-card">' +
         '<div class="ranking-card__head">' +
           '<h3 class="ranking-card__title">' + ind.label + '</h3>' +
-          '<span class="ranking-card__meta">' + (desc ? 'Mayor → menor' : 'Menor → mayor') + ' · ' + ind.unit + '</span>' +
+          '<span class="ranking-card__meta">' + (desc ? 'Mayor → menor' : 'Menor → mayor') + ' · ' + ind.unit +
+            (omittedCount ? ' · ' + omittedCount + ' no vigente' + (omittedCount === 1 ? '' : 's') + ' omitido' + (omittedCount === 1 ? '' : 's') : '') + '</span>' +
         '</div>' +
         '<ul class="ranking-card__list">';
       rows.forEach(function(r, i){

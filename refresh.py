@@ -1886,12 +1886,12 @@ def extract_internacional(status):
     intl_data = json.loads(m.group(1))
     _intl_str = json.dumps(intl_data, ensure_ascii=False, default=str)
     try:
-        with open(os.path.join(DATA_DIR, "internacional.json"), "w", encoding="utf-8") as f:
+        with open(os.path.join(DATA_DIR, "internacional.json"), "w", encoding="utf-8", newline="\n") as f:
             f.write(_intl_str)
     except OSError:
         pass
     js_path = os.path.join(DATA_DIR, "internacional.js")
-    with open(js_path, "w", encoding="utf-8") as f:
+    with open(js_path, "w", encoding="utf-8", newline="\n") as f:
         f.write(f"// Datos Internacional - regenerado por refresh.py el {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
                 f"window.INTERNACIONAL_DATA = {_intl_str};\n")
     sello_origen = datetime.fromtimestamp(os.path.getmtime(origen)).strftime('%d/%m %H:%M')

@@ -47,6 +47,14 @@
       "monthlyUnemployment": "DSD_LFS@DF_IALFS_UNE_M"
     }
   },
+  "oecdSdmx": {
+    "name": "OECD SDMX API",
+    "baseUrl": "https://sdmx.oecd.org/public/rest/v1/data",
+    "url": "https://www.oecd.org/en/data/insights/data-explainers/2024/09/api.html",
+    "dataflows": {
+      "g20Prices": "OECD.SDD.TPS,DSD_G20_PRICES@DF_G20_PRICES,1.0"
+    }
+  },
   "eurostat": {
     "name": "Eurostat",
     "baseUrl": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data",
@@ -56,6 +64,11 @@
     "name": "IBGE SIDRA",
     "ipcaMonthlyUrl": "https://apisidra.ibge.gov.br/values/t/1737/n1/all/v/63/p/last%2084?formato=json",
     "url": "https://apisidra.ibge.gov.br/"
+  },
+  "turkstat": {
+    "name": "TÜİK / TurkStat",
+    "cpiAnnualChartUrl": "https://www.tuik.gov.tr/Home/GetTuketiciFiyatEndeksiGrafik",
+    "url": "https://www.tuik.gov.tr/"
   },
   "onsDbnomics": {
     "name": "UK Office for National Statistics via DBnomics mirror",

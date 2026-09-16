@@ -49,6 +49,16 @@ en `assets/data/mercados.js`.
   anterior y lo informa como advertencia en vez de publicar datos parciales.
 - Las dependencias adicionales se instalan automáticamente solo si faltan.
 
+## Internacional
+
+El Monitor mundial se regenera al correr cualquiera de los notebooks de
+actualización. Para inflación G20 consulta primero la API SDMX oficial de la
+OCDE; DBnomics queda únicamente como respaldo. Para Turquía, la variación
+interanual usa TÜİK cuando la serie HICP de OCDE no está vigente. El panel muestra una etiqueta
+por serie: **Al día**, **Dato vencido** o **En caché**. Los datos vencidos se
+pueden consultar en el comparativo, pero se excluyen del ranking para no
+mezclar observaciones de períodos incompatibles.
+
 ## Si cambia la ubicación de un Excel
 
 Abrí `refresh.py` con cualquier editor, buscá la sección **CONFIGURACIÓN** y cambiá la ruta del archivo. Guardá y volvé a correr el .bat.

@@ -46,10 +46,12 @@ async function main() {
   await loadBeaGdpMirror({ indicators, sources, series, previous });
   await loadEurostatSeries({ indicators, sources, series, previous });
   await loadBrazilIbgeInflation({ indicators, sources, series, previous });
+  await loadTurkeyOfficialInflation({ indicators, sources, series, previous });
   await loadOnsOfficialSeries({ indicators, sources, series, previous });
   await loadRbaOfficialSeries({ indicators, sources, series, previous });
   await loadJapanOfficialSeries({ indicators, sources, series, previous });
   applyPreviousFallbacks({ countries, indicators, series, previous });
+  warnAboutStaleSeries({ countries, indicators, series });
 
   const calendar = enrichCalendarWithPrevious(await loadCalendar({ countries, sources, calendarConfig }), series, indicators);
 
@@ -207,7 +209,10 @@ async function loadIlostatUnemployment({ countries, indicators, sources, series,
         sourceUrl: sources.ilostat.url
       });
       if (metric) {
-        series[country.iso3][indicator.id] = metric;
+        // ILOSTAT a veces publica una observacion muy vieja para un pais. No
+        // debe reemplazar un fallback anual mas reciente solo por haber
+        // respondido HTTP 200.
+        setMetricIfNewer(series, country.iso3, indicator.id, metric);
       } else if (!series[country.iso3][indicator.id]) {
         series[country.iso3][indicator.id] = getPreviousMetric(previous, country.iso3, indicator.id, "ILOSTAT sin dato actual");
       }
@@ -348,11 +353,56 @@ async function loadBcraArgentinaTamar({ indicators, sources, series, previous })
 }
 
 async function loadOecdG20Prices({ countries, indicators, sources, series, previous }) {
-  const source = sources.oecdDbnomics;
-  if (!source) return;
+  const officialSource = sources.oecdSdmx;
   const hicpCountries = new Set(["DEU", "FRA", "GBR", "ITA", "TUR"]);
 
-  await Promise.all(countries.map(async (country) => {
+  // DBnomics indexa esta tabla de OECD con demora. La API SDMX oficial se
+  // consulta primero en cuatro descargas agregadas, una por metodologia y
+  // transformacion. El espejo queda debajo como respaldo ante una caida.
+  if (officialSource?.dataflows?.g20Prices) {
+    const requests = [
+      { methodology: "N.CPI", indicatorId: "inflationYoy", unitMeasure: "PA", transformation: "GY", note: "CPI nacional all-items, variacion interanual." },
+      { methodology: "N.CPI", indicatorId: "inflationMom", unitMeasure: "PC", transformation: "G1", note: "CPI nacional all-items, variacion mensual." },
+      { methodology: "HICP.CPI", indicatorId: "inflationYoy", unitMeasure: "PA", transformation: "GY", note: "HICP all-items, variacion interanual." },
+      { methodology: "HICP.CPI", indicatorId: "inflationMom", unitMeasure: "PC", transformation: "G1", note: "HICP all-items, variacion mensual." }
+    ];
+
+    for (const request of requests) {
+      try {
+        const seriesByCountry = await fetchOecdSdmxSeriesValues(
+          officialSource,
+          officialSource.dataflows.g20Prices,
+          `.M.${request.methodology}.${request.unitMeasure}._T.N.${request.transformation}`,
+          "Mensual"
+        );
+        for (const country of countries) {
+          const usesHicp = hicpCountries.has(country.iso3);
+          if ((request.methodology === "HICP.CPI") !== usesHicp) continue;
+          setMetricIfNewer(series, country.iso3, request.indicatorId, buildMetric({
+            indicator: getIndicatorConfig(indicators, request.indicatorId),
+            values: seriesByCountry.get(country.iso3) || [],
+            source: "oecdSdmx",
+            sourceName: `${officialSource.name} (G20 prices)`,
+            frequency: "Mensual",
+            sourceUrl: officialSource.url,
+            note: request.note
+          }));
+        }
+      } catch (error) {
+        warn("warn", officialSource.name, `No se pudo descargar ${request.indicatorId} (${request.methodology}): ${error.message}`);
+      }
+    }
+  }
+
+  const source = sources.oecdDbnomics;
+  if (!source) return;
+  const countriesNeedingFallback = countries.filter((country) => {
+    const yoy = series[country.iso3]?.inflationYoy;
+    const mom = series[country.iso3]?.inflationMom;
+    return yoy?.status !== "current" || mom?.status !== "current";
+  });
+
+  await Promise.all(countriesNeedingFallback.map(async (country) => {
     const methodology = hicpCountries.has(country.iso3) ? "HICP.CPI" : "N.CPI";
     const label = methodology === "HICP.CPI" ? "HICP all-items" : "CPI nacional all-items";
 
@@ -724,6 +774,13 @@ async function loadBrazilIbgeInflation({ indicators, sources, series, previous }
   const source = sources.ibgeSidra;
   if (!source) return;
 
+  // La API SIDRA suele bloquear consultas automatizadas. Si la fuente oficial
+  // OECD SDMX ya entrego un IPCA vigente, no hacemos una llamada redundante
+  // que solo agregaria una alerta 403 al refresh.
+  const currentYoy = series.BRA?.inflationYoy;
+  const currentMom = series.BRA?.inflationMom;
+  if (currentYoy?.status === "current" && currentMom?.status === "current") return;
+
   try {
     const payload = await fetchJson(source.ipcaMonthlyUrl, 45000);
     if (!Array.isArray(payload)) throw new Error("Respuesta inesperada");
@@ -762,6 +819,38 @@ async function loadBrazilIbgeInflation({ indicators, sources, series, previous }
     }) || getPreviousMetric(previous, "BRA", "inflationYoy", "IBGE sin IPCA actual"));
   } catch (error) {
     warn("warn", source.name, `No se pudo descargar IPCA Brasil: ${error.message}`);
+  }
+}
+
+async function loadTurkeyOfficialInflation({ indicators, sources, series, previous }) {
+  const source = sources.turkstat;
+  if (!source?.cpiAnnualChartUrl) return;
+
+  try {
+    const payload = await fetchJson(source.cpiAnnualChartUrl, 45000);
+    if (!Array.isArray(payload)) throw new Error("Respuesta inesperada");
+    const values = payload
+      .filter((row) => row.birimKey === "__GRAFIK_1__")
+      .map((row) => {
+        const year = Number(row.yil);
+        const month = Number(row.ay);
+        if (!Number.isInteger(year) || month < 1 || month > 12) return null;
+        const period = `${year}-${String(month).padStart(2, "0")}`;
+        return { period, date: monthEndDate(period), value: parseNumberCell(row.deger) };
+      })
+      .filter((point) => Number.isFinite(point.value));
+
+    setMetricIfNewer(series, "TUR", "inflationYoy", buildMetric({
+      indicator: getIndicatorConfig(indicators, "inflationYoy"),
+      values,
+      source: "turkstat",
+      sourceName: source.name,
+      frequency: "Mensual",
+      sourceUrl: source.url,
+      note: "TÜFE general, variacion interanual. Serie oficial de TurkStat."
+    }) || getPreviousMetric(previous, "TUR", "inflationYoy", "TÜİK sin IPC actual"));
+  } catch (error) {
+    warn("warn", source.name, `No se pudo descargar IPC Turquia: ${error.message}`);
   }
 }
 
@@ -1136,6 +1225,24 @@ function applyPreviousFallbacks({ countries, indicators, series, previous }) {
   }
 }
 
+function warnAboutStaleSeries({ countries, indicators, series }) {
+  const nonCurrent = [];
+  for (const country of countries) {
+    for (const indicator of indicators) {
+      const metric = series[country.iso3]?.[indicator.id];
+      if (!metric?.latest) {
+        nonCurrent.push(`${country.iso3} ${indicator.id} (sin dato)`);
+        continue;
+      }
+      if (metric.status === "current") continue;
+      nonCurrent.push(`${country.iso3} ${indicator.id} (${metric.latest.period || metric.latest.date})`);
+    }
+  }
+  if (nonCurrent.length) {
+    warn("warn", "Vigencia de series", `${nonCurrent.length} series sin observacion vigente: ${nonCurrent.join(", ")}`);
+  }
+}
+
 function setMetric(series, iso3, indicatorId, metric) {
   if (!metric || !series[iso3]) return;
   series[iso3][indicatorId] = metric;
@@ -1196,7 +1303,7 @@ function buildMetric({ indicator, values, source, sourceName, frequency, sourceU
     note,
     unit: indicator.unit,
     latest: enrichedLatest,
-    status: computeStatus(latest.date, indicator.staleAfterMonths),
+    status: computeStatus(latest.date, staleAfterMonthsForFrequency(indicator.staleAfterMonths, frequency)),
     values: cleanValues
   };
 }
@@ -1208,6 +1315,68 @@ function computeStatus(dateIso, staleAfterMonths) {
   const staleDate = new Date();
   staleDate.setUTCMonth(staleDate.getUTCMonth() - staleAfterMonths);
   return latestDate < staleDate ? "stale" : "current";
+}
+
+function staleAfterMonthsForFrequency(indicatorWindow, frequency) {
+  // El umbral del indicador está pensado para fuentes coyunturales. Un dato
+  // anual puede ser el último oficialmente disponible durante buena parte del
+  // año siguiente, por lo que no debe aparecer como vencido sólo por su
+  // frecuencia de publicación.
+  const minimumWindow = frequency === "Anual" ? 15 : 0;
+  return Math.max(Number(indicatorWindow) || 0, minimumWindow);
+}
+
+async function fetchOecdSdmxSeriesValues(source, dataflow, key, frequency) {
+  const url = `${source.baseUrl}/${dataflow}/${key}?startPeriod=${START_YEAR}-01`;
+  const text = await fetchOecdSdmxText(url, 45000);
+  const valuesByCountry = parseOecdSdmxGenericData(text, frequency);
+  if (!valuesByCountry.size) throw new Error("respuesta SDMX sin series");
+  return valuesByCountry;
+}
+
+async function fetchOecdSdmxText(url, timeoutMs) {
+  let lastError = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      // El servicio SDMX de OECD entrega 500 a conexiones persistentes de
+      // undici/Node. Connection: close fuerza la respuesta GenericData XML
+      // estable que se parsea debajo.
+      const response = await fetchWithTimeout(url, timeoutMs, {
+        headers: { "Accept": "*/*", "Connection": "close" }
+      });
+      return response.text();
+    } catch (error) {
+      lastError = error;
+      if (!String(error.message || "").includes("HTTP 429") || attempt === 2) break;
+      await new Promise((resolve) => setTimeout(resolve, 1250 * (attempt + 1)));
+    }
+  }
+  throw lastError;
+}
+
+function parseOecdSdmxGenericData(xml, frequency) {
+  const grouped = new Map();
+  const seriesPattern = /<generic:Series>([\s\S]*?)<\/generic:Series>/g;
+  for (const seriesMatch of xml.matchAll(seriesPattern)) {
+    const block = seriesMatch[1];
+    const countryMatch = block.match(/<generic:Value\s+id="REF_AREA"\s+value="([^"]+)"\s*\/>/);
+    if (!countryMatch) continue;
+
+    const values = [];
+    for (const obsMatch of block.matchAll(/<generic:Obs>([\s\S]*?)<\/generic:Obs>/g)) {
+      const observation = obsMatch[1];
+      const periodMatch = observation.match(/<generic:ObsDimension\s+id="TIME_PERIOD"\s+value="([^"]+)"\s*\/>/);
+      const valueMatch = observation.match(/<generic:ObsValue\s+value="([^"]+)"\s*\/>/);
+      if (!periodMatch || !valueMatch) continue;
+      const normalized = normalizeDbnomicsPeriod(periodMatch[1], null, frequency);
+      const value = parseNumberCell(valueMatch[1]);
+      if (normalized && Number.isFinite(value)) values.push({ ...normalized, value });
+    }
+    if (values.length) {
+      grouped.set(countryMatch[1], values.sort((a, b) => a.date.localeCompare(b.date)));
+    }
+  }
+  return grouped;
 }
 
 async function fetchText(url, timeoutMs) {
