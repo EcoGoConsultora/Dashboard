@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Empleo · Eco Go</title>
-  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="stylesheet" href="../assets/css/theme.css?v=202609221610" />
   <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
@@ -96,6 +96,16 @@
     .eg-cuadro tr.is-section td{background:rgba(60,151,148,0.06)}
     .eg-cuadro tr.is-indent td:first-child{padding-left:32px; color:var(--color-text-muted); font-size:.78rem}
 
+    /* Primera columna fija al scrollear horizontalmente (fondos opacos para que no se transparente) */
+    .eg-cuadro th:first-child, .eg-cuadro td:first-child{
+      position:sticky; left:0; z-index:1; box-shadow:3px 0 6px -2px rgba(0,0,0,.12);
+    }
+    .eg-cuadro td:first-child{background:var(--color-surface, #fff)}
+    .eg-cuadro thead th:first-child{background:var(--eg-teal-dark); z-index:3}
+    .eg-cuadro tr.is-section td:first-child{background:#F5FAFA}
+    .eg-cuadro tbody tr:hover td:first-child{background:var(--eg-gray-100)}
+    .eg-cuadro__nota{padding:10px 14px; font-size:.72rem; color:var(--color-text-muted); border-top:1px solid var(--color-border-soft, #ECEFEF)}
+
     /* SIPA con separador entre datos puros y diferencias */
     .eg-cuadro td.col-sep-left,
     .eg-cuadro th.col-sep-left{border-left:2px dashed var(--eg-teal); padding-left:18px}
@@ -179,6 +189,7 @@
           <div class="chart-source">Fuente: Eco Go en base a SIPA · serie desestacionalizada · valores en miles</div>
           <div class="eg-cuadro">
             <div class="eg-cuadro__scroll"><table id="tablaSIPA"></table></div>
+            <div class="eg-cuadro__nota" id="tablaSIPANota" hidden></div>
           </div>
         </div>
 
@@ -268,11 +279,11 @@
     </div>
   </div>
 
-  <script src="../assets/js/layout.js"></script>
-  <script src="../assets/data/sipa_provincias.js?v=202609221151"></script>
-  <script src="../assets/data/empleo.js?v=202609221151"></script>
-  <script src="../assets/data/salarios.js?v=202609221151"></script>
-  <script src="../assets/js/empleo.js"></script>
+  <script src="../assets/js/layout.js?v=202609221610"></script>
+  <script src="../assets/data/sipa_provincias.js?v=202609221610"></script>
+  <script src="../assets/data/empleo.js?v=202609221610"></script>
+  <script src="../assets/data/salarios.js?v=202609221610"></script>
+  <script src="../assets/js/empleo.js?v=202609221610"></script>
   <!-- ===== PROVINCIAS JS ===== -->
   <script>
   (function(){

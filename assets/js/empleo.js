@@ -153,7 +153,12 @@
     });
     html += '</tr></thead><tbody>';
     const sections = new Set(['Total registrado','PEA**','Sector Privado','Sector Público']);
-    s.filas.forEach(function(f){
+    // La nota de fuente va debajo del cuadro, no como fila (si no, ensancha la primera columna)
+    const esNota = function(f){ return /^fuente\s*:/i.test(f.categoria); };
+    const notas = (s.fuente ? [s.fuente] : []).concat(s.filas.filter(esNota).map(function(f){ return f.categoria; }));
+    const nota = document.getElementById('tablaSIPANota');
+    if (nota && notas.length) { nota.textContent = notas[0]; nota.hidden = false; }
+    s.filas.filter(function(f){ return !esNota(f); }).forEach(function(f){
       const isSection = sections.has(f.categoria) || f.categoria.startsWith('Sector ');
       const isIndent = !isSection && (f.categoria.indexOf('Asalariados') >= 0 ||
                                        f.categoria.indexOf('Monotributo') >= 0 ||

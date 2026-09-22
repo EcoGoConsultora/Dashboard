@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Series Largas · Eco Go</title>
-  <link rel="stylesheet" href="../assets/css/theme.css"/>
+  <link rel="stylesheet" href="../assets/css/theme.css?v=202609221610"/>
   <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -132,9 +132,9 @@
             <span class="sl-preset-sep">|</span>
             <button class="sl-preset" onclick="setPreset(5)">5A</button>
             <span class="sl-preset-sep">|</span>
-            <button class="sl-preset" onclick="setPreset(10)">10A</button>
+            <button class="sl-preset is-active" onclick="setPreset(10)">10A</button>
             <span class="sl-preset-sep">|</span>
-            <button class="sl-preset is-active" onclick="setPreset(0)">Máx</button>
+            <button class="sl-preset" onclick="setPreset(0)">Máx</button>
           </div>
           <div class="sl-yr-inputs">
             <button class="sl-yr-input" id="fromYrBtn"></button>
@@ -162,8 +162,8 @@
     </main>
   </div>
 
-  <script src="../assets/js/layout.js"></script>
-  <script src="../assets/data/series-largas.js?v=202609221151"></script>
+  <script src="../assets/js/layout.js?v=202609221610"></script>
+  <script src="../assets/data/series-largas.js?v=202609221610"></script>
   <script>
   (function(){
     var D = window.SERIES_DATA;
@@ -235,6 +235,7 @@
       var f = ALL_YEARS.indexOf(fromYear);
       var t = ALL_YEARS.indexOf(toYear);
       visYears = ALL_YEARS.slice(f, t + 1);
+      scrollToEnd = true;
       renderAll();
       if (VIEW === 'chart') {
         selectedVars.forEach(function(v){ setTimeout(function(){ drawChart(v); }, 50); });
@@ -352,11 +353,18 @@
     /* ─────────────────────────────────────────────────────────
        RENDER PRINCIPAL
     ───────────────────────────────────────────────────────── */
+    // Las tablas arrancan scrolleadas al final (años más recientes). Al cambiar
+    // el rango se vuelve al final; en cualquier otro re-render se conserva la posición.
+    var scrollToEnd = true;
+
     function renderAll() {
       var acc = document.getElementById('slAccordion');
       var openCats = {};
+      var prevScroll = {};
       acc.querySelectorAll('.sl-cat-body.open').forEach(function(el){
         openCats[el.dataset.catId] = true;
+        var w = el.querySelector('.sl-tbl-wrap');
+        if (w) prevScroll[el.dataset.catId] = w.scrollLeft;
       });
 
       // Poner Actividad primero
@@ -374,6 +382,21 @@
         html += renderCat(cat, ci, isOpen);
       });
       acc.innerHTML = html;
+
+      var toEnd = scrollToEnd;
+      scrollToEnd = false;
+      function placeScroll() {
+        acc.querySelectorAll('.sl-cat-body.open').forEach(function(el){
+          var w = el.querySelector('.sl-tbl-wrap');
+          if (!w) return;
+          var prev = prevScroll[el.dataset.catId];
+          w.scrollLeft = (toEnd || prev === undefined) ? w.scrollWidth : prev;
+        });
+      }
+      placeScroll();
+      // Reubicar cuando termine el layout (fuentes / anchos finales de columnas)
+      requestAnimationFrame(placeScroll);
+      if (toEnd && document.fonts && document.fonts.ready) document.fonts.ready.then(placeScroll);
     }
 
     function renderCat(cat, ci, isOpen) {
@@ -464,6 +487,8 @@
       var chevron = body.previousElementSibling.querySelector('.sl-cat-chevron');
       body.classList.toggle('open');
       chevron.classList.toggle('open');
+      var w = body.querySelector('.sl-tbl-wrap');
+      if (w && body.classList.contains('open')) w.scrollLeft = w.scrollWidth;
     };
 
     window.toggleVar = function(vid) {
@@ -546,7 +571,7 @@
       var sub = document.getElementById('slSubtitle');
       if (sub) sub.textContent = 'Variables macroeconómicas históricas · ' + y0 + '–' + y1 + ' · Fuente: Anexo EcoGo';
       initYearPicker();
-      renderAll();
+      setPreset(10);   // por defecto: últimos 10 años (el usuario puede ampliar con Máx o el selector)
     });
 
   })();

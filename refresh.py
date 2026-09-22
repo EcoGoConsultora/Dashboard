@@ -1030,6 +1030,9 @@ def extract_empleo(status):
     for r in range(s_ini, s_ini + 10):
         cat = ws.cell(r, 2).value
         if not cat: continue
+        if str(cat).strip().lower().startswith('fuente'):
+            sipa["fuente"] = str(cat).strip()   # nota al pie, no fila de datos
+            continue
         valores = []
         for c in cols_sipa:
             v = ws.cell(r, c["col"]).value
@@ -1949,7 +1952,8 @@ def extract_monitor_actividad(status):
 @_nunca_rompe("Version de datos")
 def sellar_versiones(status):
     """Le pone ?v=<fecha> a los <script src=".../assets/data/*.js"> de todas las
-    paginas.
+    paginas, y tambien a assets/js/*.js y assets/css/*.css (asi un cambio de
+    codigo como layout.js no queda tapado por el cache del navegador).
 
     Sin esto, la URL de cada archivo de datos no cambia nunca: GitHub Pages los
     sirve con cache y el navegador te sigue mostrando el archivo viejo aunque
@@ -1959,7 +1963,7 @@ def sellar_versiones(status):
     Trabaja sobre bytes a proposito: algunas paginas tienen bytes que no son
     UTF-8 valido y releerlas como texto las corromperia."""
     sello = datetime.now().strftime('%Y%m%d%H%M').encode()
-    patron = re.compile(rb'(src=["\'][^"\']*assets/data/[^"\'?]+\.js)(\?v=[0-9]+)?(["\'])')
+    patron = re.compile(rb'((?:src|href)=["\'][^"\']*assets/(?:data/[^"\'?]+\.js|js/[^"\'?]+\.js|css/[^"\'?]+\.css))(\?v=[0-9]+)?(["\'])')
     tocadas = 0
     for carpeta in (DASHBOARD_DIR, os.path.join(DASHBOARD_DIR, 'pages')):
         if not os.path.isdir(carpeta):

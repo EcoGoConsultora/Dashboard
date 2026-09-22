@@ -12,8 +12,48 @@ const SECTIONS = [
   { id:'internacional',  label:'Internacional',           href:'pages/internacional.html',   group:'Externo',   icon:'map',           desc:'Proyecciones de consenso para América Latina y commodities.' },
   { id:'mercados-global',label:'Internacional · Mercados', href:'pages/mercados-global.html', group:'Mercados',  icon:'globe',         desc:'Benchmarks globales · strip del snapshot y cobertura del bloque externo.' },
   { id:'mercados',       label:'Mercados',                href:'pages/mercados.html',        group:'Mercados',  icon:'bar-chart2',    desc:'Tasa fija, renta variable, CER, dólar linked y hard-dollar.' },
-  { id:'monetarias',     label:'Monetarias',              href:'pages/monetarias.html',      group:'Financiero', icon:'trending-up',   desc:'Agregados monetarios, préstamos privados y monetización de la economía.' }
+  { id:'monetarias',     label:'Monetarias',              href:'pages/monetarias.html',      group:'Financiero', icon:'trending-up',   desc:'Agregados monetarios, préstamos privados y monetización de la economía.' },
+
+  /* Secciones exclusivas para clientes (antes Dashboard Clientes) */
+  { id:'precios-rpm',        label:'Precios RPM',               href:'pages/precios-clientes.html',    group:'Clientes', clientes:true, icon:'tag',         desc:'IPC, núcleo, regulados y proyecciones RPM.' },
+  { id:'actividad-clientes', label:'Actividad · Monitor',       href:'pages/actividad-clientes.html',  group:'Clientes', clientes:true, icon:'activity',    desc:'Monitor de actividad económica y proyecciones.' },
+  { id:'rigi',               label:'RIGI',                      href:'pages/rigi-clientes.html',       group:'Clientes', clientes:true, icon:'pie-chart',   desc:'Régimen de Incentivo para Grandes Inversiones.' },
+  { id:'reservas',           label:'Reservas',                  href:'pages/reservas-clientes.html',   group:'Clientes', clientes:true, icon:'shield',      desc:'Composición RIN, reservas brutas y depósitos.' },
+  { id:'monetarias-clientes',label:'Monetarias · M3 CCL',       href:'pages/monetarias-clientes.html', group:'Clientes', clientes:true, icon:'trending-up', desc:'Agregados monetarios en dólares (M3 CCL).' },
+  { id:'deuda',              label:'Deuda',                     href:'pages/deuda-clientes.html',      group:'Clientes', clientes:true, icon:'layers',      desc:'Deuda pública histórica, vencimientos en pesos y perfil con privados.' },
+  { id:'comercio',           label:'Comercio exterior',         href:'pages/comercio-clientes.html',   group:'Clientes', clientes:true, icon:'exchange',    desc:'Importaciones desestacionalizadas, saldos comerciales, términos de intercambio y serie mensual de expo/impo.' },
+  { id:'internacional2',     label:'Internacional · Consensus', href:'pages/internacional2.html',      group:'Clientes', clientes:true, icon:'map',         desc:'LatinFocus Consensus Forecast — resumen y detalle por país.' }
 ];
+
+/* ================================================================
+   Acceso clientes
+   El login lo hace WordPress: la página de clientes de ecogo.com.ar abre
+   este tablero con ?acceso=clientes (o index-clientes.html, que redirige).
+   Eso se recuerda en la sesión del navegador. Sin eso, las secciones de
+   clientes muestran un candado y mandan a iniciar sesión en ecogo.com.ar.
+   OJO: es una traba visual, no encriptación — el sitio de GitHub Pages
+   sigue siendo público para quien conozca las URLs.
+   ================================================================ */
+const LOGIN_CLIENTES_URL = 'https://ecogo.com.ar/estadisticas/tableros/tableros-2';
+
+function esCliente() {
+  try {
+    if (/[?&]acceso=clientes(&|$)/.test(location.search)) sessionStorage.setItem('eg_acceso', 'clientes');
+    return sessionStorage.getItem('eg_acceso') === 'clientes';
+  } catch (e) {
+    return /[?&]acceso=clientes(&|$)/.test(location.search);
+  }
+}
+
+function bloqueada(s) { return !!(s && s.clientes) && !esCliente(); }
+
+/* href + atributos para un link a una sección (bloqueada → login de WordPress, en la ventana principal) */
+function linkAttrs(s, cls) {
+  if (bloqueada(s)) {
+    return 'href="' + LOGIN_CLIENTES_URL + '" target="_top" rel="noopener" title="Exclusivo clientes · iniciá sesión en ecogo.com.ar" class="' + ((cls || '') + ' is-locked').trim() + '"';
+  }
+  return 'href="' + resolve(s.href) + '"' + (cls ? ' class="' + cls + '"' : '');
+}
 
 const ICONS = {
   home:        '<path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1V9.5z"/>',
@@ -28,6 +68,8 @@ const ICONS = {
   map:         '<polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>',
   'bar-chart2':'<rect x="6" y="9" width="3" height="13"/><rect x="11" y="5" width="3" height="17"/><rect x="16" y="12" width="3" height="10"/>',
   shield:      '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+  lock:        '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  exchange:    '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
   database:    '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>',
   menu:        '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>'
 };
@@ -58,8 +100,9 @@ function buildSidebar(activeId) {
       const active = s.id === activeId ? ' is-active' : '';
       const highlight = s.group === 'Destacado' ? ' eg-nav--highlight' : '';
       html += '<li class="eg-nav__item">' +
-        '<a href="' + resolve(s.href) + '" class="' + (active + highlight).trim() + '">' +
+        '<a ' + linkAttrs(s, (active + highlight).trim()) + '>' +
           icon(s.icon) + ' <span>' + s.label + '</span>' +
+          (bloqueada(s) ? icon('lock', 'eg-nav__lock') : '') +
         '</a>' +
       '</li>';
     }
@@ -110,6 +153,7 @@ function mountLayout() {
 
   if (sb) sb.innerHTML = buildSidebar(activeId);
   if (hd) hd.innerHTML = buildHeader(activeId, false);
+  mountGate(activeId);
 
   const toggle = document.getElementById('egMobileToggle');
   if (toggle && sb) {
@@ -121,6 +165,23 @@ function mountLayout() {
     if (sb.contains(e.target) || (toggle && toggle.contains(e.target))) return;
     sb.classList.remove('is-open');
   });
+}
+
+/* Página de clientes abierta sin acceso: se tapa el contenido con el aviso de login */
+function mountGate(activeId) {
+  const section = SECTIONS.find(s => s.id === activeId);
+  if (!bloqueada(section)) return;
+  const main = document.querySelector('.eg-main');
+  if (!main) return;
+  main.classList.add('is-gated');
+  const gate = document.createElement('div');
+  gate.className = 'eg-gate';
+  gate.innerHTML = icon('lock', 'eg-gate__icon') +
+    '<h2>Sección exclusiva para clientes</h2>' +
+    '<p>Para ver <strong>' + section.label + '</strong> iniciá sesión con tu usuario de Eco Go.</p>' +
+    '<a class="eg-btn eg-btn--primary" href="' + LOGIN_CLIENTES_URL + '" target="_top" rel="noopener">Iniciar sesión</a>' +
+    '<a class="eg-gate__back" href="' + resolve('index.html') + '">Volver al inicio</a>';
+  main.parentNode.insertBefore(gate, main);
 }
 
 document.addEventListener('DOMContentLoaded', mountLayout);
@@ -230,4 +291,5 @@ function dlBtn(anchorSel, filename, getFn) {
 }
 
 window.EcoGo = { SECTIONS: SECTIONS, icon: icon, resolve: resolve, mountLayout: mountLayout,
+                 esCliente: esCliente, bloqueada: bloqueada, linkAttrs: linkAttrs,
                  downloadCSV: downloadCSV, dlBtn: dlBtn };
