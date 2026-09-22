@@ -312,3 +312,18 @@ p { margin:0 0 1em; }
 .eg-gate h2 { margin:6px 0 0; color:var(--eg-teal-dark); }
 .eg-gate p { margin:0 0 8px; color:var(--color-text-muted); max-width:420px; }
 .eg-gate__back { font-size:.85rem; color:var(--eg-teal); }
+
+/* ── Sidebar: con las secciones de clientes el menú no entra en el alto del
+      iframe de ecogo.com.ar (900px). Barra de scroll fina del color del menú
+      (la gris de Windows se encimaba con los ítems) y espaciado más compacto. ── */
+.eg-nav { scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.22) transparent; }
+.eg-nav::-webkit-scrollbar { width:6px; }
+.eg-nav::-webkit-scrollbar-track { background:transparent; }
+.eg-nav::-webkit-scrollbar-thumb { background:rgba(255,255,255,.22); border-radius:6px; }
+.eg-nav::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,.38); }
+.eg-nav::-webkit-scrollbar-button { display:none; height:0; }
+@media (max-height: 1000px) {
+  .eg-nav { padding:8px 8px; }
+  .eg-nav__group { padding:10px 12px 4px; }
+  .eg-nav__item a { padding:7px 12px; font-size:.88rem; }
+}
