@@ -44,7 +44,7 @@ EXCEL_PATHS = {
     "gd":          os.path.join(BASE_EXCEL, "Precios", "Gráficos de dispersión - copia - copia.xlsx"),
     "cm":          os.path.join(BASE_EXCEL, "Precios", "CM - DB.xlsx"),  # opcional (ya no se usa para proyeccion)
     "rpm_cuadro":  os.path.join(BASE_EXCEL, "Precios", "RPM Estudio Bein", "Alimentos Scrapping", "Cuadro Mensual - Capítulos Nuevo.xlsx"),
-    "empleo":      os.path.join(BASE_EXCEL, "Empleo",  "Empleo_nuevo.xlsx"),
+    "empleo":      os.path.join(BASE_EXCEL, "Empleo",  "Empleo_limpio.xlsx"),
     "salarios":    os.path.join(BASE_EXCEL, "Empleo",  "Salarios.xlsx"),
     "tcr_bandas":  os.path.join(BASE_EXCEL, "Tipo de Cambio", "TCR bandas.xlsx"),
     "rofex":       os.path.join(BASE_EXCEL, "Tipo de Cambio", "Rofex.xlsx"),
@@ -96,13 +96,63 @@ MARKETS_PIPELINE_PAYLOAD = os.path.join(MARKETS_PIPELINE_DIR, "output", "dashboa
 # =====================================================================
 
 
+def _leer_bytes(path):
+    """Lee un Excel a bytes aunque este abierto en Excel o a medio sincronizar
+    por OneDrive.
+
+    El open() de Python pide el archivo sin FILE_SHARE_DELETE, y con eso Windows
+    lo rechaza mientras Excel lo tiene abierto (shutil.copy2 y 'copy' de cmd
+    fallan por lo mismo). Se reintenta con CreateFileW pidiendo los tres modos
+    de uso compartido, que si lo permite; si aun asi no se puede, se saca una
+    copia con PowerShell y se lee de ahi.
+
+    Sin esto, con solo tener el Excel abierto esa seccion se caia y el refresh
+    terminaba sin ese dato."""
+    try:
+        with open(path, 'rb') as _f:
+            return _f.read()
+    except PermissionError:
+        pass
+
+    # 1) leer directo pidiendo uso compartido completo (lectura/escritura/borrado)
+    try:
+        import ctypes, msvcrt
+        from ctypes import wintypes
+        GENERIC_READ, OPEN_EXISTING = 0x80000000, 3
+        SHARE_TODO = 0x1 | 0x2 | 0x4
+        k = ctypes.windll.kernel32
+        k.CreateFileW.restype = wintypes.HANDLE
+        h = k.CreateFileW(str(path), GENERIC_READ, SHARE_TODO, None,
+                          OPEN_EXISTING, 0x80, None)
+        if h != wintypes.HANDLE(-1).value:
+            fd = msvcrt.open_osfhandle(h, os.O_RDONLY)
+            with os.fdopen(fd, 'rb') as _f:
+                return _f.read()
+    except Exception:
+        pass
+
+    # 2) ultimo recurso: copiar con PowerShell, que tampoco se traba
+    import subprocess as _sub, tempfile as _tmp
+    destino = os.path.join(_tmp.gettempdir(),
+                           f"_ecogo_{os.getpid()}_{os.path.basename(path)}")
+    try:
+        _sub.run(["powershell", "-NoProfile", "-Command",
+                  f'Copy-Item -LiteralPath "{path}" -Destination "{destino}" -Force'],
+                 capture_output=True, timeout=120)
+        with open(destino, 'rb') as _f:
+            return _f.read()
+    finally:
+        try:
+            os.remove(destino)
+        except OSError:
+            pass
+
 def _open_wb(path, data_only=True, read_only=True):
     """Abre un Excel leyendo primero a bytes para evitar problemas con OneDrive mount."""
     import io as _io
     import openpyxl as _opx
-    with open(path, 'rb') as _f:
-        _data = _f.read()
-    return _opx.load_workbook(_io.BytesIO(_data), data_only=data_only, read_only=read_only)
+    return _opx.load_workbook(_io.BytesIO(_leer_bytes(path)),
+                              data_only=data_only, read_only=read_only)
 
 def _read_text(path, encoding='utf-8'):
     """Lee un archivo de texto sorteando el [Errno 22] que a veces tira el
@@ -227,11 +277,14 @@ def cols_por_encabezado(ws, fila_label, fila_unidad=None, col_ini=3, col_fin=30)
     Los mapeos fijos de columna son la peor version del problema de los rangos
     fijos: cuando el analista intercala una columna, no falta un dato — se
     muestra el dato correcto bajo la etiqueta equivocada."""
+    # strftime('%b') da el mes en ingles ("Aug-18"); el dashboard va en castellano
+    MESES_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun',
+                'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
     out = []
     for c in range(col_ini, col_fin + 1):
         lab = ws.cell(fila_label, c).value
         if isinstance(lab, datetime):
-            lab = lab.strftime('%b-%y')
+            lab = f"{MESES_ES[lab.month - 1]}-{lab.strftime('%y')}"
         elif isinstance(lab, str):
             lab = lab.replace('\n', ' ').strip()
         else:
@@ -743,6 +796,106 @@ def _keep_old_proy(data, status):
 # =====================================================================
 #  EMPLEO (EPH + Cuadro Trim + SIPA + Provincias)
 # =====================================================================
+def _sin_acentos(txt):
+    import unicodedata
+    s = unicodedata.normalize('NFKD', str(txt))
+    s = ''.join(c for c in s if not unicodedata.combining(c))
+    return re.sub(r'\s+', ' ', s.replace('.', ' ')).strip().upper()
+
+def _hoja_empleo(wb, candidatas):
+    """Primera hoja que exista de la lista. Acepta el nombre nuevo y el viejo,
+    asi el refresh sigue andando si se vuelve al Excel anterior."""
+    por_nombre = {n.strip().lower(): n for n in wb.sheetnames}
+    for c in candidatas:
+        if c.strip().lower() in por_nombre:
+            return wb[por_nombre[c.strip().lower()]]
+    return None
+
+def _mapa_eph(ws):
+    """Ubica, en el cuadro de tasas EPH, la columna del periodo y la de cada
+    indicador, leyendo los encabezados en vez de dar por fijas las posiciones.
+
+    Devuelve (col_fecha, col_etiqueta, {clave: columna}, primera_fila_de_datos).
+    col_etiqueta es la columna de texto del periodo ("I-26", "may-91") cuando el
+    Excel la trae aparte de la fecha; es la que se muestra en el dashboard.
+
+    En los dos formatos conocidos la columna que lleva el nombre del indicador
+    es tambien la del total (las de al lado son GBA y Resto), asi que alcanza
+    con encontrar donde esta escrito cada nombre."""
+    def es_periodo(v):
+        if isinstance(v, datetime):
+            return True
+        if isinstance(v, str):
+            t = v.strip()
+            return bool(re.match(r'(IV|III|II|I)-\d{2,4}$', t)
+                        or re.match(r'\d\s*º?\s*trim\s*\d{4}', t, re.IGNORECASE)
+                        or re.match(r'[a-zA-Z]{3}-\d{2,4}$', t))
+        return False
+
+    # primera fila con un periodo en alguna de las dos primeras columnas
+    fila_datos, col_fecha = None, 1
+    for r in range(1, 30):
+        for c in (1, 2):
+            if es_periodo(ws.cell(r, c).value):
+                fila_datos = r
+                break
+        if fila_datos:
+            break
+    if fila_datos is None:
+        return 1, None, {}, 8
+
+    # de las dos primeras columnas, preferir la que trae fechas de verdad
+    for c in (1, 2):
+        if isinstance(ws.cell(fila_datos, c).value, datetime):
+            col_fecha = c
+            break
+    else:
+        col_fecha = 1 if es_periodo(ws.cell(fila_datos, 1).value) else 2
+
+    # la otra, si es texto, es la etiqueta que escribe el analista
+    col_etiqueta = None
+    for c in (1, 2):
+        if c != col_fecha and isinstance(ws.cell(fila_datos, c).value, str):
+            col_etiqueta = c
+            break
+
+    # el nombre de cada indicador esta en alguna fila de encabezado de arriba
+    REGLAS = [
+        ('subocup_nodem', lambda t: 'SUBOCUP' in t and 'NO DEMANDANTE' in t),
+        ('subocup_dem',   lambda t: 'SUBOCUP' in t and 'DEMANDANTE' in t),
+        ('subocup',       lambda t: 'SUBOCUP' in t),
+        ('ocup_dem',      lambda t: 'OCUPADA' in t and 'DEMANDANTE' in t),
+        ('desocup',       lambda t: t.startswith('DESOCUP')),
+        ('empleo',        lambda t: t == 'EMPLEO'),
+        ('actividad',     lambda t: t == 'ACTIVIDAD'),
+    ]
+    cols = {}
+    for r in range(1, fila_datos):
+        for c in range(1, min(ws.max_column or 30, 40) + 1):
+            v = ws.cell(r, c).value
+            if not isinstance(v, str):
+                continue
+            t = _sin_acentos(v)
+            for clave, test in REGLAS:
+                if clave not in cols and test(t):
+                    cols[clave] = c
+                    break
+    return col_fecha, col_etiqueta, cols, fila_datos
+
+def _filas_encabezado(ws, col_cat=2, col_dato=3, max_scan=14):
+    """Para los cuadros tipo 'Cuadro empleo trim' / 'Cuadro SIPA ext': encuentra
+    la primera fila de datos (categoria en col_cat y numero en col_dato) y
+    deduce que los periodos estan dos filas arriba y las unidades una arriba.
+
+    Al pasar a Empleo_limpio.xlsx estos cuadros bajaron una fila; con esto se
+    acomodan solos en vez de tener el numero de fila escrito en el codigo."""
+    for r in range(1, max_scan):
+        cat = ws.cell(r, col_cat).value
+        for c in range(col_dato, col_dato + 6):
+            if isinstance(cat, str) and cat.strip() and isinstance(ws.cell(r, c).value, (int, float)):
+                return max(1, r - 2), max(1, r - 1), r
+    return 2, 3, 4
+
 def extract_empleo(status):
     import openpyxl
     if not os.path.exists(EXCEL_PATHS["empleo"]):
@@ -752,19 +905,30 @@ def extract_empleo(status):
     wb = _open_wb(EXCEL_PATHS["empleo"])
     data = {}
 
-    # ---- Tasas EPH (desde R8, cols B,E,H,K,N,Q,T) ----
-    # El final se detecta solo. Antes estaba fijo en la fila 124 y el cuadro se
-    # quedaba en IV-25 aunque I-26 ya estuviera cargado justo debajo.
-    # Dos guardas para saber donde termina, porque abajo del cuadro la hoja
-    # sigue con otro bloque ("Datos gráfico") que arranca de nuevo en I-19:
+    # ---- Tasas EPH ----
+    # Ni la hoja, ni la fila donde arrancan los datos, ni las columnas de cada
+    # indicador estan fijas: al pasar de Empleo_nuevo.xlsx a Empleo_limpio.xlsx
+    # cambio el nombre de la hoja, se sumo una columna "Fecha" (corriendo todo
+    # una posicion) y los datos pasaron de la fila 8 a la 6. Se ubica cada
+    # indicador por su encabezado, que es lo unico que se mantuvo igual.
+    ws = _hoja_empleo(wb, ['EPH_Resumen Tasas', 'Tasas EPH'])
+    col_fecha, col_etiqueta, cols_eph, fila_datos = _mapa_eph(ws)
+    if not cols_eph:
+        status.fail("Empleo - Tasas EPH",
+                    f"no pude ubicar los indicadores en la hoja '{ws.title}'")
+        return None
+
+    # El final se detecta solo. Antes estaba fijo y el cuadro se quedaba en
+    # IV-25 aunque I-26 ya estuviera cargado justo debajo. Dos guardas, porque
+    # abajo del cuadro la hoja puede seguir con otro bloque que arranca de nuevo
+    # en un periodo viejo:
     #   - cortar tras varias filas seguidas sin periodo (hay huecos sueltos
     #     adentro del cuadro, asi que una sola no alcanza)
     #   - cortar si el periodo deja de avanzar en el tiempo
-    ws = wb["Tasas EPH"]
     eph = []
     _vacias, _ult_ord = 0, None
-    for r in range(8, 220):
-        fecha = ws.cell(r, 1).value
+    for r in range(fila_datos, fila_datos + 400):
+        fecha = ws.cell(r, col_fecha).value
         if fecha is None:
             _vacias += 1
             if eph and _vacias >= 4: break
@@ -800,16 +964,16 @@ def extract_empleo(status):
         if _ult_ord is not None and ord_idx <= _ult_ord:
             break
         _vacias, _ult_ord = 0, ord_idx
-        eph.append({
-            "fecha": fecha_str, "ord": ord_idx, "label": label,
-            "actividad":     fmt_n(ws.cell(r, 2).value),
-            "empleo":        fmt_n(ws.cell(r, 5).value),
-            "desocup":       fmt_n(ws.cell(r, 8).value),
-            "ocup_dem":      fmt_n(ws.cell(r, 11).value),
-            "subocup":       fmt_n(ws.cell(r, 14).value),
-            "subocup_dem":   fmt_n(ws.cell(r, 17).value),
-            "subocup_nodem": fmt_n(ws.cell(r, 20).value)
-        })
+        # si el Excel trae la etiqueta escrita ("I-26"), esa manda: es la que se
+        # muestra en el dashboard y la que venia usando el formato anterior
+        if col_etiqueta:
+            _et = ws.cell(r, col_etiqueta).value
+            if isinstance(_et, str) and _et.strip():
+                label = _et.strip()
+        fila = {"fecha": fecha_str, "ord": ord_idx, "label": label}
+        for clave, col in cols_eph.items():
+            fila[clave] = fmt_n(ws.cell(r, col).value)
+        eph.append(fila)
     eph.sort(key=lambda x: x['ord'])
     data['eph'] = eph
     data['eph_ultimo'] = eph[-1] if eph else None
@@ -819,14 +983,15 @@ def extract_empleo(status):
     # a mano en el codigo: cuando el analista intercalo una columna, las
     # etiquetas quedaron corridas y el dashboard mostraba cada valor bajo el
     # trimestre equivocado, sin que nada avisara.
-    ws = wb["Cuadro empleo trim"]
-    cols_trim = cols_por_encabezado(ws, fila_label=3, fila_unidad=4)
+    ws = _hoja_empleo(wb, ['Cuadro empleo trim'])
+    f_lab, f_uni, f_ini = _filas_encabezado(ws)
+    cols_trim = cols_por_encabezado(ws, fila_label=f_lab, fila_unidad=f_uni)
     trim = {"periodos": [lab for _, lab, _ in cols_trim], "filas": []}
     _dup = [p for p in set(trim["periodos"]) if trim["periodos"].count(p) > 1]
     if _dup:
         status.warn("Empleo - Cuadro trim",
-                    f"hay periodos repetidos en la fila 3 del Excel: {_dup} — revisar los encabezados")
-    for r in range(5, 20):
+                    f"hay periodos repetidos en la fila {f_lab} del Excel: {_dup} — revisar los encabezados")
+    for r in range(f_ini, f_ini + 16):
         cat = ws.cell(r, 2).value
         if not cat: continue
         valores = []
@@ -840,16 +1005,17 @@ def extract_empleo(status):
     # Mismo criterio: los meses salen de la fila 2 y las columnas "Dif." de la
     # fila 3, en vez de estar escritos a mano. El "vs <mes>" de cada diferencia
     # se arma resolviendo el (n) contra el mes que lleva ese numero.
-    ws = wb["Cuadro SIPA ext (2)"]
+    ws = _hoja_empleo(wb, ['Cuadro SIPA ext', 'Cuadro SIPA ext (2)'])
+    s_lab, s_uni, s_ini = _filas_encabezado(ws)
     cols_sipa = []
     ref_mes = {}          # "(1)" -> "jun-12"
-    for c, lab, uni in cols_por_encabezado(ws, fila_label=2, fila_unidad=3, col_fin=20):
+    for c, lab, uni in cols_por_encabezado(ws, fila_label=s_lab, fila_unidad=s_uni, col_fin=20):
         m = re.search(r'\((\d+)\)', uni or '')
         if m:
             ref_mes[m.group(1)] = lab
         cols_sipa.append({"col": c, "header": lab, "sub": (uni or '').split('(')[0].strip(), "tipo": "stock"})
     for c in range(3, 21):
-        v = ws.cell(3, c).value
+        v = ws.cell(s_uni, c).value
         txt = str(v).replace('\n', ' ').strip() if v else ''
         if not txt.lower().startswith('dif'):
             continue
@@ -861,7 +1027,7 @@ def extract_empleo(status):
 
     sipa = {"cols": [{"header": c["header"], "sub": c["sub"], "tipo": c["tipo"]} for c in cols_sipa],
             "filas": []}
-    for r in range(4, 13):
+    for r in range(s_ini, s_ini + 10):
         cat = ws.cell(r, 2).value
         if not cat: continue
         valores = []
@@ -871,23 +1037,28 @@ def extract_empleo(status):
         sipa["filas"].append({"categoria": str(cat).strip(), "valores": valores})
     data['sipa'] = sipa
 
-    # ---- Provincias (Hoja7) ----
-    ws = wb["Hoja7"]
-    provincias = {"fechas": [], "datos": []}
-    for c in range(3, 9):
-        v = ws.cell(3, c).value
-        if isinstance(v, datetime):
-            provincias["fechas"].append(v.strftime("%Y-%m"))
-    for r in range(5, 30):
-        prov = ws.cell(r, 2).value
-        if not prov: continue
-        vals = []
+    # ---- Provincias (solo en el Excel viejo) ----
+    # Empleo_limpio.xlsx ya no trae la Hoja7: lo mas parecido es SIPA_provincia,
+    # que es otra tabla (serie mensual completa, con las provincias en columnas
+    # en vez de en filas). No se remapea porque ninguna pagina lee esta clave:
+    # el panel Provincias del dashboard sale de assets/data/sipa_provincias.js.
+    ws = _hoja_empleo(wb, ['Hoja7'])
+    if ws is not None:
+        provincias = {"fechas": [], "datos": []}
         for c in range(3, 9):
-            v = ws.cell(r, c).value
-            vals.append(v if isinstance(v, (int, float)) else None)
-        if any(v is not None for v in vals):
-            provincias["datos"].append({"provincia": str(prov).strip(), "valores": vals})
-    data['provincias'] = provincias
+            v = ws.cell(3, c).value
+            if isinstance(v, datetime):
+                provincias["fechas"].append(v.strftime("%Y-%m"))
+        for r in range(5, 30):
+            prov = ws.cell(r, 2).value
+            if not prov: continue
+            vals = []
+            for c in range(3, 9):
+                v = ws.cell(r, c).value
+                vals.append(v if isinstance(v, (int, float)) else None)
+            if any(v is not None for v in vals):
+                provincias["datos"].append({"provincia": str(prov).strip(), "valores": vals})
+        data['provincias'] = provincias
 
     return data
 
@@ -1171,8 +1342,7 @@ def extract_emae_series(status):
         return None
 
     try:
-        with open(path, 'rb') as _f:
-            _data = _f.read()
+        _data = _leer_bytes(path)
         # read_only=False: hace falta ver el relleno de las celdas para
         # detectar donde arranca el bloque de proyeccion.
         wb = _opx.load_workbook(_io.BytesIO(_data), data_only=True, read_only=False)
@@ -1374,7 +1544,7 @@ def extract_reservas(status):
         status.warn("Reservas - RIN", f"no se encontro {rin_path}")
     else:
         try:
-            with open(rin_path, 'rb') as _f: _d = _f.read()
+            _d = _leer_bytes(rin_path)
             wb = _opx.load_workbook(_io.BytesIO(_d), data_only=True, read_only=True)
             ws = wb['Cuadro RIN']
 
@@ -1436,7 +1606,7 @@ def extract_reservas(status):
         status.warn("Reservas - G5", f"no se encontro {dep_path}")
     else:
         try:
-            with open(dep_path, 'rb') as _f: _d = _f.read()
+            _d = _leer_bytes(dep_path)
             wb2 = _opx.load_workbook(_io.BytesIO(_d), data_only=True, read_only=True)
             ws2 = wb2['Datos']
             g5 = []
