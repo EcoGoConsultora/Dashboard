@@ -34,7 +34,7 @@ const SECTIONS = [
    OJO: es una traba visual, no encriptación — el sitio de GitHub Pages
    sigue siendo público para quien conozca las URLs.
    ================================================================ */
-const LOGIN_CLIENTES_URL = 'https://ecogo.com.ar/uncategorized/tableros-2';
+const LOGIN_CLIENTES_URL = 'https://ecogo.com.ar/estadisticas/tableros/tableros-2';
 
 function esCliente() {
   try {
