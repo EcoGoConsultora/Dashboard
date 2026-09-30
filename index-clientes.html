@@ -2,12 +2,82 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Eco Go · Dashboard</title>
-  <!-- El Dashboard Clientes se fusionó con el Dashboard Eco Go.
-       Esta URL se mantiene porque es la que abre la página de clientes de ecogo.com.ar
-       (detrás del login de WordPress): entra al tablero unificado con acceso de clientes. -->
-  <script>location.replace('index.html?acceso=clientes' + location.hash);</script>
-  <meta http-equiv="refresh" content="0; url=index.html?acceso=clientes" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Eco Go · Dashboard Clientes</title>
+  <link rel="stylesheet" href="assets/css/theme.css?v=202609301439" />
+  <link rel="icon" type="image/jpeg" href="assets/img/logo-ecogo.jpg" />
+  <!-- Esta es la URL que abre la página de clientes de ecogo.com.ar (detrás del
+       login de WordPress). Es el mismo tablero unificado que index.html, pero
+       con el acceso de clientes ya habilitado.
+
+       Tiene que ser una página de verdad, no un redirect: cuando era un
+       redirect con el <body> vacío, la página de clientes del sitio quedaba en
+       blanco, porque el embed nunca llegaba a ejecutar el salto. -->
+  <script>window.EG_ACCESO_CLIENTES = true;</script>
 </head>
-<body></body>
+<body data-depth="0" data-active-section="home" data-no-sidebar="true">
+
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+
+    <main class="eg-main">
+
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title">Dashboard Eco Go</h1>
+          <p class="eg-page-header__subtitle">
+            Consolidado de monitores e indicadores macroeconómicos. Seleccioná una sección para acceder al detalle.
+          </p>
+        </div>
+        <div class="eg-page-header__actions">
+          <a href="https://ecogo.com.ar/" target="_blank" rel="noopener" class="eg-btn eg-btn--primary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            ecogo.com.ar
+          </a>
+          <span class="eg-tag">v1.0</span>
+        </div>
+      </section>
+
+      <!-- Acceso por sección -->
+      <h2 style="margin-top:4px;">Secciones</h2>
+      <div class="eg-section-grid" id="sectionGrid"></div>
+
+      <h2 style="margin-top:28px;">Exclusivo clientes</h2>
+      <p id="clientesNota" style="margin:-4px 0 4px;font-size:.85rem;color:var(--color-text-muted);"></p>
+      <div class="eg-section-grid" id="sectionGridClientes"></div>
+
+      <footer class="eg-footer">
+        <span>www.ecogo.com.ar</span>
+      </footer>
+      <p style="text-align:center;font-size:.78rem;color:var(--color-text-muted);margin:8px 0 16px;">
+        Consultas sobre este tablero: <a href="mailto:tableros@ecogo.com.ar" style="color:var(--eg-teal);text-decoration:none;">tableros@ecogo.com.ar</a>
+      </p>
+
+    </main>
+  </div>
+
+  <!-- Datos de todas las secciones -->
+  <script src="assets/js/layout.js?v=202609301439"></script>
+  <script>
+    const EG = window.EcoGo;
+    function card(s){
+      const locked = EG.bloqueada(s);
+      return '<a ' + EG.linkAttrs(s, 'eg-section-card') + '>' +
+        (s.clientes ? '<span class="eg-section-card__badge">' + EG.icon(locked ? 'lock' : 'shield', '') + (locked ? 'Clientes' : 'Acceso clientes') + '</span>' : '') +
+        EG.icon(s.icon, 'eg-section-card__icon') +
+        '<div class="eg-section-card__title">' + s.label + '</div>' +
+        '<div class="eg-section-card__desc">' + s.desc + '</div>' +
+      '</a>';
+    }
+    const secciones = EG.SECTIONS.filter(function(s){ return s.id !== 'home'; });
+    document.getElementById('sectionGrid').innerHTML =
+      secciones.filter(function(s){ return !s.clientes; }).map(card).join('');
+    document.getElementById('sectionGridClientes').innerHTML =
+      secciones.filter(function(s){ return s.clientes; }).map(card).join('');
+    document.getElementById('clientesNota').textContent = EG.esCliente()
+      ? 'Tenés acceso a las secciones de clientes.'
+      : 'Estas secciones requieren iniciar sesión con tu usuario de Eco Go.';
+  </script>
+</body>
 </html>

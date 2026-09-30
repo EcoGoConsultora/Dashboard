@@ -37,11 +37,19 @@ const SECTIONS = [
 const LOGIN_CLIENTES_URL = 'https://ecogo.com.ar/estadisticas/tableros/tableros-2';
 
 function esCliente() {
+  // index-clientes.html marca el acceso con esta variable antes de cargar este
+  // archivo. Es lo mas robusto para una pagina embebida: no depende de que el
+  // querystring sobreviva al embed ni de que el iframe permita sessionStorage.
+  var porPagina = (typeof window !== 'undefined' && window.EG_ACCESO_CLIENTES === true);
+  var porUrl = /[?&]acceso=clientes(&|$)/.test(location.search);
   try {
-    if (/[?&]acceso=clientes(&|$)/.test(location.search)) sessionStorage.setItem('eg_acceso', 'clientes');
+    if (porPagina || porUrl) {
+      sessionStorage.setItem('eg_acceso', 'clientes');
+      return true;
+    }
     return sessionStorage.getItem('eg_acceso') === 'clientes';
   } catch (e) {
-    return /[?&]acceso=clientes(&|$)/.test(location.search);
+    return porPagina || porUrl;
   }
 }
 
