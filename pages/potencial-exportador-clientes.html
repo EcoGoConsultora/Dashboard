@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Potencial exportador · Eco Go</title>
-  <link rel="stylesheet" href="../assets/css/theme.css?v=202610071158"/>
+  <link rel="stylesheet" href="../assets/css/theme.css?v=202610071201"/>
   <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -61,8 +61,8 @@
     </main>
   </div>
 
-  <script src="../assets/js/layout.js?v=202610071158"></script>
-  <script src="../assets/data/potencial_exportador.js?v=202610071158"></script>
+  <script src="../assets/js/layout.js?v=202610071201"></script>
+  <script src="../assets/data/potencial_exportador.js?v=202610071201"></script>
   <script>
   (function(){
     var P = window.POTENCIAL_EXPORTADOR_DATA || {};
@@ -76,47 +76,57 @@
     /* ---------- 1 · Composición por bloque ---------- */
     var C = P.composicion || { categories: [], series: {} };
     var ORDEN = ['Agro', 'Hidrocarburos', 'Minería', 'Resto'];
+    // Rampa de la paleta Eco Go en vez de cuatro colores sueltos compitiendo:
+    // los tres bloques estratégicos van de teal oscuro a claro, de abajo hacia
+    // arriba, y el residual queda en gris para que no pelee con ellos.
     var COLORES = {
-      'Agro':          '#89C442',
-      'Hidrocarburos': '#1B5F5E',
-      'Minería':       '#FEB15F',
-      'Resto':         '#8FCCCA'
+      'Agro':          '#1B5F5E',
+      'Hidrocarburos': '#3C9794',
+      'Minería':       '#8FCCCA',
+      'Resto':         '#CBD5D6'
     };
 
     if (C.categories.length) {
       var claves = ORDEN.filter(function(k){ return C.series[k]; })
         .concat(Object.keys(C.series).filter(function(k){ return ORDEN.indexOf(k) < 0; }));
 
-      // El Excel pone 0 donde la hoja de origen no tiene dato. Un 0 en un bloque
-      // que exporta decenas de miles de millones es un hueco, no un dato: se
-      // grafica como vacío y se avisa, en vez de dibujar una caída a cero.
-      var huecos = [];
-      var datasets = claves.map(function(k){
-        var vals = C.series[k].map(function(v, i){
-          if (v === 0 && C.series[k].some(function(x){ return x > 0; })) {
-            huecos.push(k + ' ' + C.categories[i]);
-            return null;
-          }
-          return v === null || v === undefined ? null : v / 1000;   // MUSD → miles de millones
+      // En un apilado un hueco no se puede dejar: todo lo que va encima se
+      // desploma y la composición de ese año queda mal leída. El Excel pone 0
+      // donde la hoja de origen está vacía, así que esos años no tienen una
+      // composición completa — se recortan del gráfico y se avisa cuáles.
+      function completo(i){
+        return claves.every(function(k){
+          var v = C.series[k][i];
+          return v !== null && v !== undefined && !(v === 0 && C.series[k].some(function(x){ return x > 0; }));
         });
+      }
+      var idx = C.categories.map(function(_, i){ return i; }).filter(completo);
+      var fuera = C.categories.filter(function(_, i){ return idx.indexOf(i) < 0; });
+      var anios = idx.map(function(i){ return C.categories[i]; });
+
+      var datasets = claves.map(function(k){
         return {
-          label: k, data: vals,
-          backgroundColor: COLORES[k] || '#B8BEC0',
-          borderColor: COLORES[k] || '#B8BEC0',
+          label: k,
+          data: idx.map(function(i){
+            var v = C.series[k][i];
+            return (v === null || v === undefined) ? null : v / 1000;   // MUSD → miles de millones
+          }),
+          backgroundColor: COLORES[k] || '#CBD5D6',
+          borderColor: COLORES[k] || '#CBD5D6',
           borderWidth: 1, fill: true, tension: 0.25, pointRadius: 0
         };
       });
 
-      if (huecos.length) {
+      if (fuera.length) {
         var av = document.getElementById('pxAviso');
         av.hidden = false;
-        av.textContent = 'Sin dato en el Excel de origen: ' + huecos.join(' · ') +
-          '. Esos puntos quedan vacíos en el gráfico en vez de dibujarse como cero.';
+        av.textContent = 'Quedan afuera ' + fuera.join(' y ') + ': en el Excel de origen ' +
+          'Hidrocarburos no tiene dato para esos años, así que su composición está incompleta.';
       }
 
       new Chart(document.getElementById('chartComposicion'), {
         type: 'line',
-        data: { labels: C.categories, datasets: datasets },
+        data: { labels: anios, datasets: datasets },
         options: {
           responsive:true, maintainAspectRatio:false, animation:{duration:150},
           interaction:{ mode:'index', intersect:false },
@@ -132,7 +142,10 @@
           },
           scales:{
             x:{ grid:{display:false}, ticks:{color:'#6E7679'} },
-            y:{ stacked:true, grid:{color:'rgba(0,0,0,0.05)'},
+            // Arranca en cero a propósito: es un gráfico de composición, y con
+            // el eje cortado la banda de abajo se ve truncada y las
+            // proporciones entre bloques se leen mal.
+            y:{ stacked:true, beginAtZero:true, grid:{color:'rgba(0,0,0,0.05)'},
                 ticks:{ color:'#6E7679', callback:function(v){ return 'USD ' + v + ' MM'; } } }
           }
         }
@@ -153,7 +166,7 @@
                     sub: 'Cereales y oleaginosas · ' + (k.match(/\((.*)\)/) ? k.match(/\((.*)\)/)[1] : '') });
     });
 
-    var COLOR_A = ['#1B5F5E', '#8FCCCA', '#FEB15F', '#89C442'];
+    var COLOR_A = ['#1B5F5E', '#8FCCCA', '#3C9794', '#CBD5D6'];   // misma familia que el gráfico de arriba
     var chartA = null;
 
     function esProy(i){ return (A.tramos[i] || '').toLowerCase().indexOf('proy') === 0; }
