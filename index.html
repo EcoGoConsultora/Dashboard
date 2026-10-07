@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Eco Go · Dashboard Maestro</title>
-  <link rel="stylesheet" href="assets/css/theme.css?v=202610071222" />
+  <link rel="stylesheet" href="assets/css/theme.css?v=202610071243" />
   <link rel="icon" type="image/jpeg" href="assets/img/logo-ecogo.jpg" />
 </head>
 <body data-depth="0" data-active-section="home" data-no-sidebar="true">
@@ -31,13 +31,19 @@
         </div>
       </section>
 
-      <!-- Acceso por sección -->
-      <h2 style="margin-top:4px;">Secciones</h2>
-      <div class="eg-section-grid" id="sectionGrid"></div>
-
-      <h2 style="margin-top:28px;">Exclusivo clientes</h2>
-      <p id="clientesNota" style="margin:-4px 0 4px;font-size:.85rem;color:var(--color-text-muted);"></p>
-      <div class="eg-section-grid" id="sectionGridClientes"></div>
+      <!-- Acceso por sección, en dos columnas: clientes primero -->
+      <div class="eg-cols">
+        <section>
+          <h2>Exclusivo clientes</h2>
+          <p class="eg-cols__nota" id="clientesNota"></p>
+          <div class="eg-section-grid" id="sectionGridClientes"></div>
+        </section>
+        <section>
+          <h2>Secciones abiertas</h2>
+          <p class="eg-cols__nota">Disponibles sin iniciar sesión.</p>
+          <div class="eg-section-grid" id="sectionGrid"></div>
+        </section>
+      </div>
 
       <footer class="eg-footer">
         <span>www.ecogo.com.ar</span>
@@ -50,7 +56,7 @@
   </div>
 
   <!-- Datos de todas las secciones -->
-  <script src="assets/js/layout.js?v=202610071222"></script>
+  <script src="assets/js/layout.js?v=202610071243"></script>
   <script>
     const EG = window.EcoGo;
     function card(s){

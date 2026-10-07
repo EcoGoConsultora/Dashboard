@@ -145,6 +145,15 @@ p { margin:0 0 1em; }
 
 /* Home: tarjetas de sección */
 .eg-section-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin-top:8px; }
+/* Portada en dos columnas: las de clientes primero, las abiertas al lado, para
+   que al entrar se vea de una todo lo que hay. Abajo de 1040px se apilan, y
+   siguen primero las de clientes. */
+.eg-cols { display:grid; grid-template-columns:1fr 1fr; gap:8px 28px; align-items:start; margin-top:4px; }
+.eg-cols > section { min-width:0; }
+.eg-cols h2 { margin:0 0 2px; }
+.eg-cols .eg-section-grid { grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); }
+.eg-cols__nota { margin:0 0 4px; font-size:.85rem; color:var(--color-text-muted); min-height:1.2em; }
+@media (max-width:1040px) { .eg-cols { grid-template-columns:1fr; gap:24px; } }
 .eg-section-card { background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius); padding:20px; display:flex; flex-direction:column; gap:10px; text-decoration:none; color:inherit; transition:all var(--transition); box-shadow:var(--shadow-sm); }
 .eg-section-card:hover { transform:translateY(-2px); box-shadow:var(--shadow); border-color:var(--eg-teal); text-decoration:none; }
 .eg-section-card__icon { width:36px; height:36px; color:var(--eg-teal); }
