@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Potencial exportador · Eco Go</title>
-  <link rel="stylesheet" href="../assets/css/theme.css?v=202610071201"/>
+  <link rel="stylesheet" href="../assets/css/theme.css?v=202610071206"/>
   <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -17,7 +17,6 @@
     .px-sel{display:flex;flex-wrap:wrap;gap:8px}
     .px-btn{padding:4px 14px;border-radius:20px;border:1.5px solid var(--color-border);font-size:.76rem;font-weight:700;cursor:pointer;background:transparent;color:var(--color-text-muted);transition:all .15s}
     .px-btn.is-active{background:var(--eg-teal-dark);border-color:var(--eg-teal-dark);color:#fff}
-    .px-aviso{font-size:.74rem;color:#8a5a12;background:#fbf1e0;border:1px solid #e9d4a8;border-radius:8px;padding:9px 12px;margin:0 0 14px}
   </style>
 </head>
 <body data-depth="1" data-active-section="potencial-exportador">
@@ -36,7 +35,6 @@
       <div class="px-card">
         <p class="px-title">Composición exportadora por bloque</p>
         <p class="px-sub">En miles de millones de USD · área apilada</p>
-        <p class="px-aviso" id="pxAviso" hidden></p>
         <div class="px-box"><canvas id="chartComposicion"></canvas></div>
         <p class="px-note">Fuente: Eco Go · Perspectiva de exportaciones de Argentina 2026–2036</p>
       </div>
@@ -61,8 +59,8 @@
     </main>
   </div>
 
-  <script src="../assets/js/layout.js?v=202610071201"></script>
-  <script src="../assets/data/potencial_exportador.js?v=202610071201"></script>
+  <script src="../assets/js/layout.js?v=202610071206"></script>
+  <script src="../assets/data/potencial_exportador.js?v=202610071206"></script>
   <script>
   (function(){
     var P = window.POTENCIAL_EXPORTADOR_DATA || {};
@@ -116,13 +114,6 @@
           borderWidth: 1, fill: true, tension: 0.25, pointRadius: 0
         };
       });
-
-      if (fuera.length) {
-        var av = document.getElementById('pxAviso');
-        av.hidden = false;
-        av.textContent = 'Quedan afuera ' + fuera.join(' y ') + ': en el Excel de origen ' +
-          'Hidrocarburos no tiene dato para esos años, así que su composición está incompleta.';
-      }
 
       new Chart(document.getElementById('chartComposicion'), {
         type: 'line',
