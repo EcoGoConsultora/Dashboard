@@ -22,7 +22,8 @@ const SECTIONS = [
   { id:'monetarias-clientes',label:'Monetarias · M3 CCL',       href:'pages/monetarias-clientes.html', group:'Clientes', clientes:true, icon:'trending-up', desc:'Agregados monetarios en dólares (M3 CCL).' },
   { id:'deuda',              label:'Deuda',                     href:'pages/deuda-clientes.html',      group:'Clientes', clientes:true, icon:'layers',      desc:'Deuda pública histórica, vencimientos en pesos y perfil con privados.' },
   { id:'comercio',           label:'Comercio exterior',         href:'pages/comercio-clientes.html',   group:'Clientes', clientes:true, icon:'exchange',    desc:'Importaciones desestacionalizadas, saldos comerciales, términos de intercambio y serie mensual de expo/impo.' },
-  { id:'internacional2',     label:'Internacional · Consensus', href:'pages/internacional2.html',      group:'Clientes', clientes:true, icon:'map',         desc:'LatinFocus Consensus Forecast — resumen y detalle por país.' }
+  { id:'internacional2',     label:'Internacional · Consensus', href:'pages/internacional2.html',      group:'Clientes', clientes:true, icon:'map',         desc:'LatinFocus Consensus Forecast — resumen y detalle por país.' },
+  { id:'electoral',          label:'Calendario electoral',      href:'pages/electoral-clientes.html',  group:'Clientes', clientes:true, icon:'calendar',    desc:'Fechas electorales nacionales y provinciales 2027, con su grado de confirmación.' }
 ];
 
 /* ================================================================
@@ -79,6 +80,7 @@ const ICONS = {
   lock:        '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
   exchange:    '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
   database:    '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>',
+  calendar:    '<rect x="3" y="4.5" width="18" height="16" rx="2"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/>',
   menu:        '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>'
 };
 

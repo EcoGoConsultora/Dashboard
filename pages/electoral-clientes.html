@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calendario electoral 2027 · Eco Go</title>
+  <link rel="stylesheet" href="../assets/css/theme.css?v=202610071108" />
+  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg" />
+  <!-- Contenido fijo: son fechas, no salen de ningún Excel. No pasa por
+       refresh.py. Para actualizarlo se edita la línea de tiempo de abajo a
+       mano y se sube el cambio, igual que la sección RIGI. -->
+  <style>
+    .cal-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:22px 24px 24px;margin-bottom:20px}
+    .cal-lede{color:var(--color-text-muted);margin:0 0 6px;max-width:70ch}
+    .cal-meta{font-size:.76rem;color:var(--color-text-muted);margin:0}
+    /* referencias */
+    .cal-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:0 0 18px}
+    .cal-pill{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:700;padding:3px 11px;border-radius:999px;white-space:nowrap}
+    .cal-pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+    .cal-ok{color:var(--eg-teal-dark);background:#e3f0ee}
+    .cal-warn{color:#b7791f;background:#fbf1e0}
+    .cal-bad{color:var(--eg-red);background:#f8e4e1}
+    .cal-warn::before,.cal-bad::before{background:transparent;border:1.5px solid currentColor;width:5px;height:5px}
+    /* linea de tiempo */
+    .cal-mes{display:grid;grid-template-columns:70px 1fr;gap:16px}
+    .cal-mes__nombre{font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--color-text-muted);padding-top:15px}
+    .cal-eventos{border-left:2px solid var(--color-border);padding:4px 0 4px 20px;display:flex;flex-direction:column;min-width:0}
+    .cal-ev{position:relative;display:grid;grid-template-columns:96px 1fr auto;gap:4px 14px;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--color-border)}
+    .cal-mes:last-child .cal-ev:last-child{border-bottom:0}
+    .cal-ev::before{content:"";position:absolute;left:-27px;top:18px;width:10px;height:10px;border-radius:50%;background:var(--color-surface);border:2px solid var(--color-text-muted)}
+    .cal-ev.es-ok::before{background:var(--eg-teal);border-color:var(--eg-teal)}
+    .cal-ev.es-warn::before{border-color:#b7791f}
+    .cal-ev.es-bad::before{border-color:var(--eg-red)}
+    .cal-fecha{font-weight:700;font-variant-numeric:tabular-nums;font-size:.86rem}
+    .cal-jur{font-weight:700}
+    .cal-jur.nac{color:var(--eg-teal-dark)}
+    .cal-desc{color:var(--color-text-muted);font-size:.88rem}
+    .cal-ev.clave{background:rgba(60,151,148,.06);border-radius:6px;padding-left:10px;padding-right:10px;margin-left:-10px}
+    .cal-ev.clave .cal-fecha,.cal-ev.clave .cal-desc{color:var(--color-text);font-weight:700}
+    /* pendientes y notas */
+    .cal-panel p{margin:0 0 8px}
+    .cal-panel p:last-child{margin-bottom:0}
+    .cal-panel strong{color:var(--eg-teal-dark)}
+    .cal-notas{font-size:.78rem;color:var(--color-text-muted)}
+    .cal-notas a{color:var(--eg-teal)}
+    .cal-fuente{font-size:.72rem;color:var(--color-text-muted);margin-top:14px}
+    @media (max-width:640px){
+      .cal-mes{grid-template-columns:1fr;gap:0}
+      .cal-mes__nombre{padding-top:10px}
+      .cal-ev{grid-template-columns:1fr auto}
+      .cal-ev .cal-fecha{grid-column:1}
+      .cal-ev .cal-que{grid-column:1 / -1;grid-row:2}
+      .cal-ev .cal-pill{grid-column:2;grid-row:1}
+    }
+  </style>
+</head>
+<body data-depth="1" data-active-section="electoral">
+
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+
+    <main class="eg-main">
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title">Calendario electoral 2027</h1>
+          <p class="eg-page-header__subtitle">
+            Santa Fe abre el calendario en abril; a nivel nacional solo la general de octubre está firme.
+          </p>
+        </div>
+      </section>
+
+      <div class="cal-card">
+        <p class="cal-lede">Fechas electorales nacionales y provinciales anunciadas para 2027, en orden cronológico, con su grado de confirmación.</p>
+        <p class="cal-meta">Datos a octubre de 2026</p>
+      </div>
+
+      <div class="cal-card">
+        <div class="cal-legend" aria-label="Referencias">
+          <span class="cal-pill cal-ok">Confirmada</span>
+          <span class="cal-pill cal-warn">Tentativa o estimada</span>
+          <span class="cal-pill cal-bad">En duda</span>
+        </div>
+
+        <section aria-label="Línea de tiempo 2027">
+          <div class="cal-mes"><div class="cal-mes__nombre">Abril</div><div class="cal-eventos">
+            <div class="cal-ev es-ok"><span class="cal-fecha">Dom 18</span><span class="cal-que"><span class="cal-jur">Santa Fe</span> · <span class="cal-desc">PASO provinciales</span></span><span class="cal-pill cal-ok">Confirmada</span></div>
+          </div></div>
+
+          <div class="cal-mes"><div class="cal-mes__nombre">Mayo</div><div class="cal-eventos">
+            <div class="cal-ev es-ok"><span class="cal-fecha">Dom 9</span><span class="cal-que"><span class="cal-jur">Tucumán</span> · <span class="cal-desc">Generales provinciales</span></span><span class="cal-pill cal-ok">Confirmada</span></div>
+            <div class="cal-ev es-warn"><span class="cal-fecha">16 o 23</span><span class="cal-que"><span class="cal-jur">Salta</span> · <span class="cal-desc">Provinciales</span></span><span class="cal-pill cal-warn">Tentativa</span></div>
+          </div></div>
+
+          <div class="cal-mes"><div class="cal-mes__nombre">Junio</div><div class="cal-eventos">
+            <div class="cal-ev es-ok"><span class="cal-fecha">Dom 13</span><span class="cal-que"><span class="cal-jur">Santa Fe</span> · <span class="cal-desc">Gobernador y cargos provinciales</span></span><span class="cal-pill cal-ok">Confirmada</span></div>
+          </div></div>
+
+          <div class="cal-mes"><div class="cal-mes__nombre">Julio</div><div class="cal-eventos">
+            <div class="cal-ev es-warn"><span class="cal-fecha">Sin día</span><span class="cal-que"><span class="cal-jur">Mendoza</span> · <span class="cal-desc">PASO provinciales</span></span><span class="cal-pill cal-warn">Tentativa</span></div>
+            <div class="cal-ev es-warn"><span class="cal-fecha">Jul – ago</span><span class="cal-que"><span class="cal-jur">Chubut</span> · <span class="cal-desc">Provinciales</span></span><span class="cal-pill cal-warn">Tentativa</span></div>
+          </div></div>
+
+          <div class="cal-mes"><div class="cal-mes__nombre">Agosto</div><div class="cal-eventos">
+            <div class="cal-ev es-warn"><span class="cal-fecha">Sin día</span><span class="cal-que"><span class="cal-jur">Neuquén</span> · <span class="cal-desc">Provinciales</span></span><span class="cal-pill cal-warn">Tentativa</span></div>
+            <div class="cal-ev es-bad"><span class="cal-fecha">Dom 8</span><span class="cal-que"><span class="cal-jur nac">Nación</span> · <span class="cal-desc">PASO nacionales, sujetas a la reforma electoral</span></span><span class="cal-pill cal-bad">En duda</span></div>
+          </div></div>
+
+          <div class="cal-mes"><div class="cal-mes__nombre">Octubre</div><div class="cal-eventos">
+            <div class="cal-ev es-ok clave"><span class="cal-fecha">Dom 24</span><span class="cal-que"><span class="cal-jur nac">Nación</span> · <span class="cal-desc">Presidente, vice y Congreso (y Catamarca)</span></span><span class="cal-pill cal-ok">Confirmada</span></div>
+          </div></div>
+
+          <div class="cal-mes"><div class="cal-mes__nombre">Nov.</div><div class="cal-eventos">
+            <div class="cal-ev es-warn"><span class="cal-fecha">Dom 21</span><span class="cal-que"><span class="cal-jur nac">Nación</span> · <span class="cal-desc">Balotaje eventual</span></span><span class="cal-pill cal-warn">Estimada</span></div>
+          </div></div>
+
+          <div class="cal-mes"><div class="cal-mes__nombre">Dic.</div><div class="cal-eventos">
+            <div class="cal-ev es-ok"><span class="cal-fecha">Vie 10</span><span class="cal-que"><span class="cal-jur nac">Nación</span> · <span class="cal-desc">Asunción de autoridades</span></span><span class="cal-pill cal-ok">Confirmada</span></div>
+          </div></div>
+        </section>
+      </div>
+
+      <div class="cal-card cal-panel">
+        <h2 style="font-size:1rem;color:var(--eg-teal-dark);margin:0 0 10px">Sin fecha todavía</h2>
+        <p>Analizan desdoblar: <strong>Misiones, Jujuy, Río Negro, Corrientes, Córdoba, Entre Ríos, San Juan y Tierra del Fuego</strong>.</p>
+        <p><strong>Buenos Aires</strong> define su fecha según lo que pase con las PASO nacionales.</p>
+        <p>Chaco suspendió sus PASO y San Luis eliminó por reforma constitucional sus elecciones de mitad de mandato.</p>
+      </div>
+
+      <div class="cal-card cal-notas">
+        <p>La general nacional sale del Código Electoral (cuarto domingo de octubre) y las PASO, del segundo domingo de agosto. El balotaje es una estimación: cuatro semanas después de la general, como en 2023. La reforma que busca eliminar las PASO sigue sin acuerdo en el Senado.</p>
+        <p style="margin-top:8px">Referencias:
+          <a href="https://www.noticiasnet.com.ar/noticias/2026/09/10/223052-elecciones-2027-calendario-completo-con-las-fechas-de-las-paso-y-las-generales" target="_blank" rel="noopener">Noticias Net</a>,
+          <a href="https://noticiasargentinas.com/politica/elecciones-2027--que-provincias-desdoblan-y-cuales-tienen-fecha-confirmada_a6a6d0bb7c5b51cb7e497f60f" target="_blank" rel="noopener">Noticias Argentinas</a>,
+          <a href="https://www.ambito.com/ambito-nacional/la-paralisis-la-reforma-electoral-dilata-definiciones-el-calendario-votacion-las-provincias-n6320378" target="_blank" rel="noopener">Ámbito (9/9)</a>,
+          <a href="https://www.ambito.com/politica/senado-acuerdo-la-eliminacion-las-paso-se-desarma-la-reforma-electoral-n6322691" target="_blank" rel="noopener">Ámbito (15/9)</a>,
+          <a href="https://www.lacapital.com.ar/c10284300" target="_blank" rel="noopener">La Capital</a>.
+        </p>
+        <p class="cal-fuente">Fuente: Eco Go en base a Código Electoral Nacional, gobiernos provinciales y medios.</p>
+      </div>
+
+      <footer class="eg-footer">
+        <span>Calendario electoral 2027 · Eco Go</span>
+        <a href="../index-clientes.html">← Volver al inicio</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../assets/js/layout.js?v=202610071108"></script>
+</body>
+</html>
