@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Comercio exterior · Eco Go</title>
-  <link rel="stylesheet" href="../assets/css/theme.css?v=202610071206"/>
+  <link rel="stylesheet" href="../assets/css/theme.css?v=202610071222"/>
   <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
@@ -38,7 +38,7 @@
       <section class="eg-page-header">
         <div>
           <h1 class="eg-page-header__title">Comercio exterior</h1>
-          <p class="eg-page-header__subtitle">Importaciones desestacionalizadas, saldos comerciales, términos de intercambio y cuadro mensual de expo/impo</p>
+          <p class="eg-page-header__subtitle">Importaciones y exportaciones desestacionalizadas, saldos comerciales, términos de intercambio y cuadro mensual de expo/impo</p>
         </div>
       </section>
 
@@ -56,6 +56,23 @@
           </div>
         </div>
         <div class="cx-chart-box"><canvas id="chartImpoDesest"></canvas></div>
+        <p class="cx-note">Fuente: Eco Go en base a INDEC</p>
+      </div>
+
+      <!-- Exportaciones desestacionalizadas -->
+      <div class="cx-card">
+        <div class="cx-head">
+          <div>
+            <p class="cx-title">Exportaciones desestacionalizadas</p>
+            <p class="cx-sub" style="margin:0">En millones de USD a precios constantes · serie mensual sin estacionalidad</p>
+          </div>
+          <div class="tl-bar" id="expoTlBtns">
+            <button class="tl-btn" onclick="cxSetRange('expo',60)">5A</button>
+            <button class="tl-btn is-active" onclick="cxSetRange('expo',120)">10A</button>
+            <button class="tl-btn" onclick="cxSetRange('expo',0)">Todo</button>
+          </div>
+        </div>
+        <div class="cx-chart-box"><canvas id="chartExpoDesest"></canvas></div>
         <p class="cx-note">Fuente: Eco Go en base a INDEC</p>
       </div>
 
@@ -110,8 +127,8 @@
     </main>
   </div>
 
-  <script src="../assets/js/layout.js?v=202610071206"></script>
-  <script src="../assets/data/comercio.js?v=202610071206"></script>
+  <script src="../assets/js/layout.js?v=202610071222"></script>
+  <script src="../assets/data/comercio.js?v=202610071222"></script>
   <script>
   (function(){
     var C = window.COMERCIO_DATA || {};
@@ -173,20 +190,23 @@
     var INIT = 120;   // arranca en 10 años
     function tail(arr){ return arr.slice(Math.max(0, arr.length - INIT)); }
 
-    /* ---------- 1 · Importaciones desestacionalizadas ---------- */
-    var IMPO = C.impo_desest || { dates: [], series: {} };
-    var impoS = pick(IMPO, ['Importaciones', 'Importaciones sin energía']);
-    var impoColors = ['#1B5F5E', '#FE8B5F'];
-    if (IMPO.dates.length) {
-      var chImpo = new Chart(document.getElementById('chartImpoDesest'), {
+    /* ---------- 1 y 2 · Flujos desestacionalizados (impo y expo) ----------
+       Los dos cuadros son iguales salvo los datos, asi que se arman con la
+       misma funcion: total en teal y la serie sin energia en salmon. */
+    var FLUJO_COLORES = ['#1B5F5E', '#FE8B5F'];
+
+    function flujoDesest(id, bloque, orden, btnsSel, clave){
+      if (!bloque || !bloque.dates || !bloque.dates.length) return null;
+      var s = pick(bloque, orden);
+      var ch = new Chart(document.getElementById(id), {
         type: 'line',
         data: {
-          labels: tail(IMPO.dates),
-          datasets: impoS.map(function(s, i){
+          labels: tail(bloque.dates),
+          datasets: s.map(function(x, i){
             return {
-              label: s.label, data: tail(s.data),
-              borderColor: impoColors[i % impoColors.length],
-              backgroundColor: impoColors[i % impoColors.length],
+              label: x.label, data: tail(x.data),
+              borderColor: FLUJO_COLORES[i % FLUJO_COLORES.length],
+              backgroundColor: FLUJO_COLORES[i % FLUJO_COLORES.length],
               borderWidth: 1.8, pointRadius: 0, pointHoverRadius: 4, tension: 0.15, fill: false
             };
           })
@@ -196,8 +216,14 @@
           function(c){ return ' ' + c.dataset.label + ': USD ' + MM(c.raw) + ' M'; }
         )
       });
-      register('impo', chImpo, IMPO.dates, impoS.map(function(s){ return s.data; }), '#impoTlBtns');
+      register(clave, ch, bloque.dates, s.map(function(x){ return x.data; }), btnsSel);
+      return ch;
     }
+
+    var IMPO = C.impo_desest || { dates: [], series: {} };
+    var EXPO = C.expo_desest || { dates: [], series: {} };
+    flujoDesest('chartImpoDesest', IMPO, ['Importaciones', 'Importaciones sin energía'], '#impoTlBtns', 'impo');
+    flujoDesest('chartExpoDesest', EXPO, ['Exportaciones', 'Exportaciones sin energía'], '#expoTlBtns', 'expo');
 
     /* ---------- 2 · Saldos comerciales (barras apiladas) ---------- */
     var SAL = C.saldos || { dates: [], series: {} };
@@ -305,6 +331,7 @@
         });
       }
       dlSeries('#chartImpoDesest', 'impo_desestacionalizadas.csv', IMPO, ['Importaciones', 'Importaciones sin energía']);
+      dlSeries('#chartExpoDesest', 'expo_desestacionalizadas.csv', EXPO, ['Exportaciones', 'Exportaciones sin energía']);
       dlSeries('#chartSaldos', 'saldos_comerciales_12m.csv', SAL, ['Balanza energética', 'Neto de energía']);
       dlSeries('#chartTdi', 'terminos_intercambio.csv', TDI, ['Precios de exportaciones', 'Precios de importaciones', 'Términos de intercambio']);
       if (TBL.rows.length) {

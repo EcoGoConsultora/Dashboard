@@ -1797,13 +1797,26 @@ def extract_comercio(status):
     else:
         try:
             wb1 = _open_wb(path1)
-            # El grafico repite cada serie una segunda vez, sin nombre, solo
-            # para dibujar el marcador del ultimo nivel: _chart_block deja
-            # afuera las series sin nombre, que son exactamente iguales.
-            data['impo_desest'] = _chart_block(wb1, "G impo desest")
-            status.ok("Comercio - Impo desest", f"{len(data['impo_desest']['dates'])} meses")
+            # "G impo desest" trae impo y expo en el mismo grafico. En el
+            # dashboard van separadas, un cuadro para cada flujo, asi que se
+            # reparten las series por su nombre. Lo que no empiece con "Expo"
+            # queda del lado de las importaciones: si manana se agrega otra
+            # serie de impo, entra sola.
+            bloque = _chart_block(wb1, "G impo desest")
+            impo = {k: v for k, v in bloque['series'].items() if not k.lower().startswith('expo')}
+            expo = {k: v for k, v in bloque['series'].items() if k.lower().startswith('expo')}
+            data['impo_desest'] = {'dates': bloque['dates'], 'series': impo}
+            status.ok("Comercio - Impo desest",
+                      f"{len(bloque['dates'])} meses · {len(impo)} series")
+            if expo:
+                data['expo_desest'] = {'dates': bloque['dates'], 'series': expo}
+                status.ok("Comercio - Expo desest",
+                          f"{len(bloque['dates'])} meses · {len(expo)} series")
+            else:
+                status.warn("Comercio - Expo desest",
+                            "el grafico no trae ninguna serie que empiece con 'Expo'")
         except Exception as e:
-            status.fail("Comercio - Impo desest", str(e))
+            status.fail("Comercio - Impo/Expo desest", str(e))
             traceback.print_exc()
 
         try:
