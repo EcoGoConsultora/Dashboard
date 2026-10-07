@@ -64,6 +64,10 @@ EXCEL_PATHS = {
     "comex":       os.path.join(BASE_EXCEL, "Comercio", "Comercio exterior.xlsx"),
     "comex_tdi":   os.path.join(BASE_EXCEL, "Comercio", "Terminos del Intercambio.xlsx"),
     "comex_proy":  os.path.join(BASE_EXCEL, "Comercio", "01 Proyecciones", "Estimación Comercio Ext.xlsx"),
+    "potencial_exportador": os.path.join(
+        BASE_EXCEL, "Comercio", "01 Proyecciones", "Proyecciones 2036",
+        "perspectiva_exportaciones_2036_20260705",
+        "Cuadros y graficos - Perspectiva exportaciones Argentina 2026-2036 v2.xlsx"),
 }
 
 # Monitor mundial — el updater que baja los datos oficiales de la seccion
@@ -1851,6 +1855,83 @@ def extract_comercio(status):
     return data if data else None
 
 # =====================================================================
+#  POTENCIAL EXPORTADOR 2026-2036 (dashboard clientes)
+# =====================================================================
+def extract_potencial_exportador(status):
+    """
+    Los dos graficos del Excel de perspectiva exportadora 2026-2036:
+
+      'Gráfico1' -> composicion exportadora por bloque (area apilada), que sale
+                    del cuadro Consolidado.
+      'Gráfico2' -> proyecciones del sector agropecuario.
+
+    El primero se lee siguiendo el rango que referencia el propio grafico. El
+    segundo NO: su rango de categorias (11 anios) es mas corto que el de
+    valores (14), asi que reproducirlo tal cual desalinearia cada valor con su
+    anio. Se lee la hoja Agro directamente, que ademas trae la columna 'Tramo'
+    para distinguir lo observado de lo proyectado.
+    """
+    path = EXCEL_PATHS["potencial_exportador"]
+    if not os.path.exists(path):
+        status.warn("Potencial exportador", f"no se encontro: {path}")
+        return None
+
+    data = {}
+
+    # ---- Composicion exportadora por bloque ----
+    try:
+        wb = _open_wb(path)
+        comp = _chart_block_categorical(wb, "Gráfico1")
+        data['composicion'] = comp
+        status.ok("Potencial exportador - Composicion",
+                  f"{len(comp['categories'])} anios · {len(comp['series'])} bloques")
+        # El cuadro Consolidado convierte en 0 las celdas vacias de la hoja de
+        # origen. Un 0 en un bloque que exporta decenas de miles de millones no
+        # es un dato, es un hueco: conviene avisarlo antes de graficarlo.
+        for nombre, vals in comp['series'].items():
+            huecos = [comp['categories'][i] for i, v in enumerate(vals) if v == 0]
+            if huecos and any(v for v in vals if v):
+                status.warn("Potencial exportador - Composicion",
+                            f"'{nombre}' figura en 0 en {', '.join(huecos)} "
+                            f"— en el Excel esas celdas estan vacias, no en cero")
+    except Exception as e:
+        status.fail("Potencial exportador - Composicion", str(e))
+        traceback.print_exc()
+
+    # ---- Proyecciones del sector agropecuario ----
+    try:
+        wb2 = _open_wb(path, read_only=False)
+        ws = wb2["Agro"]
+        fila_enc = next((r for r in range(1, 20)
+                         if str(ws.cell(r, 1).value or '').strip().lower() == 'año'), 5)
+        cols = [(c, str(ws.cell(fila_enc, c).value or '').replace('\n', ' ').strip())
+                for c in range(2, 7)]
+        cols = [(c, t) for c, t in cols if t and not t.lower().startswith('tramo')]
+        col_tramo = next((c for c in range(2, 8)
+                          if str(ws.cell(fila_enc, c).value or '').strip().lower() == 'tramo'), None)
+
+        anios, filas, tramos = [], {t: [] for _, t in cols}, []
+        for r in range(fila_enc + 1, (ws.max_row or 40) + 1):
+            a = ws.cell(r, 1).value
+            if a is None or not re.fullmatch(r'\d{4}', str(a).strip()):
+                continue
+            anios.append(str(a).strip())
+            for c, t in cols:
+                filas[t].append(fmt_n(ws.cell(r, c).value))
+            tramos.append(str(ws.cell(r, col_tramo).value).strip() if col_tramo else '')
+
+        data['agro'] = {"anios": anios, "series": filas, "tramos": tramos}
+        proy = [a for a, t in zip(anios, tramos) if t.lower().startswith('proy')]
+        status.ok("Potencial exportador - Agro",
+                  f"{len(anios)} anios ({anios[0]}–{anios[-1]}) · "
+                  f"{len(cols)} series · proyeccion desde {proy[0] if proy else '?'}")
+    except Exception as e:
+        status.fail("Potencial exportador - Agro", str(e))
+        traceback.print_exc()
+
+    return data if data else None
+
+# =====================================================================
 #  MONITOR DE ACTIVIDAD (dashboard clientes)
 # =====================================================================
 def extract_monitor_actividad(status):
@@ -2525,7 +2606,7 @@ def main():
         traceback.print_exc()
 
     # ---- Comercio exterior ----
-    print("\n[14/14] Procesando Comercio exterior...")
+    print("\n[14/15] Procesando Comercio exterior...")
     try:
         d = extract_comercio(status)
         if d:
@@ -2533,6 +2614,17 @@ def main():
             status.ok("Comercio exterior", f"{sz:,} bytes")
     except Exception as e:
         status.fail("Comercio exterior", str(e))
+        traceback.print_exc()
+
+    # ---- Potencial exportador 2026-2036 ----
+    print("\n[15/15] Procesando Potencial exportador...")
+    try:
+        d = extract_potencial_exportador(status)
+        if d:
+            sz = save_data("potencial_exportador", d)
+            status.ok("Potencial exportador", f"{sz:,} bytes")
+    except Exception as e:
+        status.fail("Potencial exportador", str(e))
         traceback.print_exc()
 
     # ---- Sellar la version de los datos en las paginas ----

@@ -13,6 +13,9 @@ const SECTIONS = [
   { id:'mercados-global',label:'Internacional · Mercados', href:'pages/mercados-global.html', group:'Mercados',  icon:'globe',         desc:'Benchmarks globales · strip del snapshot y cobertura del bloque externo.' },
   { id:'mercados',       label:'Mercados',                href:'pages/mercados.html',        group:'Mercados',  icon:'bar-chart2',    desc:'Tasa fija, renta variable, CER, dólar linked y hard-dollar.' },
   { id:'monetarias',     label:'Monetarias',              href:'pages/monetarias.html',      group:'Financiero', icon:'trending-up',   desc:'Agregados monetarios, préstamos privados y monetización de la economía.' },
+  /* El archivo sigue llamandose comercio-clientes.html porque nacio en el
+     tablero de clientes; la seccion pasó a ser publica, no el nombre. */
+  { id:'comercio',       label:'Comercio exterior',       href:'pages/comercio-clientes.html', group:'Externo',  icon:'exchange',      desc:'Importaciones desestacionalizadas, saldos comerciales, términos de intercambio y serie mensual de expo/impo.' },
 
   /* Secciones exclusivas para clientes (antes Dashboard Clientes) */
   { id:'precios-rpm',        label:'Precios RPM',               href:'pages/precios-clientes.html',    group:'Clientes', clientes:true, icon:'tag',         desc:'IPC, núcleo, regulados y proyecciones RPM.' },
@@ -21,8 +24,8 @@ const SECTIONS = [
   { id:'reservas',           label:'Reservas',                  href:'pages/reservas-clientes.html',   group:'Clientes', clientes:true, icon:'shield',      desc:'Composición RIN, reservas brutas y depósitos.' },
   { id:'monetarias-clientes',label:'Monetarias · M3 CCL',       href:'pages/monetarias-clientes.html', group:'Clientes', clientes:true, icon:'trending-up', desc:'Agregados monetarios en dólares (M3 CCL).' },
   { id:'deuda',              label:'Deuda',                     href:'pages/deuda-clientes.html',      group:'Clientes', clientes:true, icon:'layers',      desc:'Deuda pública histórica, vencimientos en pesos y perfil con privados.' },
-  { id:'comercio',           label:'Comercio exterior',         href:'pages/comercio-clientes.html',   group:'Clientes', clientes:true, icon:'exchange',    desc:'Importaciones desestacionalizadas, saldos comerciales, términos de intercambio y serie mensual de expo/impo.' },
   { id:'internacional2',     label:'Internacional · Consensus', href:'pages/internacional2.html',      group:'Clientes', clientes:true, icon:'map',         desc:'LatinFocus Consensus Forecast — resumen y detalle por país.' },
+  { id:'potencial-exportador', label:'Potencial exportador',    href:'pages/potencial-exportador-clientes.html', group:'Clientes', clientes:true, icon:'trending-up', desc:'Perspectiva exportadora 2026–2036: composición por bloque y proyecciones del agro.' },
   { id:'electoral',          label:'Calendario electoral',      href:'pages/electoral-clientes.html',  group:'Clientes', clientes:true, icon:'calendar',    desc:'Fechas electorales nacionales y provinciales 2027, con su grado de confirmación.' }
 ];
 

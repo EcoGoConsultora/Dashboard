@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Potencial exportador · Eco Go</title>
+  <link rel="stylesheet" href="../assets/css/theme.css?v=202610071139"/>
+  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .px-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:20px 24px 24px;margin-bottom:24px}
+    .px-title{font-size:1rem;font-weight:700;color:var(--eg-teal-dark);margin:0 0 4px}
+    .px-sub{font-size:.76rem;color:var(--color-text-muted);margin:0 0 14px}
+    .px-note{font-size:.72rem;color:var(--color-text-muted);margin-top:10px}
+    .px-box{position:relative;height:420px}
+    .px-head{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+    .px-sel{display:flex;flex-wrap:wrap;gap:8px}
+    .px-btn{padding:4px 14px;border-radius:20px;border:1.5px solid var(--color-border);font-size:.76rem;font-weight:700;cursor:pointer;background:transparent;color:var(--color-text-muted);transition:all .15s}
+    .px-btn.is-active{background:var(--eg-teal-dark);border-color:var(--eg-teal-dark);color:#fff}
+    .px-aviso{font-size:.74rem;color:#8a5a12;background:#fbf1e0;border:1px solid #e9d4a8;border-radius:8px;padding:9px 12px;margin:0 0 14px}
+  </style>
+</head>
+<body data-depth="1" data-active-section="potencial-exportador">
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+    <main class="eg-main">
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title">Potencial exportador</h1>
+          <p class="eg-page-header__subtitle">Perspectiva de exportaciones de Argentina 2026–2036 · composición por bloque y proyecciones del agro</p>
+        </div>
+      </section>
+
+      <!-- Composicion exportadora por bloque -->
+      <div class="px-card">
+        <p class="px-title">Composición exportadora por bloque</p>
+        <p class="px-sub">En miles de millones de USD · área apilada</p>
+        <p class="px-aviso" id="pxAviso" hidden></p>
+        <div class="px-box"><canvas id="chartComposicion"></canvas></div>
+        <p class="px-note">Fuente: Eco Go · Perspectiva de exportaciones de Argentina 2026–2036</p>
+      </div>
+
+      <!-- Proyecciones del agro -->
+      <div class="px-card">
+        <div class="px-head">
+          <div>
+            <p class="px-title">Proyecciones del sector agropecuario</p>
+            <p class="px-sub" style="margin:0" id="pxAgroSub">Cereales y oleaginosas · en millones de toneladas</p>
+          </div>
+          <div class="px-sel" id="pxAgroBtns"></div>
+        </div>
+        <div class="px-box"><canvas id="chartAgro"></canvas></div>
+        <p class="px-note">Fuente: Eco Go · Perspectiva de exportaciones de Argentina 2026–2036</p>
+      </div>
+
+      <footer class="eg-footer">
+        <span>Potencial exportador · Eco Go</span>
+        <a href="../index-clientes.html">← Volver al inicio</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../assets/js/layout.js?v=202610071139"></script>
+  <script src="../assets/data/potencial_exportador.js?v=202610071139"></script>
+  <script>
+  (function(){
+    var P = window.POTENCIAL_EXPORTADOR_DATA || {};
+    Chart.defaults.font.family = "'HK Grotesk', system-ui, sans-serif";
+    Chart.defaults.color = '#333333';
+
+    var MM = function(v, dec){
+      return Number(v).toLocaleString('es-AR', {minimumFractionDigits:dec||0, maximumFractionDigits:dec||0});
+    };
+
+    /* ---------- 1 · Composición por bloque ---------- */
+    var C = P.composicion || { categories: [], series: {} };
+    var ORDEN = ['Agro', 'Hidrocarburos', 'Minería', 'Resto'];
+    var COLORES = {
+      'Agro':          '#89C442',
+      'Hidrocarburos': '#1B5F5E',
+      'Minería':       '#FEB15F',
+      'Resto':         '#8FCCCA'
+    };
+
+    if (C.categories.length) {
+      var claves = ORDEN.filter(function(k){ return C.series[k]; })
+        .concat(Object.keys(C.series).filter(function(k){ return ORDEN.indexOf(k) < 0; }));
+
+      // El Excel pone 0 donde la hoja de origen no tiene dato. Un 0 en un bloque
+      // que exporta decenas de miles de millones es un hueco, no un dato: se
+      // grafica como vacío y se avisa, en vez de dibujar una caída a cero.
+      var huecos = [];
+      var datasets = claves.map(function(k){
+        var vals = C.series[k].map(function(v, i){
+          if (v === 0 && C.series[k].some(function(x){ return x > 0; })) {
+            huecos.push(k + ' ' + C.categories[i]);
+            return null;
+          }
+          return v === null || v === undefined ? null : v / 1000;   // MUSD → miles de millones
+        });
+        return {
+          label: k, data: vals,
+          backgroundColor: COLORES[k] || '#B8BEC0',
+          borderColor: COLORES[k] || '#B8BEC0',
+          borderWidth: 1, fill: true, tension: 0.25, pointRadius: 0
+        };
+      });
+
+      if (huecos.length) {
+        var av = document.getElementById('pxAviso');
+        av.hidden = false;
+        av.textContent = 'Sin dato en el Excel de origen: ' + huecos.join(' · ') +
+          '. Esos puntos quedan vacíos en el gráfico en vez de dibujarse como cero.';
+      }
+
+      new Chart(document.getElementById('chartComposicion'), {
+        type: 'line',
+        data: { labels: C.categories, datasets: datasets },
+        options: {
+          responsive:true, maintainAspectRatio:false, animation:{duration:150},
+          interaction:{ mode:'index', intersect:false },
+          plugins:{
+            legend:{ position:'bottom', labels:{ boxWidth:12, boxHeight:12, usePointStyle:true, pointStyle:'circle', font:{size:11} } },
+            tooltip:{ callbacks:{
+              label:function(c){ return ' ' + c.dataset.label + ': USD ' + MM(c.raw, 1) + ' MM'; },
+              footer:function(items){
+                var t = items.reduce(function(a,it){ return a + (Number(it.raw)||0); }, 0);
+                return 'Total: USD ' + MM(t, 1) + ' MM';
+              }
+            } }
+          },
+          scales:{
+            x:{ grid:{display:false}, ticks:{color:'#6E7679'} },
+            y:{ stacked:true, grid:{color:'rgba(0,0,0,0.05)'},
+                ticks:{ color:'#6E7679', callback:function(v){ return 'USD ' + v + ' MM'; } } }
+          }
+        }
+      });
+    }
+
+    /* ---------- 2 · Proyecciones del agro ---------- */
+    var A = P.agro || { anios: [], series: {}, tramos: [] };
+    var claveA = Object.keys(A.series || {});
+    // El gráfico del Excel apila lo exportable y el consumo interno (que suman
+    // la producción); el resto de las columnas queda disponible en el botón.
+    var APILADAS = claveA.filter(function(k){ return /exportable|consumo/i.test(k); });
+    var VISTAS = [{ id:'volumen', label:'Volumen (Mt)', claves:APILADAS, apilado:true, dec:1,
+                    sub:'Cereales y oleaginosas · en millones de toneladas' }];
+    claveA.filter(function(k){ return APILADAS.indexOf(k) < 0; }).forEach(function(k){
+      VISTAS.push({ id:k, label:k.replace(/\s*\(.*\)/, ''), claves:[k], apilado:false,
+                    dec: /musd/i.test(k) ? 1 : 1,
+                    sub: 'Cereales y oleaginosas · ' + (k.match(/\((.*)\)/) ? k.match(/\((.*)\)/)[1] : '') });
+    });
+
+    var COLOR_A = ['#1B5F5E', '#8FCCCA', '#FEB15F', '#89C442'];
+    var chartA = null;
+
+    function esProy(i){ return (A.tramos[i] || '').toLowerCase().indexOf('proy') === 0; }
+
+    function pintarAgro(vista){
+      var ds = vista.claves.map(function(k, i){
+        return {
+          label: k, data: A.series[k],
+          backgroundColor: A.anios.map(function(_, j){
+            var c = COLOR_A[i % COLOR_A.length];
+            return esProy(j) ? c + 'B3' : c;   // lo proyectado, algo más tenue
+          }),
+          borderColor: COLOR_A[i % COLOR_A.length], borderWidth: 0,
+          stack: vista.apilado ? 'agro' : undefined
+        };
+      });
+      var cfg = {
+        type:'bar',
+        data:{ labels:A.anios, datasets:ds },
+        options:{
+          responsive:true, maintainAspectRatio:false, animation:{duration:150},
+          interaction:{ mode:'index', intersect:false },
+          plugins:{
+            legend:{ position:'bottom', labels:{ boxWidth:12, boxHeight:12, usePointStyle:true, pointStyle:'circle', font:{size:11} } },
+            tooltip:{ callbacks:{
+              title:function(items){
+                var i = items[0].dataIndex;
+                return A.anios[i] + (esProy(i) ? ' · proyección' : ' · observado');
+              },
+              label:function(c){ return ' ' + c.dataset.label + ': ' + MM(c.raw, vista.dec); }
+            } }
+          },
+          scales:{
+            x:{ stacked:vista.apilado, grid:{display:false}, ticks:{color:'#6E7679'} },
+            y:{ stacked:vista.apilado, grid:{color:'rgba(0,0,0,0.05)'}, ticks:{color:'#6E7679'} }
+          }
+        }
+      };
+      if (chartA) chartA.destroy();
+      chartA = new Chart(document.getElementById('chartAgro'), cfg);
+      document.getElementById('pxAgroSub').textContent = vista.sub;
+      document.querySelectorAll('#pxAgroBtns .px-btn').forEach(function(b){
+        b.classList.toggle('is-active', b.dataset.vista === vista.id);
+      });
+    }
+
+    if (A.anios.length) {
+      var cont = document.getElementById('pxAgroBtns');
+      cont.innerHTML = VISTAS.map(function(v){
+        return '<button class="px-btn" data-vista="' + v.id + '">' + v.label + '</button>';
+      }).join('');
+      cont.querySelectorAll('.px-btn').forEach(function(b){
+        b.addEventListener('click', function(){
+          pintarAgro(VISTAS.find(function(v){ return v.id === b.dataset.vista; }));
+        });
+      });
+      pintarAgro(VISTAS[0]);
+    }
+
+    /* ---------- descargas ---------- */
+    if (window.EcoGo) {
+      if (C.categories.length) {
+        EcoGo.dlBtn('#chartComposicion', 'composicion_exportadora.csv', function(){
+          var ks = Object.keys(C.series);
+          return {
+            headers: ['Año'].concat(ks.map(function(k){ return k + ' (MUSD)'; })),
+            rows: C.categories.map(function(a, i){
+              return [a].concat(ks.map(function(k){ var v = C.series[k][i]; return v === null || v === undefined ? '' : v; }));
+            })
+          };
+        });
+      }
+      if (A.anios.length) {
+        EcoGo.dlBtn('#chartAgro', 'proyecciones_agro.csv', function(){
+          var ks = Object.keys(A.series);
+          return {
+            headers: ['Año', 'Tramo'].concat(ks),
+            rows: A.anios.map(function(a, i){
+              return [a, A.tramos[i]].concat(ks.map(function(k){ var v = A.series[k][i]; return v === null || v === undefined ? '' : v; }));
+            })
+          };
+        });
+      }
+    }
+  })();
+  </script>
+</body>
+</html>
