@@ -418,6 +418,26 @@ def _chart_block(wb, chart_name, scale=1.0):
         series[label] = [round(v * scale, 4) if isinstance(v, (int, float)) else None for v in vals[:n]]
     return {'dates': dates, 'series': series}
 
+def sin_cola_vacia(bloque):
+    """Saca del final los periodos en los que ninguna serie tiene dato.
+
+    Pasa cuando el rango del grafico de Excel llega mas lejos que los datos
+    cargados: el eje se estira hasta ahi y la linea queda cortada antes del
+    borde, como si la serie terminara antes de lo que termina."""
+    fechas = bloque.get('dates') or []
+    series = bloque.get('series') or {}
+    if not fechas or not series:
+        return bloque
+    ultimo = -1
+    for vals in series.values():
+        for i, v in enumerate(vals[:len(fechas)]):
+            if v is not None and i > ultimo:
+                ultimo = i
+    if ultimo < 0 or ultimo == len(fechas) - 1:
+        return bloque
+    return {'dates': fechas[:ultimo + 1],
+            'series': {k: v[:ultimo + 1] for k, v in series.items()}}
+
 def _chart_block_categorical(wb, chart_name, scale=1.0):
     """Como _chart_block, pero para graficos cuyas categorias NO son fechas
     (por ejemplo anios sueltos o etiquetas de texto, con selecciones no
@@ -1661,7 +1681,10 @@ def extract_reservas(status):
     if os.path.exists(EXCEL_PATHS["pasivos_res"]):
         try:
             wb3 = _open_wb(EXCEL_PATHS["pasivos_res"])
-            netas = _chart_block(wb3, "Gráfico4")
+            # El rango del grafico llega unos dias mas lejos que los datos
+            # cargados; sin recortar esa cola la linea termina antes del borde
+            # del eje y parece que la serie esta mas atrasada de lo que esta.
+            netas = sin_cola_vacia(_chart_block(wb3, "Gráfico4"))
             data['netas'] = netas
             status.ok("Reservas - Netas",
                       f"{len(netas['dates'])} dias · {len(netas['series'])} metodologias "
