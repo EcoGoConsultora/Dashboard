@@ -764,12 +764,25 @@
     var items=(dl&&dl.latest)?dl.latest:[];
     var tb='';
     items.forEach(function(it){
-      tb+='<tr><td><strong>'+it.symbol+'</strong></td><td class="num">'+fmtN(it.price,2)+'</td>'+
+      tb+='<tr><td><strong>'+it.symbol+'</strong></td>'+
+          '<td style="font-size:.75rem">'+(it.maturity_date||'—')+'</td>'+
+          '<td class="num">'+fmtTir(it.tir_pct)+'</td>'+
+          '<td class="num">'+fmtDur(it.duration)+'</td>'+
+          '<td class="num">'+fmtN(it.price,2)+'</td>'+
           '<td class="num">'+(it.volume!=null?fmtN(it.volume,0):'—')+'</td>'+
           '<td class="num">'+(it.amount!=null?fmtVol(it.amount):'—')+'</td>'+
           '<td style="font-size:.75rem">'+(it.date||'—')+'</td></tr>';
     });
     document.getElementById('bodyDolarLinked').innerHTML=tb;
+
+    /* El rendimiento es equivalente en USD al A3500 de hoy, no una proyeccion
+       de devaluacion: sin decirlo se lee como lo segundo. */
+    var nota=document.getElementById('dlNota');
+    if (nota && items.length){
+      nota.textContent='La TIR es el rendimiento en USD equivalentes al A3500 vigente; no es una '+
+                       'proyeccion de devaluacion. Las especies vencidas se dan de baja en cada '+
+                       'corrida. Fuente: Monitor de tasas Eco Go, en base a Rava y BCRA.';
+    }
   }
 
   function buildChartDolarLinked(dl){

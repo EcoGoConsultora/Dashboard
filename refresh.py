@@ -2282,6 +2282,176 @@ def extract_monitor_tasas(status):
     return data
 
 
+@_nunca_rompe("Mercados - instrumentos")
+def completar_mercados(status, monitor):
+    """
+    Completa las curvas de Mercados con los instrumentos que el worker no trae
+    y saca los que ya vencieron.
+
+    El worker que alimenta Mercados y el Monitor de tasas miran el mismo
+    mercado pero no el mismo universo: el Monitor mantiene un registro
+    versionado de especies, con terminos verificados contra Finanzas, y da de
+    baja las vencidas en cada corrida. El worker, en cambio, no incorpora las
+    emisiones nuevas y arrastra especies muertas con el ultimo precio
+    conocido. Por eso en el tablero faltaban LECAP vigentes y un hard dollar,
+    y seguian figurando tres dolar linked ya vencidos.
+
+    Esto no reemplaza al worker: le suma lo que le falta y le saca lo vencido.
+    Los CER con cupon (TX*, DICP, DIPO) quedan como estan: el Monitor no los
+    calcula a proposito, asi que su ausencia alli no significa que vencieron.
+    """
+    if not monitor:
+        return
+    try:
+        ruta = os.path.join(BASE_EXCEL, "Mercados", "Monitor tasas", "output", "latest.json")
+        curvas = json.loads(_leer_bytes(ruta).decode("utf-8")).get("curves", {}) or {}
+    except Exception as e:
+        status.warn("Mercados - instrumentos", f"no pude releer el monitor: {e}")
+        return
+    if not curvas:
+        return
+
+    js = os.path.join(DATA_DIR, "mercados.js")
+    if not os.path.exists(js):
+        status.warn("Mercados - instrumentos", "todavia no existe mercados.js")
+        return
+    m = re.search(r"=\s*(\{.*\});?\s*$", _leer_bytes(js).decode("utf-8"), re.S)
+    if not m:
+        status.warn("Mercados - instrumentos", "no pude parsear mercados.js")
+        return
+    M = json.loads(m.group(1))
+
+    def n(v):
+        return fmt_n(v) if isinstance(v, (int, float)) else None
+
+    rueda = (monitor.get("meta") or {}).get("market_date") or datetime.now().strftime("%Y-%m-%d")
+    sumados, bajas = [], []
+
+    def vencido(it):
+        """Un instrumento vencido no deja de cotizar en el worker: se queda con
+        el ultimo precio conocido, que parece del dia."""
+        f = it.get("payment_date") or it.get("maturity_date")
+        return bool(f) and str(f)[:10] < rueda
+
+    def limpiar(lista, etiqueta):
+        vivos = []
+        for it in lista or []:
+            if vencido(it):
+                bajas.append(f"{etiqueta} {it['symbol']}")
+            else:
+                vivos.append(it)
+        return vivos
+
+    # ---- Tasa fija ----
+    M["fixed_curve"] = limpiar(M.get("fixed_curve"), "tasa fija")
+    hay = {x["symbol"] for x in M["fixed_curve"]}
+    for it in curvas.get("fixed", []):
+        if it["symbol"] in hay:
+            continue
+        M["fixed_curve"].append({
+            "symbol": it["symbol"],
+            # el tablero colorea por familia y sus claves van en minuscula
+            "family": (it.get("family") or "").lower(),
+            "tir_pct": n(it.get("yield_tea_pct")),
+            "duration": n(it.get("modified_duration_years")),
+            "maturity_date": it.get("maturity_date"),
+            "payment_date": it.get("maturity_date"),
+            "volume": n(it.get("volume_nominal")),
+            "fuente": "monitor",
+        })
+        sumados.append("tasa fija " + it["symbol"])
+
+    # ---- CER ----
+    M["cer_curve"] = limpiar(M.get("cer_curve"), "CER")
+    hay = {x["symbol"] for x in M["cer_curve"]}
+    for it in curvas.get("cer", []):
+        if it["symbol"] in hay:
+            continue
+        M["cer_curve"].append({
+            "symbol": it["symbol"],
+            "family": (it.get("family") or "").lower(),
+            "tir_pct": n(it.get("real_yield_tea_pct")),
+            "duration": n(it.get("modified_duration_years")),
+            "payment_date": it.get("maturity_date"),
+            "price": n(it.get("price_ars_per_vn100")),
+            "technical_price": n(it.get("technical_price")),
+            "parity": n(it.get("parity_pct")),
+            "volume": n(it.get("volume_nominal")),
+            "fuente": "monitor",
+        })
+        sumados.append("CER " + it["symbol"])
+
+    # ---- Hard dollar: el monitor marca la ley en 'family' (A o G) ----
+    hd = M.setdefault("hard_dollar", {})
+    for c in ("a_curve", "g_curve"):
+        hd[c] = limpiar(hd.get(c), "hard dollar")
+    hay = {x["symbol"] for c in ("a_curve", "g_curve") for x in hd.get(c, [])}
+    for it in curvas.get("hard_dollar", []):
+        if it["symbol"] in hay:
+            continue
+        destino = "g_curve" if (it.get("family") or "").upper() == "G" else "a_curve"
+        hd.setdefault(destino, []).append({
+            "symbol": it["symbol"],
+            "price": n(it.get("price_usd_dirty_per_vn100")),
+            "tir_pct": n(it.get("yield_tea_pct")),
+            "duration": n(it.get("modified_duration_years")),
+            "technical_price": n(it.get("technical_price")),
+            "parity": n(it.get("parity_pct")),
+            "payment_date": it.get("maturity_date"),
+            "volume": n(it.get("volume_nominal")),
+            "fuente": "monitor",
+        })
+        sumados.append("hard dollar " + it["symbol"])
+
+    # ---- Dolar linked ----
+    # Aca el worker no publica el vencimiento, asi que no alcanza con la fecha:
+    # el universo vivo es el del Monitor, que mantiene el registro de la curva.
+    # Lo que no esta ahi o vencio o nunca se registro, y en los dos casos
+    # muestra un precio arrastrado sin volumen.
+    dl = M.setdefault("dollar_linked", {})
+    por_sim = {it["symbol"]: it for it in curvas.get("dollar_linked", [])}
+
+    quedan = []
+    for it in (dl.get("latest") or []):
+        if it["symbol"] in por_sim:
+            quedan.append(it)
+        else:
+            bajas.append("dolar linked " + it["symbol"])
+    muertos = [b.split()[-1] for b in bajas if b.startswith("dolar linked ")]
+
+    for s, it in por_sim.items():
+        actual = next((x for x in quedan if x["symbol"] == s), None)
+        if actual is None:
+            actual = {"date": rueda, "symbol": s,
+                      "price": n(it.get("price_ars_per_vn100_usd")),
+                      "volume": n(it.get("volume_nominal")), "amount": None,
+                      "fuente": "monitor"}
+            quedan.append(actual)
+            sumados.append("dolar linked " + s)
+        # el worker solo trae precio y volumen; el rendimiento lo calcula el monitor
+        actual["tir_pct"] = n(it.get("usd_equivalent_yield_tea_pct"))
+        actual["duration"] = n(it.get("modified_duration_years"))
+        actual["maturity_date"] = it.get("maturity_date")
+
+    quedan.sort(key=lambda x: x.get("maturity_date") or "9999")
+    dl["latest"] = quedan
+    dl["symbols"] = [x["symbol"] for x in quedan]
+    if muertos:
+        # tambien del historial, para que el grafico de volumen no los dibuje
+        dl["history"] = [h for h in (dl.get("history") or []) if h.get("symbol") not in muertos]
+
+    M.setdefault("meta", {})["completado_con_monitor"] = {
+        "rueda": rueda, "sumados": sumados, "bajas": bajas}
+
+    save_data("mercados", M)
+    status.ok("Mercados - instrumentos",
+              f"{len(sumados)} sumados del monitor · {len(bajas)} vencidos dados de baja")
+    if sumados:
+        print("    sumados: " + ", ".join(sumados))
+    if bajas:
+        print("    bajas:   " + ", ".join(bajas))
+
+
 # =====================================================================
 #  POTENCIAL EXPORTADOR 2026-2036 (dashboard clientes)
 # =====================================================================
@@ -3073,6 +3243,7 @@ def main():
         if d:
             sz = save_data("monitor_tasas", d)
             status.ok("Monitor de tasas", f"{sz:,} bytes")
+            completar_mercados(status, d)
     except Exception as e:
         status.fail("Monitor de tasas", str(e))
         traceback.print_exc()
