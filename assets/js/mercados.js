@@ -412,6 +412,168 @@
     return nav;
   }
 
+
+  /* ================================================================
+     TAMAR  ·  sale del Monitor de tasas, no del worker de Mercados
+     ================================================================ */
+  function renderTamar(MT){
+    var rows = (MT && MT.tamar) || [];
+    var tb = '';
+    rows.forEach(function(it){
+      var fij = (it.known_fixings !== null && it.total_fixings)
+        ? it.known_fixings + '/' + it.total_fixings : '—';
+      tb += '<tr><td><strong>' + it.symbol + '</strong></td>' +
+            '<td>' + (it.maturity_date || '—') + '</td>' +
+            '<td class="num">' + fmtTir(it.tir_pct) + '</td>' +
+            '<td class="num">' + fmtTir(it.tir_tna_pct) + '</td>' +
+            '<td class="num">' + fmtTir(it.tir_tem_pct) + '</td>' +
+            '<td class="num">' + fmtTir(it.margin_tna_pct) + '</td>' +
+            '<td class="num">' + fmtDur(it.duration) + '</td>' +
+            '<td class="num">' + fmtN(it.price, 2) + '</td>' +
+            '<td class="num">' + fmtVol(it.volume) + '</td>' +
+            '<td class="num">' + fij + '</td></tr>';
+    });
+    var body = document.getElementById('bodyTamar');
+    if (body) body.innerHTML = tb || '<tr><td colspan="10">Sin datos</td></tr>';
+
+    /* Son bonos a tasa variable: sin decir cuantas fijaciones faltan, la TIR
+       se lee como un rendimiento cerrado y no lo es. */
+    var nota = document.getElementById('tamarNota');
+    if (nota && rows.length) {
+      var proy = rows.filter(function(r){ return r.total_fixings && r.known_fixings < r.total_fixings; });
+      /* El metodo viene como clave del modelo; traducirlo evita publicar
+         "trailing_5_published_fixings" en la nota al pie. */
+      var METODOS = { trailing_5_published_fixings:
+                        'media simple de las ultimas cinco fijaciones publicadas' };
+      var met = METODOS[rows[0].forecast_method] || rows[0].forecast_method;
+      var txt = 'La TIR es condicional: las fijaciones que todavia no se publicaron se proyectan' +
+                (met ? ' (' + met + ')' : '') + '.';
+      if (proy.length) txt += ' Hoy ' + proy.length + ' de ' + rows.length +
+                              ' instrumentos tienen fijaciones pendientes.';
+      nota.textContent = txt + ' Fuente: Monitor de tasas Eco Go, en base a Rava y BCRA.';
+    }
+  }
+
+  function buildChartTamar(MT){
+    var rows = ((MT && MT.tamar) || []).slice().sort(function(a,b){ return a.duration - b.duration; });
+    if (!rows.length) return;
+    charts['chartTamar'] = new Chart(document.getElementById('chartTamar'), {
+      type:'bubble',
+      data:{ datasets:[{
+        label:'TAMAR',
+        data:rows.map(function(r){ return {x:r.duration, y:r.tir_pct, r:bubbleR(r.volume, rows), sym:r.symbol}; }),
+        backgroundColor:ORANGE + 'BB', borderColor:ORANGE, borderWidth:1.5,
+        _symColor:TEAL_DARK
+      }]},
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{
+          legend:{ display:false },
+          tooltip:{ callbacks:{ label:function(c){
+            var r = rows[c.dataIndex]; if (!r) return '';
+            var l = r.symbol + ' | TIR TEA: ' + fmtTir(r.tir_pct) + ' | Dur: ' + fmtDur(r.duration) +
+                    ' | Margen: ' + fmtTir(r.margin_tna_pct);
+            if (r.total_fixings) l += ' | Fijaciones: ' + r.known_fixings + '/' + r.total_fixings;
+            return l;
+          } } }
+        },
+        scales:{
+          x:Object.assign({title:{display:true,text:'Duration (anos)',color:'#6E7679'}}, scaleX),
+          y:Object.assign({title:{display:true,text:'TIR TEA (%)',color:'#6E7679'},
+                           ticks:{color:'#6E7679',callback:function(v){return v.toFixed(1)+'%';}}}, scaleY)
+        }
+      },
+      plugins:[symLabelPlugin]
+    });
+    activateCurveHistNav('chartTamar', 'chartTamar', MT && MT.tamar_history, null, 'trendBtnTamar');
+    makeTrendToggle('trendBtnTamar', function(){ return charts['chartTamar']; }, rows, 'tir_pct', ORANGE);
+  }
+
+  /* ================================================================
+     TASAS DE REFERENCIA  ·  dinero a un dia + tasas BCRA
+     ================================================================ */
+  var MM_COLORS = { repo_1d:TEAL_DARK, simu_1d:TEAL, caucion_1d:'#8FCCCA',
+                    tamar_private:ORANGE, bank_lending_1_7d_10m:PURPLE };
+  var MM_ORDEN = ['repo_1d','simu_1d','caucion_1d','tamar_private','bank_lending_1_7d_10m'];
+
+  function renderDinero(MT){
+    var mm = (MT && MT.money_market) || {};
+    var lat = mm.latest || {};
+    var claves = MM_ORDEN.filter(function(k){ return lat[k]; });
+
+    var hero = document.getElementById('mkDineroHero');
+    if (hero) {
+      hero.innerHTML = claves.map(function(k){
+        var s = lat[k];
+        return '<div class="mk-hero-card">' +
+               '<div class="mk-hero-card__label">' + s.label + '</div>' +
+               '<div class="mk-hero-card__value">' + fmtTir(s.tna_pct) + '</div>' +
+               '<div style="font-size:.65rem;color:var(--color-text-muted);margin-top:4px">TNA · ' +
+               (s.date || '') + '</div></div>';
+      }).join('');
+    }
+
+    var tb = claves.map(function(k){
+      var s = lat[k];
+      return '<tr><td><strong>' + s.label + '</strong></td>' +
+             '<td class="num">' + fmtTir(s.tna_pct) + '</td>' +
+             '<td class="num">' + fmtTir(s.last_tna_pct) + '</td>' +
+             '<td class="num">' + (s.volume_ars ? fmtN(s.volume_ars / 1e6, 0) : '—') + '</td>' +
+             '<td class="num">' + (s.operations !== null && s.operations !== undefined ? fmtN(s.operations, 0) : '—') + '</td>' +
+             '<td class="num">' + (s.tenor_days ? s.tenor_days + 'd' : '—') + '</td>' +
+             '<td>' + (s.date || '—') + '</td>' +
+             '<td>' + (s.source || '—') + '</td></tr>';
+    }).join('');
+    var body = document.getElementById('bodyDinero');
+    if (body) body.innerHTML = tb || '<tr><td colspan="8">Sin datos</td></tr>';
+
+    /* Las tasas BCRA tienen fecha propia, casi siempre un dia atras de la
+       rueda: decirlo evita que se lea como si todo fuera del mismo dia. */
+    var nota = document.getElementById('dineroNota');
+    if (nota) {
+      var fechas = claves.map(function(k){ return lat[k].date; })
+                         .filter(function(v, i, a){ return v && a.indexOf(v) === i; });
+      var t = 'REPO, SIMU y caucion son promedio ponderado por volumen (VWAP) del plazo hasta la ' +
+              'proxima rueda habil. TAMAR y activa bancaria son el ultimo dato publicado por el BCRA, ' +
+              'con su fecha propia.';
+      if (fechas.length > 1) t += ' En este corte conviven ' + fechas.sort().join(' y ') + '.';
+      nota.textContent = t + ' Fuente: Monitor de tasas Eco Go, en base a A3 Market Data y BCRA.';
+    }
+  }
+
+  function buildChartDinero(MT){
+    var h = (MT && MT.money_market && MT.money_market.history) || null;
+    if (!h || !h.dates || !h.dates.length) return;
+    var claves = MM_ORDEN.filter(function(k){
+      return h.series[k] && h.series[k].some(function(v){ return v !== null && v !== undefined; });
+    });
+    var etiq = MT.money_market.latest || {};
+    charts['chartDinero'] = new Chart(document.getElementById('chartDinero'), {
+      type:'line',
+      data:{ labels:h.dates,
+             datasets:claves.map(function(k){
+               return { label:(etiq[k] && etiq[k].label) || k, data:h.series[k],
+                        borderColor:MM_COLORS[k], backgroundColor:MM_COLORS[k],
+                        borderWidth:2, pointRadius:0, pointHoverRadius:3,
+                        fill:false, tension:0.1, spanGaps:true };
+             }) },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        interaction:{ mode:'index', intersect:false },
+        plugins:{
+          legend:{ position:'bottom', labels:{ usePointStyle:true, padding:12, boxWidth:8, boxHeight:8 } },
+          tooltip:{ callbacks:{ label:function(c){ return ' ' + c.dataset.label + ': ' + fmtTir(c.raw) + ' TNA'; } } }
+        },
+        scales:{
+          x:{ grid:{display:false},
+              ticks:{ color:'#6E7679', maxRotation:0, maxTicksLimit:10, autoSkipPadding:18 } },
+          y:Object.assign({ title:{display:true,text:'TNA (%)',color:'#6E7679'},
+                            ticks:{color:'#6E7679',callback:function(v){return v.toFixed(0)+'%';}} }, scaleY)
+        }
+      }
+    });
+  }
+
   /* ================================================================
      TABS
      ================================================================ */
@@ -433,6 +595,8 @@
         }
         if (tab==='dolar-linked') buildChartDolarLinked(D.dollar_linked);
         if (tab==='hard-dollar')  buildChartsHD(D.hard_dollar, D.hard_dollar_curve_history);
+        if (tab==='tamar')        buildChartTamar(window.MONITOR_TASAS_DATA);
+        if (tab==='dinero')       buildChartDinero(window.MONITOR_TASAS_DATA);
       }
     });
   }
@@ -786,6 +950,38 @@
 
   function setupDownloads(D) {
     if (!window.EcoGo) return;
+    var MT = window.MONITOR_TASAS_DATA;
+    if (MT && MT.tamar && MT.tamar.length) {
+      EcoGo.dlBtn('#chartTamar', 'curva_tamar.csv', function(){
+        return {
+          headers: ['Simbolo','Vencimiento','TIR TEA (%)','TIR TNA (%)','TIR TEM (%)',
+                    'Margen TNA (%)','Duration (anos)','Precio','Volumen',
+                    'Fijaciones conocidas','Fijaciones totales'],
+          rows: MT.tamar.map(function(r){
+            return [r.symbol, r.maturity_date, r.tir_pct, r.tir_tna_pct, r.tir_tem_pct,
+                    r.margin_tna_pct, r.duration, r.price, r.volume,
+                    r.known_fixings, r.total_fixings];
+          })
+        };
+      });
+    }
+    if (MT && MT.money_market && MT.money_market.history) {
+      EcoGo.dlBtn('#chartDinero', 'tasas_referencia.csv', function(){
+        var h = MT.money_market.history, lat = MT.money_market.latest || {};
+        var ks = MM_ORDEN.filter(function(k){ return h.series[k]; });
+        return {
+          headers: ['Fecha'].concat(ks.map(function(k){
+            return ((lat[k] && lat[k].label) || k) + ' (TNA %)';
+          })),
+          rows: h.dates.map(function(f, i){
+            return [f].concat(ks.map(function(k){
+              var v = h.series[k][i];
+              return (v === null || v === undefined) ? '' : v;
+            }));
+          })
+        };
+      });
+    }
     EcoGo.dlBtn('#chartTasaFija', 'tasa_fija_curva.csv', function(){
       var fc = D.fixed_curve || [];
       return {
@@ -854,6 +1050,16 @@
     renderDolarLinked(D.dollar_linked);
     renderHdCurve((D.hard_dollar&&D.hard_dollar.a_curve)||[], 'bodyHdA');
     renderHdCurve((D.hard_dollar&&D.hard_dollar.g_curve)||[], 'bodyHdG');
+    if (!window.MONITOR_TASAS_DATA) {
+      ['tamar','dinero'].forEach(function(t){
+        var b = document.querySelector('.eg-tabs__btn[data-tab="' + t + '"]');
+        if (b) b.remove();
+        var p = document.getElementById('panel-' + t);
+        if (p) p.remove();
+      });
+    }
+    renderTamar(window.MONITOR_TASAS_DATA);
+    renderDinero(window.MONITOR_TASAS_DATA);
 
     chartBuilt['tasa-fija'] = true;
     buildChartTasaFija(D.fixed_curve, D.fixed_curve_history);

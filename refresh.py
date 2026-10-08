@@ -67,6 +67,7 @@ EXCEL_PATHS = {
     "comex":       os.path.join(BASE_EXCEL, "Comercio", "Comercio exterior.xlsx"),
     "comex_tdi":   os.path.join(BASE_EXCEL, "Comercio", "Terminos del Intercambio.xlsx"),
     "comex_proy":  os.path.join(BASE_EXCEL, "Comercio", "01 Proyecciones", "Estimación Comercio Ext.xlsx"),
+    "monitor_tasas":  os.path.join(BASE_EXCEL, "Mercados", "Monitor tasas"),
     "potencial_exportador": os.path.join(
         BASE_EXCEL, "Comercio", "01 Proyecciones", "Proyecciones 2036",
         "perspectiva_exportaciones_2036_20260705",
@@ -2147,6 +2148,141 @@ def extract_tenencia_dlk(status):
     return data if data else None
 
 # =====================================================================
+#  MONITOR DE TASAS (completa la seccion Mercados)
+# =====================================================================
+@_nunca_rompe("Monitor de tasas")
+def extract_monitor_tasas(status):
+    """
+    Completa Mercados con lo que el tablero no tenia: la curva TAMAR y las
+    tasas de referencia de dinero a un dia.
+
+    El proyecto 'Monitor tasas' ya deja un contrato de datos limpio en
+    output/latest.json y un snapshot por rueda en output/history, asi que aca
+    no se recalcula nada: se traduce a lo que espera la pagina. Si el monitor
+    no corrio hoy, se publica igual la ultima rueda que si tenga datos y el
+    aviso queda en el status.
+    """
+    base = EXCEL_PATHS["monitor_tasas"]
+    if not os.path.isdir(base):
+        status.warn("Monitor de tasas", f"no existe la carpeta {base}")
+        return None
+
+    ult = os.path.join(base, "output", "latest.json")
+    if not os.path.exists(ult):
+        status.warn("Monitor de tasas", "no encontre output/latest.json")
+        return None
+
+    d = json.loads(_leer_bytes(ult).decode("utf-8"))
+    meta = d.get("meta", {})
+    cal = d.get("quality", {}) or {}
+
+    data = {"meta": {"market_date": meta.get("market_date"),
+                     "generated_at": meta.get("generated_at"),
+                     "status": meta.get("status"),
+                     "registry_version": meta.get("registry_version"),
+                     "warnings": cal.get("warnings", []),
+                     "rava_errors": cal.get("rava_errors", {})}}
+
+    def num(v):
+        return fmt_n(v) if isinstance(v, (int, float)) else None
+
+    # ---- Curva TAMAR ----
+    # Son bonos a tasa variable: el rendimiento depende de fijaciones que
+    # todavia no existen, asi que se guarda cuantas estan conocidas y cuantas
+    # proyectadas para poder decirlo en la pagina.
+    tamar = []
+    for it in d.get("curves", {}).get("tamar", []):
+        tamar.append({
+            "symbol": it.get("symbol"),
+            "maturity_date": it.get("maturity_date"),
+            "tir_pct": num(it.get("tir_tea_pct")),
+            "tir_tna_pct": num(it.get("tir_tna_pct")),
+            "tir_tem_pct": num(it.get("tir_tem_pct")),
+            "margin_tna_pct": num(it.get("margin_tna_pct")),
+            "duration": num(it.get("modified_duration_years")),
+            "price": num(it.get("price_per_vn_100")),
+            "volume": num(it.get("volume_nominal")),
+            "known_fixings": it.get("known_fixings"),
+            "total_fixings": it.get("total_fixings"),
+            "projected_tna_pct": num(it.get("projected_tna_pct")),
+            "forecast_method": it.get("forecast_method"),
+        })
+    tamar.sort(key=lambda x: x["duration"] if x["duration"] is not None else 99)
+    data["tamar"] = tamar
+
+    # ---- Tasas de dinero a un dia ----
+    ETIQUETAS = {"repo_1d": "REPO 1 dia",
+                 "simu_1d": "SIMU 1 dia",
+                 "caucion_1d": "Caucion 1 dia",
+                 "tamar_private": "TAMAR bancos privados",
+                 "bank_lending_1_7d_10m": "Activa bancaria 1-7 dias"}
+    mm = d.get("money_market", {}) or {}
+    latest = {}
+    for k, lab in ETIQUETAS.items():
+        s = mm.get(k) or {}
+        if not s:
+            continue
+        latest[k] = {"label": lab, "date": s.get("date"), "tna_pct": num(s.get("tna_pct")),
+                     "last_tna_pct": num(s.get("last_tna_pct")),
+                     "volume_ars": num(s.get("volume_ars")),
+                     "operations": s.get("operations"),
+                     "tenor_days": s.get("tenor_days"),
+                     "source": s.get("source")}
+
+    # ---- Historia: una serie por tasa y la curva TAMAR por rueda ----
+    hist_dir = os.path.join(base, "output", "history")
+    fechas, series = [], {k: [] for k in ETIQUETAS}
+    volumen = {"repo_1d": [], "caucion_1d": []}
+    curvas = {}
+    if os.path.isdir(hist_dir):
+        archivos = sorted(f for f in os.listdir(hist_dir) if f.endswith(".json"))
+        for nombre in archivos:
+            try:
+                snap = json.loads(_leer_bytes(os.path.join(hist_dir, nombre)).decode("utf-8"))
+            except Exception:
+                continue
+            fe = (snap.get("meta", {}) or {}).get("market_date") or nombre[:10]
+            fechas.append(fe)
+            smm = snap.get("money_market", {}) or {}
+            for k in ETIQUETAS:
+                series[k].append(num((smm.get(k) or {}).get("tna_pct")))
+            for k in volumen:
+                volumen[k].append(num((smm.get(k) or {}).get("volume_ars")))
+            fila = []
+            for it in (snap.get("curves", {}) or {}).get("tamar", []):
+                fila.append({"symbol": it.get("symbol"),
+                             "tir_pct": num(it.get("tir_tea_pct")),
+                             "duration": num(it.get("modified_duration_years")),
+                             "volume": num(it.get("volume_nominal"))})
+            if fila:
+                curvas[fe] = fila
+
+    data["money_market"] = {"latest": latest, "etiquetas": ETIQUETAS,
+                            "history": {"dates": fechas, "series": series, "volume": volumen}}
+    # La pagina ya sabe navegar un historial con esta forma (dates + curves),
+    # asi que la curva TAMAR usa la misma y hereda los botones -1D/-1S.
+    data["tamar_history"] = {"dates": [f for f in fechas if f in curvas], "curves": curvas}
+
+    fe = meta.get("market_date")
+    status.ok("Monitor de tasas",
+              f"rueda {fe} · {len(tamar)} TAMAR · {len(latest)} tasas de referencia · "
+              f"{len(fechas)} ruedas de historia")
+    if meta.get("status") and meta["status"] != "ok":
+        detalle = "; ".join(cal.get("warnings", [])[:2]) or meta["status"]
+        status.warn("Monitor de tasas", f"el monitor se publico como '{meta['status']}': {detalle}")
+    # _avisar_si_viejo razona en meses y esta serie es diaria: una semana sin
+    # rueda nueva ya es sintoma de que la tarea de las 17:30 dejo de correr.
+    dia = _a_fecha(fe)
+    if dia is not None:
+        atraso = (datetime.now() - dia).days
+        if atraso > 7:
+            status.warn("Monitor de tasas",
+                        f"ultima rueda {dia.strftime('%d-%m-%Y')} — {atraso} dias de atraso "
+                        f"(revisar la tarea de las 17:30 en la carpeta 'Monitor tasas')")
+    return data
+
+
+# =====================================================================
 #  POTENCIAL EXPORTADOR 2026-2036 (dashboard clientes)
 # =====================================================================
 def extract_potencial_exportador(status):
@@ -2755,7 +2891,7 @@ def main():
     status = Status()
 
     # ---- Precios ----
-    print("[1/16] Procesando Precios...")
+    print("[1/17] Procesando Precios...")
     try:
         d = extract_precios(status)
         if d:
@@ -2766,7 +2902,7 @@ def main():
         traceback.print_exc()
 
     # ---- EMAE Series ----
-    print("\n[2/16] Procesando EMAE Series (actividad)...")
+    print("\n[2/17] Procesando EMAE Series (actividad)...")
     try:
         d = extract_emae_series(status)
         if d:
@@ -2777,7 +2913,7 @@ def main():
         traceback.print_exc()
 
     # ---- Empleo ----
-    print("\n[3/16] Procesando Empleo...")
+    print("\n[3/17] Procesando Empleo...")
     try:
         d = extract_empleo(status)
         if d:
@@ -2788,7 +2924,7 @@ def main():
         traceback.print_exc()
 
     # ---- Salarios ----
-    print("\n[4/16] Procesando Salarios...")
+    print("\n[4/17] Procesando Salarios...")
     try:
         d = extract_salarios(status)
         if d:
@@ -2799,7 +2935,7 @@ def main():
         traceback.print_exc()
 
     # ---- Tipo de Cambio ----
-    print("\n[5/16] Procesando Tipo de Cambio...")
+    print("\n[5/17] Procesando Tipo de Cambio...")
     try:
         d = extract_tipo_cambio(status)
         if d:
@@ -2810,7 +2946,7 @@ def main():
         traceback.print_exc()
 
     # ---- Reservas ----
-    print("\n[6/16] Procesando Reservas...")
+    print("\n[6/17] Procesando Reservas...")
     try:
         d = extract_reservas(status)
         if d:
@@ -2821,7 +2957,7 @@ def main():
         traceback.print_exc()
 
     # ---- Internacional ----
-    print("\n[7/16] Procesando Internacional (Monitor mundial)...")
+    print("\n[7/17] Procesando Internacional (Monitor mundial)...")
     try:
         run_monitor_mundial(status)
         extract_internacional(status)
@@ -2831,14 +2967,14 @@ def main():
         traceback.print_exc()
 
     # ---- Mercados (API) ----
-    print("\n[8/16] Actualizando Mercados (EcoGo Markets API)...")
+    print("\n[8/17] Actualizando Mercados (EcoGo Markets API)...")
     try:
         extract_mercados(status)
     except Exception as e:
         status.warn("Mercados", f"no se pudo actualizar desde la API: {e}")
 
     # ---- Actividad IPI (Indicadores de actividad) ----
-    print("\n[9/16] Actualizando Indicadores de Actividad (IPI - Todos.xlsx)...")
+    print("\n[9/17] Actualizando Indicadores de Actividad (IPI - Todos.xlsx)...")
     try:
         from extract_actividad_ipi import run_extraction as run_ipi
         ipi_path = os.path.join(BASE_EXCEL, "Actividad", "IPI - Todos.xlsx")
@@ -2852,7 +2988,7 @@ def main():
         traceback.print_exc()
 
     # ---- Series Largas (Anexo histórico) ----
-    print("\n[10/16] Actualizando Series Largas (Anexo.xlsx)...")
+    print("\n[10/17] Actualizando Series Largas (Anexo.xlsx)...")
     try:
         from extract_series_largas import run_extraction
         anexo_path = os.path.join(BASE_EXCEL, "03 Informes y Anexos", "Cuadros y Anexos", "Anexos nuevos", "Anexo.xlsx")
@@ -2866,7 +3002,7 @@ def main():
         traceback.print_exc()
 
     # ---- Monetarias ----
-    print("\n[11/16] Procesando Monetarias...")
+    print("\n[11/17] Procesando Monetarias...")
     try:
         d = extract_monetarias(status)
         if d:
@@ -2877,7 +3013,7 @@ def main():
         traceback.print_exc()
 
     # ---- Deuda ----
-    print("\n[12/16] Procesando Deuda...")
+    print("\n[12/17] Procesando Deuda...")
     try:
         d = extract_deuda(status)
         if d:
@@ -2888,7 +3024,7 @@ def main():
         traceback.print_exc()
 
     # ---- Monitor de Actividad ----
-    print("\n[13/16] Procesando Monitor de Actividad...")
+    print("\n[13/17] Procesando Monitor de Actividad...")
     try:
         d = extract_monitor_actividad(status)
         if d:
@@ -2898,7 +3034,7 @@ def main():
         traceback.print_exc()
 
     # ---- Comercio exterior ----
-    print("\n[14/16] Procesando Comercio exterior...")
+    print("\n[14/17] Procesando Comercio exterior...")
     try:
         d = extract_comercio(status)
         if d:
@@ -2909,7 +3045,7 @@ def main():
         traceback.print_exc()
 
     # ---- Potencial exportador 2026-2036 ----
-    print("\n[15/16] Procesando Potencial exportador...")
+    print("\n[15/17] Procesando Potencial exportador...")
     try:
         d = extract_potencial_exportador(status)
         if d:
@@ -2920,7 +3056,7 @@ def main():
         traceback.print_exc()
 
     # ---- Tenencia DLK BCRA ----
-    print("\n[16/16] Procesando Tenencia DLK BCRA...")
+    print("\n[16/17] Procesando Tenencia DLK BCRA...")
     try:
         d = extract_tenencia_dlk(status)
         if d:
@@ -2928,6 +3064,17 @@ def main():
             status.ok("Tenencia DLK BCRA", f"{sz:,} bytes")
     except Exception as e:
         status.fail("Tenencia DLK BCRA", str(e))
+        traceback.print_exc()
+
+    # ---- Monitor de tasas (completa Mercados) ----
+    print("\n[17/17] Procesando Monitor de tasas...")
+    try:
+        d = extract_monitor_tasas(status)
+        if d:
+            sz = save_data("monitor_tasas", d)
+            status.ok("Monitor de tasas", f"{sz:,} bytes")
+    except Exception as e:
+        status.fail("Monitor de tasas", str(e))
         traceback.print_exc()
 
     # ---- Sellar la version de los datos en las paginas ----

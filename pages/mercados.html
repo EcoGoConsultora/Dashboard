@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mercados · Eco Go</title>
-  <link rel="stylesheet" href="../assets/css/theme.css?v=202610081349" />
+  <link rel="stylesheet" href="../assets/css/theme.css?v=202610081400" />
   <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -51,6 +51,7 @@
     .mk-hero-card__chgs{ display:flex; gap:10px; margin-top:6px; flex-wrap:wrap; }
     .mk-hero-card__chg{ font-size:.72rem; font-weight:700; font-variant-numeric:tabular-nums; }
     .mk-hero-card__chg-lbl{ font-size:.6rem; color:var(--color-text-muted); margin-right:2px; }
+    .mk-foot-note{ font-size:.72rem; color:var(--color-text-muted); margin:12px 0 0; line-height:1.5; }
     .mk-sub-head{ display:flex; align-items:center; gap:10px; margin:22px 0 10px; padding-bottom:7px; border-bottom:2px solid var(--eg-teal); }
     .mk-sub-title{ font-size:.95rem; font-weight:800; color:var(--eg-teal-dark); margin:0; }
     .mk-sub-badge{ font-size:.62rem; text-transform:uppercase; letter-spacing:.1em; background:var(--eg-teal); color:#fff; padding:2px 8px; border-radius:999px; font-weight:700; }
@@ -105,6 +106,8 @@
             <button class="eg-tabs__btn" data-tab="cer">CER</button>
             <button class="eg-tabs__btn" data-tab="dolar-linked">Dólar linked</button>
             <button class="eg-tabs__btn" data-tab="hard-dollar">Hard-dollar</button>
+            <button class="eg-tabs__btn" data-tab="tamar">TAMAR</button>
+            <button class="eg-tabs__btn" data-tab="dinero">Tasas de referencia</button>
           </div>
         </div>
 
@@ -286,6 +289,66 @@
             </div></div>
           </div>
         </section>
+
+        <!-- TAMAR -->
+        <section class="eg-tab-panel" id="panel-tamar" hidden>
+          <div class="mk-section">
+            <div class="mk-chart-card">
+              <div class="mk-chart-card__head">
+                <div class="mk-chart-card__head-text">
+                  <h3>Curva TAMAR · TIR TEA vs Duration</h3>
+                  <div class="sub">Bonos a tasa variable · tamaño = volumen · el rendimiento depende de fijaciones futuras</div>
+                </div>
+                <button class="mk-trend-btn" id="trendBtnTamar">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 1 18"/></svg>
+                  Tendencia
+                </button>
+              </div>
+              <div class="mk-hist-nav">
+                <span class="mk-hist-nav-label">Ver:</span>
+                <button class="mk-hist-btn is-active">Hoy</button>
+                <button class="mk-hist-btn" disabled title="Sin datos históricos para TAMAR">-1D</button>
+                <button class="mk-hist-btn" disabled title="Sin datos históricos para TAMAR">-2D</button>
+                <button class="mk-hist-btn" disabled title="Sin datos históricos para TAMAR">-3D</button>
+                <button class="mk-hist-btn" disabled title="Sin datos históricos para TAMAR">-1S</button>
+              </div>
+              <div class="mk-chart-box"><canvas id="chartTamar"></canvas></div>
+            </div>
+            <div class="mk-table-wrap"><div class="mk-table-scroll">
+              <table class="mk-table"><thead><tr>
+                <th>Instrumento</th><th>Vencimiento</th><th class="num">TIR TEA %</th>
+                <th class="num">TNA %</th><th class="num">TEM %</th><th class="num">Margen TNA %</th>
+                <th class="num">Duration</th><th class="num">Precio</th>
+                <th class="num">Volumen</th><th class="num">Fijaciones</th>
+              </tr></thead><tbody id="bodyTamar"></tbody></table>
+            </div></div>
+            <p class="mk-foot-note" id="tamarNota"></p>
+          </div>
+        </section>
+
+        <!-- TASAS DE REFERENCIA -->
+        <section class="eg-tab-panel" id="panel-dinero" hidden>
+          <div class="mk-section">
+            <div class="mk-hero" id="mkDineroHero" style="margin-bottom:18px"></div>
+            <div class="mk-chart-card">
+              <div class="mk-chart-card__head">
+                <div class="mk-chart-card__head-text">
+                  <h3>Tasas de referencia · evolución diaria</h3>
+                  <div class="sub">TNA en % · dinero a un día y tasas BCRA</div>
+                </div>
+              </div>
+              <div class="mk-chart-box" style="height:360px"><canvas id="chartDinero"></canvas></div>
+            </div>
+            <div class="mk-table-wrap"><div class="mk-table-scroll">
+              <table class="mk-table"><thead><tr>
+                <th>Tasa</th><th class="num">TNA %</th><th class="num">Última operada %</th>
+                <th class="num">Volumen (M$)</th><th class="num">Operaciones</th>
+                <th class="num">Plazo</th><th>Fecha</th><th>Fuente</th>
+              </tr></thead><tbody id="bodyDinero"></tbody></table>
+            </div></div>
+            <p class="mk-foot-note" id="dineroNota"></p>
+          </div>
+        </section>
       </div>
       <footer class="eg-footer">
         <span>Seccion: Mercados - Eco Go</span>
@@ -293,8 +356,9 @@
       </footer>
     </main>
   </div>
-  <script src="../assets/js/layout.js?v=202610081349"></script>
-  <script src="../assets/data/mercados.js?v=202610081349"></script>
-  <script src="../assets/js/mercados.js?v=202610081349"></script>
+  <script src="../assets/js/layout.js?v=202610081400"></script>
+  <script src="../assets/data/mercados.js?v=202610081400"></script>
+  <script src="../assets/data/monitor_tasas.js?v=202610081400"></script>
+  <script src="../assets/js/mercados.js?v=202610081400"></script>
 </body>
 </html>
