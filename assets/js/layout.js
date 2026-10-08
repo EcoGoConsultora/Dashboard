@@ -24,6 +24,7 @@ const SECTIONS = [
   { id:'reservas',           label:'Reservas',                  href:'pages/reservas-clientes.html',   group:'Clientes', clientes:true, icon:'shield',      desc:'Composición RIN, reservas brutas y depósitos.' },
   { id:'deuda',              label:'Deuda',                     href:'pages/deuda-clientes.html',      group:'Clientes', clientes:true, icon:'layers',      desc:'Deuda pública histórica, vencimientos en pesos y perfil con privados.' },
   { id:'tenencia-dlk',       label:'Tenencia DLK BCRA',         href:'pages/tenencia-dlk-clientes.html', group:'Clientes', clientes:true, icon:'bar-chart2', desc:'Dollar-linked privados y short de futuros sobre M2, y tenencia por tenedor.' },
+  { id:'proyecciones',       label:'Proyecciones',              href:'pages/proyecciones-clientes.html', group:'Clientes', clientes:true, icon:'target',     desc:'Escenarios macro 2026–2027: cuadro de variables y gráficos mensuales por escenario.' },
   { id:'internacional2',     label:'Internacional · Consensus', href:'pages/internacional2.html',      group:'Clientes', clientes:true, icon:'map',         desc:'LatinFocus Consensus Forecast — resumen y detalle por país.' },
   { id:'potencial-exportador', label:'Potencial exportador',    href:'pages/potencial-exportador-clientes.html', group:'Clientes', clientes:true, icon:'trending-up', desc:'Perspectiva exportadora 2026–2036: composición por bloque y proyecciones del agro.' },
   { id:'electoral',          label:'Calendario electoral',      href:'pages/electoral-clientes.html',  group:'Clientes', clientes:true, icon:'calendar',    desc:'Fechas electorales nacionales y provinciales 2027, con su grado de confirmación.' }
@@ -79,6 +80,7 @@ const ICONS = {
   'dollar-sign':'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
   map:         '<polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>',
   'bar-chart2':'<rect x="6" y="9" width="3" height="13"/><rect x="11" y="5" width="3" height="17"/><rect x="16" y="12" width="3" height="10"/>',
+  target:      '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
   shield:      '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
   lock:        '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
   exchange:    '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',

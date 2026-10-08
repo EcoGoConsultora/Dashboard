@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Proyecciones · Eco Go</title>
+  <link rel="stylesheet" href="../assets/css/theme.css?v=202610081514"/>
+  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .py-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:20px 24px 24px;margin-bottom:24px}
+    .py-title{font-size:1rem;font-weight:700;color:var(--eg-teal-dark);margin:0 0 4px}
+    .py-sub{font-size:.76rem;color:var(--color-text-muted);margin:0 0 14px}
+    .py-note{font-size:.72rem;color:var(--color-text-muted);margin-top:10px}
+
+    /* ---- cuadro de escenarios ---- */
+    .py-tabla-wrap{overflow-x:auto}
+    .py-tabla{width:100%;border-collapse:collapse;font-size:.82rem}
+    .py-tabla th,.py-tabla td{padding:7px 12px;text-align:right;white-space:nowrap}
+    .py-tabla th:first-child,.py-tabla td:first-child{text-align:left;white-space:normal;min-width:260px}
+    .py-tabla thead th{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;
+      color:var(--color-text-muted);font-weight:700;border-bottom:2px solid var(--eg-teal);padding-bottom:8px}
+    .py-tabla thead th small{display:block;font-size:.62rem;text-transform:none;letter-spacing:0;
+      font-weight:600;color:var(--color-text-muted);opacity:.85;margin-top:2px}
+    .py-tabla tbody tr{border-bottom:1px solid var(--color-border)}
+    .py-tabla tbody tr:last-child{border-bottom:0}
+    .py-tabla tbody tr:hover{background:rgba(60,151,148,.05)}
+    .py-tabla td{font-variant-numeric:tabular-nums}
+    /* las dos columnas de 2027 son proyeccion: se separan del dato observado */
+    .py-tabla .es-proy{background:rgba(60,151,148,.06)}
+    .py-tabla th.es-proy:first-of-type,.py-tabla td.es-proy:first-of-type{border-left:2px solid var(--eg-teal)}
+    .py-grupo{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--eg-teal);
+      font-weight:700;text-align:center !important;padding-bottom:2px !important}
+
+    /* la variable que tiene grafico se ve distinta y es un boton */
+    .py-link{background:none;border:0;padding:0;font:inherit;color:var(--eg-teal-dark);
+      font-weight:700;cursor:pointer;text-align:left;display:inline-flex;align-items:center;gap:6px;
+      border-bottom:1.5px dotted var(--eg-teal);transition:color .15s}
+    .py-link:hover{color:var(--eg-teal)}
+    .py-link svg{flex:0 0 auto;opacity:.7}
+
+    /* ---- graficos ---- */
+    .py-box{position:relative;height:300px}
+    .py-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:20px}
+    .py-chart{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;
+      padding:16px 18px 18px;scroll-margin-top:84px;transition:box-shadow .3s,border-color .3s}
+    .py-chart.destacado{border-color:var(--eg-teal);box-shadow:0 0 0 3px rgba(60,151,148,.22)}
+    .py-chart__titulo{font-size:.9rem;font-weight:700;color:var(--eg-teal-dark);margin:0 0 2px}
+    .py-chart__periodo{font-size:.68rem;color:var(--color-text-muted);margin:0 0 12px}
+    .py-volver{font-size:.72rem;color:var(--eg-teal);background:none;border:0;cursor:pointer;
+      padding:0;font-weight:700;display:none}
+    .py-chart.destacado .py-volver{display:inline}
+  </style>
+</head>
+<body data-depth="1" data-active-section="proyecciones">
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+    <main class="eg-main">
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title">Proyecciones</h1>
+          <p class="eg-page-header__subtitle" id="pySubtitulo">Escenarios macroeconómicos 2026–2027</p>
+        </div>
+      </section>
+
+      <div class="py-card">
+        <p class="py-title">Cuadro de escenarios</p>
+        <p class="py-sub" id="pyCuadroSub">&nbsp;</p>
+        <div class="py-tabla-wrap">
+          <table class="py-tabla">
+            <thead id="pyHead"></thead>
+            <tbody id="pyBody"></tbody>
+          </table>
+        </div>
+        <p class="py-note" id="pyNota"></p>
+      </div>
+
+      <h2 class="py-title" style="font-size:1.05rem;margin:0 0 4px" id="pyTituloGraficos">Gráficos de los escenarios</h2>
+      <p class="py-sub" id="pySubGraficos">Serie mensual · comparación entre los dos ejercicios</p>
+      <div class="py-grid" id="pyGraficos"></div>
+
+      <footer class="eg-footer">
+        <span>Proyecciones · Eco Go</span>
+        <a href="../index-clientes.html">← Volver al inicio</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../assets/js/layout.js?v=202610081514"></script>
+  <script src="../assets/data/proyecciones.js?v=202610081514"></script>
+  <script>
+  (function(){
+    var D = window.PROYECCIONES_DATA || {};
+    Chart.defaults.font.family = "'HK Grotesk', system-ui, sans-serif";
+    Chart.defaults.color = '#333333';
+
+    var C = D.cuadro || { columnas: [], filas: [] };
+    var G = D.graficos || [];
+    var COL_E1 = '#1B5F5E', COL_E2 = '#FEB15F';
+    var COL_BANDA = '#CBD5D6';
+
+    function nf(v, dec){
+      return Number(v).toLocaleString('es-AR', {minimumFractionDigits:dec, maximumFractionDigits:dec});
+    }
+    /* Cada fila del cuadro trae el formato que tiene en el Excel: un nivel y un
+       porcentaje no se muestran igual y el dato solo no lo distingue. */
+    function fmtValor(v, fmt){
+      if (v === null || v === undefined) return '—';
+      switch (fmt) {
+        case 'pct1':  return nf(v * 100, 1) + '%';
+        case 'pct0':  return nf(v * 100, 0) + '%';
+        case 'num1':  return nf(v, 1);
+        case 'miles': return nf(v, 0);
+        default:      return nf(v, 0);
+      }
+    }
+    function mesCorto(iso){
+      var M=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      var p=String(iso).split('-');
+      return M[(parseInt(p[1],10)||1)-1]+'-'+p[0].slice(2);
+    }
+
+    /* ---------- el cuadro ---------- */
+    (function(){
+      if (!C.columnas.length) return;
+      var hayProy = C.columnas.some(function(c){ return c.proyeccion; });
+      var anioProy = (C.columnas.find(function(c){ return c.proyeccion; }) || {}).anio;
+
+      // dos filas de encabezado: la de arriba agrupa los escenarios bajo su año
+      var h1 = '<tr><th></th>';
+      C.columnas.forEach(function(c, i){
+        if (!c.proyeccion) { h1 += '<th></th>'; return; }
+        if (C.columnas[i-1] && C.columnas[i-1].proyeccion) return;   // ya cubierto por el colspan
+        var n = C.columnas.filter(function(x){ return x.proyeccion; }).length;
+        h1 += '<th colspan="' + n + '" class="py-grupo es-proy">' + (anioProy || 'Proyección') + '</th>';
+      });
+      h1 += '</tr>';
+
+      var h2 = '<tr><th>Variable</th>';
+      C.columnas.forEach(function(c){
+        h2 += '<th class="' + (c.proyeccion ? 'es-proy' : '') + '">' + c.label +
+              (c.sub ? '<small>' + c.sub + '</small>' : '') + '</th>';
+      });
+      h2 += '</tr>';
+      document.getElementById('pyHead').innerHTML = h1 + h2;
+
+      var ICONO = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+                  ' stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+                  '<polyline points="22 7 13.5 15.5 8.5 10.5 1 18"/></svg>';
+
+      document.getElementById('pyBody').innerHTML = C.filas.map(function(f){
+        var nombre = f.grafico
+          ? '<button class="py-link" data-grafico="' + f.grafico + '" ' +
+            'title="Ver el gráfico de esta variable">' + ICONO + f.label + '</button>'
+          : f.label;
+        var celdas = C.columnas.map(function(c){
+          return '<td class="' + (c.proyeccion ? 'es-proy' : '') + '">' +
+                 fmtValor(f.valores[c.key], f.fmt) + '</td>';
+        }).join('');
+        return '<tr><td>' + nombre + '</td>' + celdas + '</tr>';
+      }).join('');
+
+      var conG = C.filas.filter(function(f){ return f.grafico; }).length;
+      document.getElementById('pyCuadroSub').textContent =
+        C.filas.length + ' variables · ' + (hayProy ? 'dos escenarios para ' + (anioProy || '') : '') +
+        ' · las ' + conG + ' variables en verde tienen gráfico: hacé clic para verlo';
+      document.getElementById('pyNota').textContent =
+        'Fuente: Eco Go · ejercicio de proyección "' + (D.meta && D.meta.hoja ? D.meta.hoja : '') +
+        '"' + (D.meta && D.meta.actualizado ? ', actualizado al ' + D.meta.actualizado : '') + '.';
+    })();
+
+    /* ---------- los gráficos ---------- */
+    var charts = {};
+    (function(){
+      if (!G.length) {
+        document.getElementById('pyTituloGraficos').style.display = 'none';
+        document.getElementById('pySubGraficos').style.display = 'none';
+        return;
+      }
+      document.getElementById('pyGraficos').innerHTML = G.map(function(g){
+        return '<div class="py-chart" id="g-' + g.id + '">' +
+               '<p class="py-chart__titulo">' + g.titulo + '</p>' +
+               '<p class="py-chart__periodo">' + mesCorto(g.dates[0]) + ' – ' + mesCorto(g.dates[g.dates.length-1]) +
+               ' &nbsp;<button class="py-volver" data-volver="1">↑ volver al cuadro</button></p>' +
+               '<div class="py-box"><canvas id="c-' + g.id + '"></canvas></div></div>';
+      }).join('');
+
+      G.forEach(function(g){
+        var claves = Object.keys(g.series);
+        // Las bandas son referencia, no escenario: van finitas y punteadas
+        // para que no compitan con las dos series que importan.
+        function estilo(k, i){
+          var banda = /banda/i.test(k);
+          var col = banda ? COL_BANDA : (i === 0 ? COL_E1 : COL_E2);
+          return { label:k, data:g.series[k].map(function(v){ return v === null ? null : v * g.escala; }),
+                   borderColor:col, backgroundColor:col,
+                   borderWidth: banda ? 1.2 : 2, borderDash: banda ? [4,3] : undefined,
+                   pointRadius:0, pointHoverRadius:3, fill:false, tension:0.15, spanGaps:true,
+                   order: banda ? 3 : 1 };
+        }
+        var ds = claves.map(estilo);
+        if (g.tipo === 'bar') {
+          ds = ds.map(function(d){ return Object.assign(d, {type:'bar', borderWidth:0, barPercentage:1, categoryPercentage:0.86}); });
+        }
+        charts[g.id] = new Chart(document.getElementById('c-' + g.id), {
+          type: g.tipo === 'bar' ? 'bar' : 'line',
+          data: { labels:g.dates.map(mesCorto), datasets:ds },
+          options: {
+            responsive:true, maintainAspectRatio:false, animation:{duration:150},
+            interaction:{ mode:'index', intersect:false },
+            plugins:{
+              legend:{ position:'bottom', labels:{ boxWidth:11, boxHeight:11, usePointStyle:true,
+                                                   pointStyle:'circle', font:{size:10} } },
+              tooltip:{ callbacks:{ label:function(c){
+                var v = c.raw;
+                if (v === null || v === undefined) return '';
+                return ' ' + c.dataset.label + ': ' + nf(v, 1) + (g.unidad === 'pct' ? '%' : '');
+              } } }
+            },
+            scales:{
+              x:{ grid:{display:false}, ticks:{ color:'#6E7679', maxRotation:0, maxTicksLimit:8, autoSkipPadding:18 } },
+              y:{ grid:{color:'rgba(0,0,0,0.05)'},
+                  ticks:{ color:'#6E7679', callback:function(v){ return nf(v, 0) + (g.unidad === 'pct' ? '%' : ''); } } }
+            }
+          }
+        });
+      });
+    })();
+
+    /* ---------- el vínculo cuadro → gráfico ---------- */
+    (function(){
+      var destacado = null;
+      function destacar(id){
+        if (destacado) destacado.classList.remove('destacado');
+        var el = document.getElementById('g-' + id);
+        if (!el) return;
+        el.classList.add('destacado');
+        destacado = el;
+        el.scrollIntoView({ behavior:'smooth', block:'center' });
+      }
+      document.getElementById('pyBody').addEventListener('click', function(e){
+        var b = e.target.closest('.py-link');
+        if (b) destacar(b.dataset.grafico);
+      });
+      // y la vuelta, para no tener que buscar la fila de nuevo
+      document.getElementById('pyGraficos').addEventListener('click', function(e){
+        if (!e.target.closest('[data-volver]')) return;
+        if (destacado) { destacado.classList.remove('destacado'); destacado = null; }
+        document.querySelector('.py-tabla').scrollIntoView({ behavior:'smooth', block:'start' });
+      });
+    })();
+
+    /* ---------- descargas ---------- */
+    if (window.EcoGo && C.filas.length) {
+      EcoGo.dlBtn('.py-tabla', 'cuadro_escenarios.csv', function(){
+        return {
+          headers: ['Variable'].concat(C.columnas.map(function(c){
+            return c.label + (c.sub ? ' (' + c.sub + ')' : '');
+          })),
+          rows: C.filas.map(function(f){
+            return [f.label].concat(C.columnas.map(function(c){
+              var v = f.valores[c.key];
+              return (v === null || v === undefined) ? '' : v;
+            }));
+          })
+        };
+      });
+      G.forEach(function(g){
+        EcoGo.dlBtn('#c-' + g.id, g.id + '.csv', function(){
+          var ks = Object.keys(g.series);
+          return {
+            headers: ['Fecha'].concat(ks),
+            rows: g.dates.map(function(f, i){
+              return [f].concat(ks.map(function(k){
+                var v = g.series[k][i];
+                return (v === null || v === undefined) ? '' : v * g.escala;
+              }));
+            })
+          };
+        });
+      });
+    }
+  })();
+  </script>
+</body>
+</html>

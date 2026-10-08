@@ -16,7 +16,7 @@ import json
 import re
 import functools
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Asegurar consola con soporte unicode en Windows
 try:
@@ -68,6 +68,8 @@ EXCEL_PATHS = {
     "comex_tdi":   os.path.join(BASE_EXCEL, "Comercio", "Terminos del Intercambio.xlsx"),
     "comex_proy":  os.path.join(BASE_EXCEL, "Comercio", "01 Proyecciones", "Estimación Comercio Ext.xlsx"),
     "monitor_tasas":  os.path.join(BASE_EXCEL, "Mercados", "Monitor tasas"),
+    "proyecciones":   os.path.join(BASE_EXCEL, "Proyecciones Bein",
+                                   "Proyecciones Bein", "Escenario Base estudio.xlsx"),
     "potencial_exportador": os.path.join(
         BASE_EXCEL, "Comercio", "01 Proyecciones", "Proyecciones 2036",
         "perspectiva_exportaciones_2036_20260705",
@@ -2473,6 +2475,296 @@ def completar_mercados(status, monitor):
 
 
 # =====================================================================
+#  PROYECCIONES (Escenario Base estudio - Bein)
+# =====================================================================
+def _sin_tildes(txt):
+    """Para armar ids de ancla: 'Inflacion interanual' y no 'Inflación...'."""
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFD", str(txt))
+                   if unicodedata.category(c) != "Mn")
+
+def _fmt_token(number_format):
+    """Traduce el formato de Excel a un token simple que entiende la pagina.
+    Se lee del Excel en vez de fijarlo aca: si manana una fila pasa de nivel a
+    porcentaje, el cuadro la muestra bien sin tocar el codigo."""
+    f = (number_format or "").lower()
+    if "%" in f:
+        return "pct1" if "0.0" in f else "pct0"
+    if "#,##0.0" in f or f == "0.0":
+        return "num1"
+    if "#,##0" in f:
+        return "miles"
+    return "num0"
+
+
+def _series_de_grafico(wb, chart):
+    """Como get_chart_series pero para un grafico suelto dentro de una hoja
+    normal (aquella lee el primero de una hoja-grafico)."""
+    cats, salida = None, []
+    for s in chart.series:
+        try:
+            vals = _read_ref_values(wb, s.val.numRef.f)
+        except Exception:
+            continue
+        if cats is None and s.cat is not None:
+            ref = s.cat.numRef.f if s.cat.numRef else (s.cat.strRef.f if s.cat.strRef else None)
+            if ref:
+                cats = _read_ref_values(wb, ref)
+        etiqueta = None
+        try:
+            if s.tx is not None and s.tx.strRef is not None:
+                etiqueta = _read_single_value(wb, s.tx.strRef.f)
+            elif s.tx is not None and s.tx.v:
+                etiqueta = s.tx.v
+        except Exception:
+            pass
+        salida.append((str(etiqueta).strip() if etiqueta else None, vals))
+    return cats, salida
+
+
+def _titulo_grafico(chart):
+    try:
+        if chart.title and chart.title.tx and chart.title.tx.rich:
+            return "".join(r.t or "" for p in chart.title.tx.rich.p
+                           for r in (p.r or [])).strip()
+    except Exception:
+        pass
+    return ""
+
+
+@_nunca_rompe("Proyecciones")
+def extract_proyecciones(status):
+    """
+    Seccion Proyecciones: el cuadro de escenarios macro y los graficos
+    mensuales que los acompañan.
+
+    El cuadro sale de 'Escenario 1 26-27' y muestra 2025, 2026 y los dos
+    escenarios de 2027. Las etiquetas y el formato de cada fila se leen del
+    propio Excel, asi que agregar una variable o pasar una fila de nivel a
+    porcentaje no requiere tocar nada aca.
+
+    Los graficos salen de 'Gráficos escenarios', leyendo los rangos que cada
+    grafico referencia (si alguien extiende la serie en Excel, el refresh la
+    sigue). Esa hoja tiene 37 graficos con mucha duplicacion: la misma serie
+    en barra y en linea, versiones viejas con el rango corto y la traduccion
+    al ingles. Se queda uno por titulo, el de rango mas largo, y se descartan
+    los titulos en ingles.
+    """
+    path = EXCEL_PATHS["proyecciones"]
+    if not os.path.exists(path):
+        status.warn("Proyecciones", f"no se encontro {path}")
+        return None
+    wb = _open_wb(path, read_only=False)
+    data = {}
+
+    # ---- 1) El cuadro de escenarios ----
+    HOJA = "Escenario 1 26-27"
+    if HOJA not in wb.sheetnames:
+        status.warn("Proyecciones", f"no esta la hoja '{HOJA}'")
+        return None
+    ws = wb[HOJA]
+
+    # Las columnas se ubican por el encabezado, no por letra fija: la fila 3
+    # tiene los anios y la 2 agrupa los dos escenarios bajo '2027'.
+    col_de_anio, col_esc = {}, []
+    for c in range(3, 12):
+        v3, v2 = ws.cell(3, c).value, ws.cell(2, c).value
+        if isinstance(v3, (int, float)) and 2000 < v3 < 2100:
+            col_de_anio[int(v3)] = c
+        elif isinstance(v3, str) and v3.strip().lower().startswith("escenario"):
+            partes = [x.strip() for x in str(v3).split("\n") if x.strip()]
+            col_esc.append({"col": c, "label": partes[0],
+                            "sub": partes[1] if len(partes) > 1 else "",
+                            "anio": int(v2) if isinstance(v2, (int, float)) else None})
+
+    anios = sorted(a for a in col_de_anio if a >= 2025)
+    columnas = [{"key": f"a{a}", "label": str(a), "proyeccion": False} for a in anios]
+    for i, e in enumerate(col_esc):
+        columnas.append({"key": f"e{i+1}", "label": e["label"], "sub": e["sub"],
+                         "anio": e["anio"], "proyeccion": True})
+
+    filas = []
+    for r in range(4, (ws.max_row or 0) + 1):
+        lab = ws.cell(r, 2).value
+        if not isinstance(lab, str) or not lab.strip():
+            continue
+        # la hoja repite todo el cuadro traducido mas abajo; se corta ahi
+        if lab.strip().lower().startswith(("scenario", "nominal gdp")):
+            break
+        valores, hay = {}, False
+        for a in anios:
+            v = fmt_n(ws.cell(r, col_de_anio[a]).value)
+            valores[f"a{a}"] = v
+            hay = hay or v is not None
+        for i, e in enumerate(col_esc):
+            v = fmt_n(ws.cell(r, e["col"]).value)
+            valores[f"e{i+1}"] = v
+            hay = hay or v is not None
+        if not hay:
+            continue
+        ref = ws.cell(r, col_de_anio[anios[0]]) if anios else ws.cell(r, 5)
+        filas.append({"label": lab.strip(), "fmt": _fmt_token(ref.number_format),
+                      "valores": valores})
+
+    data["cuadro"] = {"columnas": columnas, "filas": filas, "hoja": HOJA}
+
+    # ---- 2) Los graficos ----
+    HOJA_G = "Gráficos escenarios"
+    graficos = []
+    if HOJA_G in wb.sheetnames:
+        # Los titulos traducidos duplican los de arriba y no aportan nada en un
+        # tablero en castellano.
+        INGLES = ("monthly inflation", "yoy inflation", "official fx", "official er",
+                  "monetary policy rate", "exchange rate gap", "real interest rate",
+                  "interest rate in usd")
+        # El desempate entre versiones del mismo grafico se hace por cuantos
+        # datos trae de verdad, no por el rango declarado: varias versiones
+        # viejas apuntan a un rango largo que esta casi todo vacio.
+        candidatos = []
+        for ch in wb[HOJA_G]._charts:
+            t = _titulo_grafico(ch)
+            if not t or t.lower().startswith(INGLES):
+                continue
+            # El comparativo de escenarios necesita las dos series; los de una
+            # sola son restos de versiones viejas de la hoja.
+            if len(ch.series) < 2:
+                continue
+            cats, series = _series_de_grafico(wb, ch)
+            if not cats or not series:
+                continue
+            # Lo que importa no es cuantos datos trae sino hasta donde llega:
+            # son proyecciones, y la version vigente es la que cubre el
+            # horizonte. Una version vieja puede tener mucha mas historia
+            # cargada y terminar en 2024.
+            ultimo = ""
+            for i, c in enumerate(cats):
+                if any(i < len(v) and v[i] is not None for _, v in series):
+                    ultimo = c.strftime("%Y-%m") if isinstance(c, datetime) else str(c)
+            datos = (ultimo, sum(1 for _, vals in series for v in vals if v is not None))
+            cols = tuple(re.search(r"\$([A-Z]+)\$\d+", s.val.numRef.f).group(1)
+                         for s in ch.series[:2]
+                         if getattr(getattr(s, "val", None), "numRef", None))
+            candidatos.append({"titulo": t, "chart": ch, "cats": cats, "series": series,
+                               "datos": datos, "cols": cols})
+
+        # Dos pasadas: una por titulo (misma serie en barra y en linea) y otra
+        # por columna de origen (el mismo dato retitulado, por ejemplo cuando
+        # 'Tasa de politica monetaria' paso a llamarse 'TAMAR Bancos privados').
+        def quedarse_con_el_mejor(lista, clave):
+            mejor = {}
+            for c in lista:
+                k = clave(c)
+                if k not in mejor or c["datos"] > mejor[k]["datos"]:
+                    mejor[k] = c
+            return list(mejor.values())
+
+        candidatos = quedarse_con_el_mejor(candidatos, lambda c: c["titulo"])
+        candidatos = quedarse_con_el_mejor(candidatos, lambda c: c["cols"] or c["titulo"])
+
+        for cand in candidatos:
+            t, ch, cats, series = cand["titulo"], cand["chart"], cand["cats"], cand["series"]
+            fechas = [c.strftime("%Y-%m-%d") if isinstance(c, datetime) else str(c)
+                      for c in cats]
+            bloque = {}
+            for i, (lab, vals) in enumerate(series):
+                nombre = lab or f"Serie {i+1}"
+                if nombre in bloque:
+                    nombre = f"{nombre} ({i+1})"
+                bloque[nombre] = [fmt_n(v) for v in vals] + [None] * (len(fechas) - len(vals))
+            # el arranque de la serie suele venir vacio en todas las columnas
+            prim = 0
+            while prim < len(fechas) and all(
+                    (bloque[k][prim] if prim < len(bloque[k]) else None) is None for k in bloque):
+                prim += 1
+            if prim:
+                fechas = fechas[prim:]
+                bloque = {k: v[prim:] for k, v in bloque.items()}
+            # El formato del eje del grafico casi nunca esta puesto; el de la
+            # celda de origen si, y es el que el analista eligio para ese dato.
+            fmt = "num0"
+            try:
+                ref = ch.series[0].val.numRef.f
+                hoja, rango = ref.split("!")
+                wsf = wb[hoja.strip("'")]
+                for cel in wsf[rango.replace("$", "")]:
+                    c0 = cel[0] if isinstance(cel, tuple) else cel
+                    if c0.value is not None:
+                        fmt = _fmt_token(c0.number_format)
+                        break
+            except Exception:
+                pass
+
+            # Las columnas de esta hoja no usan una sola convencion: unas
+            # guardan 0,03 con formato de porcentaje y otras 2,23 como numero
+            # suelto. El formato resuelve las primeras; para las segundas hay
+            # que mirar que mide el grafico, porque el numero no lo dice.
+            TASA = ("inflaci", "tasa", "tamar", "brecha", "var. %", "var. m/m")
+            if fmt.startswith("pct"):
+                unidad, escala = "pct", 100      # fraccion -> porcentaje
+            elif any(k in _sin_tildes(t).lower() for k in TASA):
+                unidad, escala = "pct", 1        # ya viene en puntos de porcentaje
+            else:
+                unidad, escala = "num", 1
+
+            graficos.append({
+                "id": re.sub(r"[^a-z0-9]+", "-", _sin_tildes(t).lower()).strip("-"),
+                "titulo": t,
+                "tipo": "bar" if type(ch).__name__.startswith("Bar") else "line",
+                "fmt": fmt, "unidad": unidad, "escala": escala,
+                "dates": fechas, "series": bloque})
+    # La hoja conserva graficos de versiones anteriores del ejercicio, con los
+    # datos congelados donde quedaron. En una seccion de proyecciones un
+    # grafico que corta hace mas de un año es ruido, asi que no se publica —
+    # pero se dice cual, para que no parezca que se perdio algo.
+    corte = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
+    viejos = [g for g in graficos if g["dates"] and g["dates"][-1] < corte]
+    graficos = [g for g in graficos if g not in viejos]
+    if viejos:
+        status.warn("Proyecciones",
+                    "graficos sin datos del ultimo año, no publicados: " +
+                    ", ".join(f"{g['titulo']} (hasta {g['dates'][-1][:7]})" for g in viejos))
+
+    graficos.sort(key=lambda g: g["titulo"])
+    data["graficos"] = graficos
+
+    # ---- 3) Que fila del cuadro tiene grafico ----
+    # El vinculo se declara aca y no se adivina: los titulos de los graficos y
+    # las etiquetas del cuadro no coinciden palabra por palabra.
+    VINCULOS = [
+        ("inflación (var. i.a.)",                 "inflacion-interanual"),
+        ("tipo de cambio (f.d.p.)",               "tc-oficial-f-d-p"),
+        ("tipo de cambio (prom. dic)",            "tc-oficial-f-d-p"),
+        ("tipo de cambio (var. i.a. prom.)",      "tc-oficial-var-mensual"),
+        ("brecha cambiaria",                      "brecha-cambiaria"),
+        ("tamar (f.d.p.)",                        "tamar-bancos-privados"),
+        ("tasa de política monetaria (f.d.p.)",   "tasa-de-politica-monetaria"),
+        ("tcr (17-dic-15 = 100)",                 "tipo-de-cambio-real"),
+    ]
+    ids = {g["id"] for g in graficos}
+    vinculadas = 0
+    for f in filas:
+        clave = f["label"].strip().lower()
+        for pref, gid in VINCULOS:
+            if clave.startswith(pref) and gid in ids:
+                f["grafico"] = gid
+                vinculadas += 1
+                break
+
+    data["meta"] = {"hoja": HOJA, "actualizado": datetime.fromtimestamp(
+        os.path.getmtime(path)).strftime("%Y-%m-%d")}
+
+    status.ok("Proyecciones",
+              f"{len(filas)} variables · {len(columnas)} columnas · "
+              f"{len(graficos)} graficos · {vinculadas} variables con grafico")
+    faltan = [p for p, gid in VINCULOS if gid not in ids]
+    if faltan:
+        status.warn("Proyecciones",
+                    "sin grafico en la hoja: " + ", ".join(sorted(set(
+                        gid for p, gid in VINCULOS if gid not in ids))))
+    return data
+
+
+# =====================================================================
 #  POTENCIAL EXPORTADOR 2026-2036 (dashboard clientes)
 # =====================================================================
 def extract_potencial_exportador(status):
@@ -3081,7 +3373,7 @@ def main():
     status = Status()
 
     # ---- Precios ----
-    print("[1/17] Procesando Precios...")
+    print("[1/18] Procesando Precios...")
     try:
         d = extract_precios(status)
         if d:
@@ -3092,7 +3384,7 @@ def main():
         traceback.print_exc()
 
     # ---- EMAE Series ----
-    print("\n[2/17] Procesando EMAE Series (actividad)...")
+    print("\n[2/18] Procesando EMAE Series (actividad)...")
     try:
         d = extract_emae_series(status)
         if d:
@@ -3103,7 +3395,7 @@ def main():
         traceback.print_exc()
 
     # ---- Empleo ----
-    print("\n[3/17] Procesando Empleo...")
+    print("\n[3/18] Procesando Empleo...")
     try:
         d = extract_empleo(status)
         if d:
@@ -3114,7 +3406,7 @@ def main():
         traceback.print_exc()
 
     # ---- Salarios ----
-    print("\n[4/17] Procesando Salarios...")
+    print("\n[4/18] Procesando Salarios...")
     try:
         d = extract_salarios(status)
         if d:
@@ -3125,7 +3417,7 @@ def main():
         traceback.print_exc()
 
     # ---- Tipo de Cambio ----
-    print("\n[5/17] Procesando Tipo de Cambio...")
+    print("\n[5/18] Procesando Tipo de Cambio...")
     try:
         d = extract_tipo_cambio(status)
         if d:
@@ -3136,7 +3428,7 @@ def main():
         traceback.print_exc()
 
     # ---- Reservas ----
-    print("\n[6/17] Procesando Reservas...")
+    print("\n[6/18] Procesando Reservas...")
     try:
         d = extract_reservas(status)
         if d:
@@ -3147,7 +3439,7 @@ def main():
         traceback.print_exc()
 
     # ---- Internacional ----
-    print("\n[7/17] Procesando Internacional (Monitor mundial)...")
+    print("\n[7/18] Procesando Internacional (Monitor mundial)...")
     try:
         run_monitor_mundial(status)
         extract_internacional(status)
@@ -3157,14 +3449,14 @@ def main():
         traceback.print_exc()
 
     # ---- Mercados (API) ----
-    print("\n[8/17] Actualizando Mercados (EcoGo Markets API)...")
+    print("\n[8/18] Actualizando Mercados (EcoGo Markets API)...")
     try:
         extract_mercados(status)
     except Exception as e:
         status.warn("Mercados", f"no se pudo actualizar desde la API: {e}")
 
     # ---- Actividad IPI (Indicadores de actividad) ----
-    print("\n[9/17] Actualizando Indicadores de Actividad (IPI - Todos.xlsx)...")
+    print("\n[9/18] Actualizando Indicadores de Actividad (IPI - Todos.xlsx)...")
     try:
         from extract_actividad_ipi import run_extraction as run_ipi
         ipi_path = os.path.join(BASE_EXCEL, "Actividad", "IPI - Todos.xlsx")
@@ -3178,7 +3470,7 @@ def main():
         traceback.print_exc()
 
     # ---- Series Largas (Anexo histórico) ----
-    print("\n[10/17] Actualizando Series Largas (Anexo.xlsx)...")
+    print("\n[10/18] Actualizando Series Largas (Anexo.xlsx)...")
     try:
         from extract_series_largas import run_extraction
         anexo_path = os.path.join(BASE_EXCEL, "03 Informes y Anexos", "Cuadros y Anexos", "Anexos nuevos", "Anexo.xlsx")
@@ -3192,7 +3484,7 @@ def main():
         traceback.print_exc()
 
     # ---- Monetarias ----
-    print("\n[11/17] Procesando Monetarias...")
+    print("\n[11/18] Procesando Monetarias...")
     try:
         d = extract_monetarias(status)
         if d:
@@ -3203,7 +3495,7 @@ def main():
         traceback.print_exc()
 
     # ---- Deuda ----
-    print("\n[12/17] Procesando Deuda...")
+    print("\n[12/18] Procesando Deuda...")
     try:
         d = extract_deuda(status)
         if d:
@@ -3214,7 +3506,7 @@ def main():
         traceback.print_exc()
 
     # ---- Monitor de Actividad ----
-    print("\n[13/17] Procesando Monitor de Actividad...")
+    print("\n[13/18] Procesando Monitor de Actividad...")
     try:
         d = extract_monitor_actividad(status)
         if d:
@@ -3224,7 +3516,7 @@ def main():
         traceback.print_exc()
 
     # ---- Comercio exterior ----
-    print("\n[14/17] Procesando Comercio exterior...")
+    print("\n[14/18] Procesando Comercio exterior...")
     try:
         d = extract_comercio(status)
         if d:
@@ -3235,7 +3527,7 @@ def main():
         traceback.print_exc()
 
     # ---- Potencial exportador 2026-2036 ----
-    print("\n[15/17] Procesando Potencial exportador...")
+    print("\n[15/18] Procesando Potencial exportador...")
     try:
         d = extract_potencial_exportador(status)
         if d:
@@ -3246,7 +3538,7 @@ def main():
         traceback.print_exc()
 
     # ---- Tenencia DLK BCRA ----
-    print("\n[16/17] Procesando Tenencia DLK BCRA...")
+    print("\n[16/18] Procesando Tenencia DLK BCRA...")
     try:
         d = extract_tenencia_dlk(status)
         if d:
@@ -3257,7 +3549,7 @@ def main():
         traceback.print_exc()
 
     # ---- Monitor de tasas (completa Mercados) ----
-    print("\n[17/17] Procesando Monitor de tasas...")
+    print("\n[17/18] Procesando Monitor de tasas...")
     try:
         d = extract_monitor_tasas(status)
         if d:
@@ -3266,6 +3558,17 @@ def main():
             completar_mercados(status, d)
     except Exception as e:
         status.fail("Monitor de tasas", str(e))
+        traceback.print_exc()
+
+    # ---- Proyecciones (Escenario Base estudio) ----
+    print("\n[18/18] Procesando Proyecciones...")
+    try:
+        d = extract_proyecciones(status)
+        if d:
+            sz = save_data("proyecciones", d)
+            status.ok("Proyecciones", f"{sz:,} bytes")
+    except Exception as e:
+        status.fail("Proyecciones", str(e))
         traceback.print_exc()
 
     # ---- Sellar la version de los datos en las paginas ----
