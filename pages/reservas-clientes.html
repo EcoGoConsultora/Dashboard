@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Reservas · Eco Go</title>
-  <link rel="stylesheet" href="../assets/css/theme.css?v=202610071243"/>
+  <link rel="stylesheet" href="../assets/css/theme.css?v=202610081150"/>
   <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -73,6 +73,25 @@
         <p class="res-note">Fuente: BCRA / EcoGo · pasivos reservas.xlsx · Cuadro RIN</p>
       </div>
 
+      <!-- Evolución de las reservas netas (serie diaria) -->
+      <div class="res-card" id="netasCard">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+          <div>
+            <p class="res-title">Evolución de las reservas netas</p>
+            <p class="res-sub" style="margin:0">Serie diaria · en millones de USD · el cuadro de arriba compara fechas puntuales, acá se ve el recorrido</p>
+          </div>
+          <div class="tl-bar" id="netasTlBtns">
+            <button class="tl-btn" onclick="netasSetRange(365)">1A</button>
+            <button class="tl-btn is-active" onclick="netasSetRange(730)">2A</button>
+            <button class="tl-btn" onclick="netasSetRange(1825)">5A</button>
+            <span class="tl-sep"></span>
+            <button class="tl-btn" onclick="netasSetRange(0)">Todo</button>
+          </div>
+        </div>
+        <div class="res-chart-box" style="height:380px"><canvas id="chartNetas"></canvas></div>
+        <p class="res-note">Fuente: BCRA / Eco Go</p>
+      </div>
+
       <!-- Gráfico 5: Reservas + Depósitos + Préstamos (diario) -->
       <div class="res-card">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
@@ -108,8 +127,8 @@
     </main>
   </div>
 
-  <script src="../assets/js/layout.js?v=202610071243"></script>
-  <script src="../assets/data/reservas.js?v=202610071243"></script>
+  <script src="../assets/js/layout.js?v=202610081150"></script>
+  <script src="../assets/data/reservas.js?v=202610081150"></script>
   <script>
   (function(){
     var RIN = window.RESERVAS_DATA.rin;
@@ -205,6 +224,72 @@
     Chart.defaults.font.family = "'HK Grotesk', system-ui, sans-serif";
     Chart.defaults.color = '#333333';
     var scaleGrid = {grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#6E7679'}};
+
+    /* ── Evolución de las reservas netas ──
+       Las netas cruzan el cero, así que el gráfico marca esa línea: no es lo
+       mismo tener 3.000 millones que deber 3.000. */
+    var NETAS = (window.RESERVAS_DATA && window.RESERVAS_DATA.netas) || null;
+    var chartNetas = null;
+    if (!NETAS || !NETAS.dates || !NETAS.dates.length) {
+      var cardN = document.getElementById('netasCard');
+      if (cardN) cardN.style.display = 'none';
+    } else {
+      var N_COLORES = ['#1B5F5E', '#2890A4', '#FE8B5F'];
+      var nClaves = Object.keys(NETAS.series);
+      var lineaCero = {
+        id: 'lineaCero',
+        afterDatasetsDraw: function(ch){
+          var y = ch.scales.y.getPixelForValue(0);
+          if (y < ch.chartArea.top || y > ch.chartArea.bottom) return;
+          var c = ch.ctx;
+          c.save();
+          c.strokeStyle = '#B8BEC0'; c.lineWidth = 1; c.setLineDash([4, 4]);
+          c.beginPath(); c.moveTo(ch.chartArea.left, y); c.lineTo(ch.chartArea.right, y); c.stroke();
+          c.restore();
+        }
+      };
+      chartNetas = new Chart(document.getElementById('chartNetas'), {
+        type: 'line',
+        data: {
+          labels: NETAS.dates,
+          datasets: nClaves.map(function(k, i){
+            return { label:k, data:NETAS.series[k], borderColor:N_COLORES[i % N_COLORES.length],
+                     backgroundColor:N_COLORES[i % N_COLORES.length],
+                     borderWidth:1.8, pointRadius:0, pointHoverRadius:4, tension:0.1, fill:false, spanGaps:true };
+          })
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false, animation:{duration:200},
+          interaction:{ mode:'index', intersect:false },
+          plugins:{
+            legend:{ display:true, position:'top', labels:{ usePointStyle:true, pointStyleWidth:14, color:'#333', font:{size:12} }},
+            tooltip:{ callbacks:{ label:function(c){
+              return ' ' + c.dataset.label + ': USD ' + Number(c.raw).toLocaleString('es-AR',{maximumFractionDigits:0}) + 'M';
+            }}}
+          },
+          scales:{
+            x:{ ticks:{ maxRotation:0, color:'#6E7679', font:{size:10}, maxTicksLimit:10 }, grid:{ color:'rgba(0,0,0,0.04)' } },
+            y:Object.assign({ ticks:{ color:'#6E7679', callback:function(v){ return 'USD '+Math.round(v/1000)+'k'; } } }, scaleGrid)
+          }
+        },
+        plugins:[lineaCero]
+      });
+
+      window.netasSetRange = function(dias){
+        var n = NETAS.dates.length;
+        var desde = dias === 0 ? 0 : Math.max(0, n - dias);
+        chartNetas.data.labels = NETAS.dates.slice(desde);
+        chartNetas.data.datasets.forEach(function(ds, i){
+          ds.data = NETAS.series[nClaves[i]].slice(desde);
+        });
+        chartNetas.update('none');
+        var orden = [365, 730, 1825, 0];
+        document.querySelectorAll('#netasTlBtns .tl-btn').forEach(function(b, i){
+          b.classList.toggle('is-active', orden[i] === dias);
+        });
+      };
+      netasSetRange(730);
+    }
 
     var chartG5 = new Chart(document.getElementById('chartG5'), {
       type: 'line',
@@ -310,6 +395,20 @@
       });
 
       // Gráfico 5 — serie diaria completa
+      if (NETAS && NETAS.dates && NETAS.dates.length) {
+        EcoGo.dlBtn('#chartNetas', 'reservas_netas.csv', function(){
+          var ks = Object.keys(NETAS.series);
+          return {
+            headers: ['Fecha'].concat(ks),
+            rows: NETAS.dates.map(function(f, i){
+              return [f].concat(ks.map(function(k){
+                var x = NETAS.series[k][i];
+                return (x === null || x === undefined) ? '' : x;
+              }));
+            })
+          };
+        });
+      }
       EcoGo.dlBtn('#chartG5', 'reservas_depositos_prestamos.csv', function(){
         return {
           headers: ['Fecha','Reservas brutas','Depósitos USD','Préstamos USD'],

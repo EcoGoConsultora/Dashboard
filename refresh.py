@@ -1633,6 +1633,24 @@ def extract_reservas(status):
             status.fail("Reservas - G5", str(e))
             traceback.print_exc()
 
+    # ---- Evolucion de las reservas netas (serie diaria) ----
+    # Sale del "Gráfico4" de pasivos reservas.xlsx, que es el que el analista
+    # mantiene al dia: tres metodologias de netas sobre la misma serie diaria.
+    # El cuadro RIN de arriba compara fechas sueltas; esto muestra el recorrido.
+    if os.path.exists(EXCEL_PATHS["pasivos_res"]):
+        try:
+            wb3 = _open_wb(EXCEL_PATHS["pasivos_res"])
+            netas = _chart_block(wb3, "Gráfico4")
+            data['netas'] = netas
+            status.ok("Reservas - Netas",
+                      f"{len(netas['dates'])} dias · {len(netas['series'])} metodologias "
+                      f"· hasta {netas['dates'][-1] if netas['dates'] else '?'}")
+            if netas['dates']:
+                _avisar_si_viejo(status, "Reservas - Netas", netas['dates'][-1], meses=2)
+        except Exception as e:
+            status.fail("Reservas - Netas", str(e))
+            traceback.print_exc()
+
     return data if data else None
 
 # =====================================================================
