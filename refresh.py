@@ -2608,6 +2608,63 @@ def extract_proyecciones(status):
 
     data["cuadro"] = {"columnas": columnas, "filas": filas, "hoja": HOJA}
 
+    # ---- 1b) El mismo ejercicio, mes a mes ----
+    # La hoja 'Escenarios mensual' repite las variables clave con frecuencia
+    # mensual y los dos escenarios en bloques paralelos: la fila 2 abre cada
+    # bloque con su nombre y la 3 tiene las variables.
+    HOJA_M = "Escenarios mensual"
+    if HOJA_M in wb.sheetnames:
+        wm = wb[HOJA_M]
+        bloques = []          # [(col_inicio, nombre)]
+        for c in range(2, (wm.max_column or 20) + 1):
+            v = wm.cell(2, c).value
+            if isinstance(v, str) and v.strip():
+                bloques.append([c, v.strip()])
+        for i, b in enumerate(bloques):
+            b.append(bloques[i + 1][0] if i + 1 < len(bloques) else (wm.max_column or 20) + 1)
+
+        # las variables son las mismas en los dos bloques; se toman del primero
+        variables = []
+        if bloques:
+            ini, _, fin = bloques[0]
+            for c in range(ini, fin):
+                lab = wm.cell(3, c).value
+                if isinstance(lab, str) and lab.strip():
+                    variables.append({"label": lab.strip(), "col": c - ini,
+                                      "fmt": _fmt_token(wm.cell(5, c).number_format)})
+
+        # Debajo de la serie la hoja sigue con los promedios anuales y despues
+        # repite todo traducido al ingles, arrancando de nuevo en 2025-01. Los
+        # promedios se saltean solos (ahi el anio es un numero, no una fecha),
+        # pero la copia en ingles vuelve a tener fechas: se corta en cuanto la
+        # serie deja de avanzar.
+        fechas, datos = [], {b[1]: {v["label"]: [] for v in variables} for b in bloques}
+        for r in range(4, (wm.max_row or 0) + 1):
+            f = wm.cell(r, 2).value
+            if not isinstance(f, datetime):
+                continue
+            fe = f.strftime("%Y-%m-%d")
+            if fechas and fe <= fechas[-1]:
+                break
+            fechas.append(fe)
+            for ini, nombre, _ in bloques:
+                for v in variables:
+                    datos[nombre][v["label"]].append(fmt_n(wm.cell(r, ini + v["col"]).value))
+
+        if fechas and variables:
+            data["mensual"] = {
+                "hoja": HOJA_M, "dates": fechas,
+                "escenarios": [b[1] for b in bloques],
+                "variables": [{"label": v["label"], "fmt": v["fmt"]} for v in variables],
+                "datos": datos}
+            status.ok("Proyecciones - mensual",
+                      f"{len(fechas)} meses ({fechas[0][:7]}–{fechas[-1][:7]}) · "
+                      f"{len(variables)} variables · {len(bloques)} escenarios")
+        else:
+            status.warn("Proyecciones - mensual", f"'{HOJA_M}' sin filas utiles")
+    else:
+        status.warn("Proyecciones - mensual", f"no esta la hoja '{HOJA_M}'")
+
     # ---- 2) Los graficos ----
     HOJA_G = "Gráficos escenarios"
     graficos = []

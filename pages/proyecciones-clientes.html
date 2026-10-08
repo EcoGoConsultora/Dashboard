@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Proyecciones · Eco Go</title>
-  <link rel="stylesheet" href="../assets/css/theme.css?v=202610081514"/>
+  <link rel="stylesheet" href="../assets/css/theme.css?v=202610081610"/>
   <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -13,8 +13,23 @@
     .py-sub{font-size:.76rem;color:var(--color-text-muted);margin:0 0 14px}
     .py-note{font-size:.72rem;color:var(--color-text-muted);margin-top:10px}
 
+    /* ---- selector anual / mensual ---- */
+    .py-cab{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+    .py-switch{display:inline-flex;border:1.5px solid var(--color-border);border-radius:20px;overflow:hidden}
+    .py-swbtn{padding:5px 16px;border:0;background:transparent;font:inherit;font-size:.76rem;
+      font-weight:700;color:var(--color-text-muted);cursor:pointer;transition:all .15s}
+    .py-swbtn.is-active{background:var(--eg-teal-dark);color:#fff}
+    .py-anios{display:none;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+    .py-anios.visible{display:flex}
+    .py-aniobtn{padding:3px 11px;border-radius:16px;border:1.5px solid var(--color-border);
+      font-size:.73rem;font-weight:700;cursor:pointer;background:transparent;color:var(--color-text-muted);transition:all .15s}
+    .py-aniobtn.is-active{background:var(--eg-teal);border-color:var(--eg-teal);color:#fff}
+
     /* ---- cuadro de escenarios ---- */
     .py-tabla-wrap{overflow-x:auto}
+    /* la vista mensual son cuatro años de filas: se acota y scrollea */
+    .py-tabla-wrap.es-mensual{max-height:60vh;overflow-y:auto}
+    .py-tabla-wrap.es-mensual thead th{position:sticky;top:0;background:var(--color-surface);z-index:1}
     .py-tabla{width:100%;border-collapse:collapse;font-size:.82rem}
     .py-tabla th,.py-tabla td{padding:7px 12px;text-align:right;white-space:nowrap}
     .py-tabla th:first-child,.py-tabla td:first-child{text-align:left;white-space:normal;min-width:260px}
@@ -65,9 +80,18 @@
       </section>
 
       <div class="py-card">
-        <p class="py-title">Cuadro de escenarios</p>
-        <p class="py-sub" id="pyCuadroSub">&nbsp;</p>
-        <div class="py-tabla-wrap">
+        <div class="py-cab">
+          <div>
+            <p class="py-title">Cuadro de escenarios</p>
+            <p class="py-sub" id="pyCuadroSub" style="margin:0">&nbsp;</p>
+          </div>
+          <div class="py-switch" id="pySwitch">
+            <button class="py-swbtn is-active" data-vista="anual">Anual</button>
+            <button class="py-swbtn" data-vista="mensual">Mensual</button>
+          </div>
+        </div>
+        <div class="py-anios" id="pyAnios"></div>
+        <div class="py-tabla-wrap" id="pyTablaWrap">
           <table class="py-tabla">
             <thead id="pyHead"></thead>
             <tbody id="pyBody"></tbody>
@@ -87,8 +111,8 @@
     </main>
   </div>
 
-  <script src="../assets/js/layout.js?v=202610081514"></script>
-  <script src="../assets/data/proyecciones.js?v=202610081514"></script>
+  <script src="../assets/js/layout.js?v=202610081610"></script>
+  <script src="../assets/data/proyecciones.js?v=202610081610"></script>
   <script>
   (function(){
     var D = window.PROYECCIONES_DATA || {};
@@ -121,8 +145,8 @@
       return M[(parseInt(p[1],10)||1)-1]+'-'+p[0].slice(2);
     }
 
-    /* ---------- el cuadro ---------- */
-    (function(){
+    /* ---------- el cuadro anual ---------- */
+    function pintarAnual(){
       if (!C.columnas.length) return;
       var hayProy = C.columnas.some(function(c){ return c.proyeccion; });
       var anioProy = (C.columnas.find(function(c){ return c.proyeccion; }) || {}).anio;
@@ -168,6 +192,98 @@
       document.getElementById('pyNota').textContent =
         'Fuente: Eco Go · ejercicio de proyección "' + (D.meta && D.meta.hoja ? D.meta.hoja : '') +
         '"' + (D.meta && D.meta.actualizado ? ', actualizado al ' + D.meta.actualizado : '') + '.';
+    }
+
+    /* ---------- el cuadro mensual ---------- */
+    var M = D.mensual || null;
+    var anioElegido = 'todos';
+
+    function pintarMensual(){
+      if (!M) return;
+      var escs = M.escenarios, vars = M.variables;
+
+      // dos filas de encabezado: la variable arriba, los dos escenarios abajo
+      var h1 = '<tr><th rowspan="2">Mes</th>';
+      vars.forEach(function(v){
+        h1 += '<th colspan="' + escs.length + '" class="py-grupo">' + v.label + '</th>';
+      });
+      h1 += '</tr><tr>';
+      vars.forEach(function(){
+        escs.forEach(function(e, i){
+          h1 += '<th class="' + (i ? 'es-proy' : '') + '">' +
+                e.replace(/^Escenario\s*/i, 'E') + '</th>';
+        });
+      });
+      h1 += '</tr>';
+      document.getElementById('pyHead').innerHTML = h1;
+
+      var idx = M.dates.map(function(f, i){ return i; }).filter(function(i){
+        return anioElegido === 'todos' || M.dates[i].slice(0, 4) === anioElegido;
+      });
+      document.getElementById('pyBody').innerHTML = idx.map(function(i){
+        var celdas = '';
+        vars.forEach(function(v){
+          escs.forEach(function(e, j){
+            var val = M.datos[e][v.label][i];
+            celdas += '<td class="' + (j ? 'es-proy' : '') + '">' + fmtValor(val, v.fmt) + '</td>';
+          });
+        });
+        return '<tr><td>' + mesCorto(M.dates[i]) + '</td>' + celdas + '</tr>';
+      }).join('');
+
+      document.getElementById('pyCuadroSub').textContent =
+        idx.length + ' meses · ' + vars.length + ' variables · ' + escs.join(' y ');
+      document.getElementById('pyNota').textContent =
+        'Fuente: Eco Go · hoja "' + M.hoja + '" del mismo ejercicio' +
+        (D.meta && D.meta.actualizado ? ', actualizado al ' + D.meta.actualizado : '') + '.';
+    }
+
+    /* ---------- el selector ---------- */
+    (function(){
+      var sw = document.getElementById('pySwitch');
+      var cajaAnios = document.getElementById('pyAnios');
+      var wrap = document.getElementById('pyTablaWrap');
+
+      if (!M) {
+        // sin hoja mensual no hay nada que elegir
+        sw.style.display = 'none';
+        pintarAnual();
+        return;
+      }
+
+      var anios = [];
+      M.dates.forEach(function(f){
+        var a = f.slice(0, 4);
+        if (anios.indexOf(a) < 0) anios.push(a);
+      });
+      cajaAnios.innerHTML = '<button class="py-aniobtn is-active" data-anio="todos">Todos</button>' +
+        anios.map(function(a){ return '<button class="py-aniobtn" data-anio="' + a + '">' + a + '</button>'; }).join('');
+
+      function ir(vista){
+        var mensual = vista === 'mensual';
+        sw.querySelectorAll('.py-swbtn').forEach(function(b){
+          b.classList.toggle('is-active', b.dataset.vista === vista);
+        });
+        cajaAnios.classList.toggle('visible', mensual);
+        wrap.classList.toggle('es-mensual', mensual);
+        if (mensual) pintarMensual(); else pintarAnual();
+      }
+
+      sw.addEventListener('click', function(e){
+        var b = e.target.closest('.py-swbtn');
+        if (b) ir(b.dataset.vista);
+      });
+      cajaAnios.addEventListener('click', function(e){
+        var b = e.target.closest('.py-aniobtn');
+        if (!b) return;
+        anioElegido = b.dataset.anio;
+        cajaAnios.querySelectorAll('.py-aniobtn').forEach(function(x){
+          x.classList.toggle('is-active', x === b);
+        });
+        pintarMensual();
+      });
+
+      ir('anual');
     })();
 
     /* ---------- los gráficos ---------- */
@@ -253,7 +369,31 @@
 
     /* ---------- descargas ---------- */
     if (window.EcoGo && C.filas.length) {
+      /* Se baja lo que se esta viendo: si el usuario cambio a mensual, un CSV
+         con el cuadro anual seria una sorpresa desagradable. */
       EcoGo.dlBtn('.py-tabla', 'cuadro_escenarios.csv', function(){
+        var mensual = document.getElementById('pyTablaWrap').classList.contains('es-mensual');
+        if (mensual && M) {
+          var cab = ['Mes'];
+          M.variables.forEach(function(v){
+            M.escenarios.forEach(function(e){ cab.push(v.label + ' - ' + e); });
+          });
+          return {
+            headers: cab,
+            rows: M.dates.filter(function(f){
+              return anioElegido === 'todos' || f.slice(0, 4) === anioElegido;
+            }).map(function(f){
+              var i = M.dates.indexOf(f), fila = [f];
+              M.variables.forEach(function(v){
+                M.escenarios.forEach(function(e){
+                  var x = M.datos[e][v.label][i];
+                  fila.push((x === null || x === undefined) ? '' : x);
+                });
+              });
+              return fila;
+            })
+          };
+        }
         return {
           headers: ['Variable'].concat(C.columnas.map(function(c){
             return c.label + (c.sub ? ' (' + c.sub + ')' : '');
