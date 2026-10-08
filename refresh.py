@@ -1615,20 +1615,41 @@ def extract_reservas(status):
         try:
             _d = _leer_bytes(dep_path)
             wb2 = _opx.load_workbook(_io.BytesIO(_d), data_only=True, read_only=True)
-            ws2 = wb2['Datos']
-            g5 = []
-            for row in ws2.iter_rows(min_row=3, max_col=5, values_only=True):
-                dt = row[0] or row[1]
-                r   = fmt_n(row[2])
-                dep = fmt_n(row[3])
-                pre = fmt_n(row[4])
-                if not isinstance(dt, _dt) or r is None: continue
-                g5.append({'d': dt.strftime('%Y-%m-%d'), 'r': r, 'dep': dep, 'pre': pre})
-            data['g5'] = g5
-            status.ok("Reservas - G5", f"{len(g5)} dias - ultimo: {g5[-1]['d'] if g5 else '?'}")
-            if g5:
+
+            def _leer_diaria(nombre):
+                if nombre not in wb2.sheetnames:
+                    return []
+                out = []
+                for row in wb2[nombre].iter_rows(min_row=3, max_col=5, values_only=True):
+                    dt = row[0] or row[1]
+                    r = fmt_n(row[2])
+                    if not isinstance(dt, _dt) or r is None:
+                        continue
+                    out.append({'d': dt.strftime('%Y-%m-%d'), 'r': r,
+                                'dep': fmt_n(row[3]), 'pre': fmt_n(row[4])})
+                return out
+
+            # El Excel tiene dos hojas con la misma estructura y el analista
+            # dejo de cargar una: 'Datos' quedo en jun-25 mientras 'Datos
+            # extendido' sigue al dia y ademas arranca mucho antes. En vez de
+            # fijar una, se toma la que llegue mas lejos, asi el dia que
+            # cambien cual mantienen el refresh sigue solo.
+            candidatas = {n: _leer_diaria(n) for n in ('Datos extendido', 'Datos')}
+            candidatas = {n: v for n, v in candidatas.items() if v}
+            if not candidatas:
+                status.warn("Reservas - G5", "ninguna hoja de serie diaria trajo datos")
+                g5 = []
+            else:
+                hoja_g5 = max(candidatas, key=lambda n: candidatas[n][-1]['d'])
+                g5 = candidatas[hoja_g5]
+                data['g5'] = g5
+                descartadas = [f"{n} llega a {v[-1]['d']}"
+                               for n, v in candidatas.items() if n != hoja_g5]
+                status.ok("Reservas - G5",
+                          f"{len(g5)} dias - ultimo: {g5[-1]['d']} (hoja '{hoja_g5}'"
+                          + (f"; {', '.join(descartadas)})" if descartadas else ")"))
                 _avisar_si_viejo(status, "Reservas - serie diaria", g5[-1]['d'], meses=2,
-                                 extra="la hoja 'Datos' del Excel dejo de cargarse")
+                                 extra=f"la hoja '{hoja_g5}' es la mas nueva del Excel")
         except Exception as e:
             status.fail("Reservas - G5", str(e))
             traceback.print_exc()
