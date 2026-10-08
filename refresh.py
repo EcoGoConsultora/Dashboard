@@ -2404,19 +2404,39 @@ def completar_mercados(status, monitor):
         sumados.append("hard dollar " + it["symbol"])
 
     # ---- Dolar linked ----
-    # Aca el worker no publica el vencimiento, asi que no alcanza con la fecha:
-    # el universo vivo es el del Monitor, que mantiene el registro de la curva.
-    # Lo que no esta ahi o vencio o nunca se registro, y en los dos casos
-    # muestra un precio arrastrado sin volumen.
+    # Aca el worker no publica el vencimiento, asi que la baja se decide con el
+    # registro del Monitor, que si lo tiene.
+    #
+    # Ojo con la tentacion de usar la publicacion del dia en vez del registro:
+    # el Monitor deja afuera de latest.json cualquier especie para la que no
+    # consiguio precio fresco (hoy mismo, D10Y7, que vence en 2027). Si la
+    # ausencia de ese archivo contara como baja, un bono vivo desapareceria del
+    # tablero el dia que Rava no responda.
     dl = M.setdefault("dollar_linked", {})
     por_sim = {it["symbol"]: it for it in curvas.get("dollar_linked", [])}
+    registro = {}
+    try:
+        cfg = os.path.join(BASE_EXCEL, "Mercados", "Monitor tasas",
+                           "config", "market_instruments.json")
+        for x in json.loads(_leer_bytes(cfg).decode("utf-8")).get("dollar_linked", []):
+            registro[x["symbol"]] = x.get("maturity_date")
+    except Exception as e:
+        status.warn("Mercados - instrumentos",
+                    f"no pude leer el registro del monitor ({e}); no doy de baja dolar linked")
 
     quedan = []
     for it in (dl.get("latest") or []):
-        if it["symbol"] in por_sim:
-            quedan.append(it)
+        s = it["symbol"]
+        if s in registro:
+            # registrada: manda la fecha de vencimiento
+            muere = bool(registro[s]) and str(registro[s])[:10] < rueda
+        elif not registro:
+            muere = False           # sin registro no hay con que decidir
         else:
-            bajas.append("dolar linked " + it["symbol"])
+            # no registrada: no hay vencimiento, pero una especie que hace
+            # ruedas que no opera es un precio arrastrado, no un mercado
+            muere = not it.get("volume")
+        (bajas.append("dolar linked " + s) if muere else quedan.append(it))
     muertos = [b.split()[-1] for b in bajas if b.startswith("dolar linked ")]
 
     for s, it in por_sim.items():
