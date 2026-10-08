@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Tenencia DLK BCRA · Eco Go</title>
-  <link rel="stylesheet" href="../assets/css/theme.css?v=202610081219"/>
+  <link rel="stylesheet" href="../assets/css/theme.css?v=202610081235"/>
   <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -13,17 +13,43 @@
     .dl-sub{font-size:.76rem;color:var(--color-text-muted);margin:0 0 14px}
     .dl-note{font-size:.72rem;color:var(--color-text-muted);margin-top:10px}
     .dl-box{position:relative;height:400px}
+    .dl-box--chico{height:320px}
     .dl-head{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px}
     .tl-bar{display:flex;align-items:center;gap:6px}
     .tl-btn{padding:3px 11px;border-radius:16px;border:1.5px solid var(--color-border);font-size:.74rem;font-weight:700;cursor:pointer;background:transparent;color:var(--color-text-muted);transition:all .15s}
     .tl-btn.is-active{background:var(--eg-teal-dark);border-color:var(--eg-teal-dark);color:#fff}
     .tl-sep{width:1px;height:16px;background:var(--color-border);margin:0 4px}
-    /* fila de indicadores */
-    .dl-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px}
-    .dl-kpi{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:16px 18px}
-    .dl-kpi__label{font-size:.68rem;color:var(--color-text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px}
-    .dl-kpi__value{font-size:1.5rem;font-weight:800;color:var(--eg-teal-dark);line-height:1;margin:0 0 4px}
-    .dl-kpi__sub{font-size:.72rem;color:var(--color-text-muted);margin:0}
+
+    /* fila de indicadores, con la barrita de color de cada serie */
+    .dl-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px}
+    .dl-kpi{background:var(--color-surface);border:1px solid var(--color-border);border-radius:10px;padding:0 0 14px;overflow:hidden}
+    .dl-kpi__barra{height:6px;background:var(--c,var(--eg-teal-dark))}
+    .dl-kpi__cuerpo{padding:12px 16px 0}
+    .dl-kpi__label{font-size:.64rem;color:var(--color-text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px}
+    .dl-kpi__value{font-size:1.4rem;font-weight:800;color:var(--eg-teal-dark);line-height:1;margin:0 0 4px}
+    .dl-kpi__sub{font-size:.7rem;color:var(--color-text-muted);margin:0}
+
+    /* grilla de dos columnas: el grafico grande y su acompanante */
+    .dl-fila{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:24px;align-items:start}
+    @media (max-width:1000px){ .dl-fila{grid-template-columns:1fr} }
+
+    /* leyenda de las marcas de eventos, que no las dibuja Chart.js */
+    /* se lee como una segunda linea de la leyenda del grafico, asi que va
+       centrada igual que la de Chart.js y no pegada contra el borde */
+    .dl-marcas{display:flex;flex-wrap:wrap;justify-content:center;gap:18px;font-size:.72rem;color:var(--color-text-muted);margin-top:14px}
+    .dl-marca{display:flex;align-items:center;gap:6px}
+    .dl-marca i{display:inline-block;width:0;height:0}
+    .dl-marca i.tri{border-left:5px solid transparent;border-right:5px solid transparent;border-top:8px solid #9AA7AD}
+    .dl-marca i.rom{width:8px;height:8px;background:#E14B3C;transform:rotate(45deg)}
+
+    /* composicion al cierre: lista al lado de la rosquilla */
+    .dl-comp{list-style:none;padding:0;margin:14px 0 0;font-size:.78rem}
+    .dl-comp li{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--color-border)}
+    .dl-comp li:last-child{border-bottom:0}
+    .dl-comp span.pt{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+    .dl-comp span.nm{flex:1;color:var(--color-text)}
+    .dl-comp span.vl{font-weight:700;color:var(--eg-teal-dark)}
+    .dl-comp span.pc{color:var(--color-text-muted);width:48px;text-align:right}
   </style>
 </head>
 <body data-depth="1" data-active-section="tenencia-dlk">
@@ -34,18 +60,66 @@
       <section class="eg-page-header">
         <div>
           <h1 class="eg-page-header__title">Tenencia DLK BCRA</h1>
-          <p class="eg-page-header__subtitle">Dollar-linked en manos privadas y posición en futuros, medidos contra M2, y tenencia por tenedor</p>
+          <p class="eg-page-header__subtitle">Estimación diaria de circulación dollar-linked en VNO USD millones — privados, BCRA y FGS — y la cobertura medida contra M2</p>
         </div>
       </section>
 
       <div class="dl-kpis" id="dlKpis"></div>
 
+      <!-- Tenencia por tenedor + composicion al cierre -->
+      <div class="dl-fila">
+        <div class="dl-card">
+          <div class="dl-head">
+            <div>
+              <p class="dl-title">Tenencia DLK: privados, BCRA y FGS</p>
+              <p class="dl-sub" style="margin:0">Serie diaria · VNO USD millones</p>
+            </div>
+            <div class="tl-bar" id="tenTlBtns">
+              <button class="tl-btn" onclick="dlSetRange('ten',30)">1M</button>
+              <button class="tl-btn" onclick="dlSetRange('ten',90)">3M</button>
+              <span class="tl-sep"></span>
+              <button class="tl-btn is-active" onclick="dlSetRange('ten',0)">Todo</button>
+            </div>
+          </div>
+          <div class="dl-box"><canvas id="chartTen"></canvas></div>
+          <div class="dl-marcas">
+            <span class="dl-marca"><i class="tri"></i> Licitación / canje de mercado</span>
+            <span class="dl-marca"><i class="rom"></i> Canje con el BCRA</span>
+          </div>
+          <p class="dl-note">Fuente: Finanzas, Rava, IOL y ANSES (FGS) · elaboración propia</p>
+        </div>
+
+        <div class="dl-card">
+          <p class="dl-title">Composición al cierre</p>
+          <p class="dl-sub" id="compSub">&nbsp;</p>
+          <div class="dl-box" style="height:240px"><canvas id="chartDona"></canvas></div>
+          <ul class="dl-comp" id="dlComp"></ul>
+        </div>
+      </div>
+
+      <!-- Absorcion + BCRA por titulo -->
+      <div class="dl-fila">
+        <div class="dl-card">
+          <p class="dl-title">Pesos retirados por intervención del BCRA</p>
+          <p class="dl-sub">Estimación diaria en billones de pesos (T+1)</p>
+          <div class="dl-box dl-box--chico"><canvas id="chartAbs"></canvas></div>
+          <p class="dl-note" id="absNota">Fuente: Finanzas, Rava, IOL y ANSES (FGS) · elaboración propia</p>
+        </div>
+
+        <div class="dl-card">
+          <p class="dl-title">BCRA por título</p>
+          <p class="dl-sub" id="titSub">&nbsp;</p>
+          <div class="dl-box" style="height:240px"><canvas id="chartTit"></canvas></div>
+          <p class="dl-note">VNO USD millones en poder del BCRA, por instrumento.</p>
+        </div>
+      </div>
+
       <!-- DLK + short sobre M2 -->
       <div class="dl-card">
         <div class="dl-head">
           <div>
-            <p class="dl-title">DLK privados y short de futuros sobre M2</p>
-            <p class="dl-sub" style="margin:0">Serie diaria · en % de M2 · el apilado suma la cobertura total</p>
+            <p class="dl-title">(DLK privados + short de futuros) sobre M2</p>
+            <p class="dl-sub" style="margin:0">Serie diaria · en % del M2 privado transaccional · el apilado suma la cobertura total</p>
           </div>
           <div class="tl-bar" id="m2TlBtns">
             <button class="tl-btn" onclick="dlSetRange('m2',90)">3M</button>
@@ -56,25 +130,7 @@
           </div>
         </div>
         <div class="dl-box"><canvas id="chartM2"></canvas></div>
-        <p class="dl-note" id="m2Note">Fuente: Eco Go en base a BCRA</p>
-      </div>
-
-      <!-- Tenencia por tenedor -->
-      <div class="dl-card">
-        <div class="dl-head">
-          <div>
-            <p class="dl-title">Tenencia por tenedor</p>
-            <p class="dl-sub" style="margin:0">Serie diaria · valor nominal en millones de USD · sin restricción sobre el stock del BCRA</p>
-          </div>
-          <div class="tl-bar" id="tenTlBtns">
-            <button class="tl-btn" onclick="dlSetRange('ten',30)">1M</button>
-            <button class="tl-btn" onclick="dlSetRange('ten',90)">3M</button>
-            <span class="tl-sep"></span>
-            <button class="tl-btn is-active" onclick="dlSetRange('ten',0)">Todo</button>
-          </div>
-        </div>
-        <div class="dl-box"><canvas id="chartTen"></canvas></div>
-        <p class="dl-note">Fuente: Eco Go en base a BCRA</p>
+        <p class="dl-note" id="m2Note">Ratio = (DLK privados + short, en USD mm) × A3500 / M2 privado transaccional (ARS mm) × 100. Fuente: estimador Eco Go y BCRA.</p>
       </div>
 
       <footer class="eg-footer">
@@ -84,15 +140,26 @@
     </main>
   </div>
 
-  <script src="../assets/js/layout.js?v=202610081219"></script>
-  <script src="../assets/data/tenencia_dlk.js?v=202610081219"></script>
+  <script src="../assets/js/layout.js?v=202610081235"></script>
+  <script src="../assets/data/tenencia_dlk.js?v=202610081235"></script>
   <script>
   (function(){
     var D = window.TENENCIA_DLK_DATA || {};
     Chart.defaults.font.family = "'HK Grotesk', system-ui, sans-serif";
     Chart.defaults.color = '#333333';
 
+    // Paleta del tablero original, para que el que ya vio la imagen reconozca
+    // cada banda sin tener que leer la leyenda de nuevo.
+    var COLOR = {
+      'Stock BCRA':        '#1A6B66',
+      'Stock FGS':         '#8CB63C',
+      'Privados DLK':      '#2CA3B8',
+      'Dual TAMAR/A3500':  '#9B7FC4'
+    };
+    var C_TOTAL = '#15314B', C_MERCADO = '#9AA7AD', C_BCRA_EV = '#E14B3C', C_ABS = '#E85A4A';
+
     function fmt(v, dec){
+      if (v === null || v === undefined || isNaN(v)) return '—';
       return Number(v).toLocaleString('es-AR', {minimumFractionDigits:dec||0, maximumFractionDigits:dec||0});
     }
     function etiqueta(iso){
@@ -100,26 +167,231 @@
       var p=String(iso).split('-');
       return p[2]+'-'+M[(parseInt(p[1],10)||1)-1]+'-'+p[0].slice(2);
     }
+    function num(x){ return (x && typeof x.valor === 'number') ? x.valor : null; }
 
+    var R  = D.resumen || {};
+    var T  = D.tenedores || { dates:[], series:{} };
+    var EV = D.eventos || { mercado:{}, bcra:{} };
+    var M2 = D.sobre_m2;
+    var PT = D.por_titulo || { items:[] };
+
+    /* ---------- rangos temporales compartidos ---------- */
     var REG = {};
     window.dlSetRange = function(id, dias){
       var r = REG[id];
       if (!r) return;
       var n = r.fechas.length;
-      var desde = dias === 0 ? 0 : Math.max(0, n - dias);
-      r.chart.data.labels = r.fechas.slice(desde).map(etiqueta);
-      r.chart.data.datasets.forEach(function(ds, i){ ds.data = r.vals[i].slice(desde); });
+      r.desde = dias === 0 ? 0 : Math.max(0, n - dias);
+      r.chart.data.labels = r.fechas.slice(r.desde).map(etiqueta);
+      r.chart.data.datasets.forEach(function(ds, i){ ds.data = r.vals[i].slice(r.desde); });
       r.chart.update('none');
       document.querySelectorAll(r.btns + ' .tl-btn').forEach(function(b, i){
         b.classList.toggle('is-active', r.orden[i] === dias);
       });
     };
 
-    /* ---------- 1 · DLK + short sobre M2 ---------- */
-    var M2 = D.sobre_m2;
+    /* ---------- marcas de eventos sobre el area apilada ----------
+       Chart.js no trae anotaciones sin el plugin externo, asi que se dibujan
+       a mano arriba del area: triangulo gris para el mercado, rombo rojo para
+       los canjes contra el BCRA. Es la misma convencion del tablero. */
+    var marcasEventos = {
+      id: 'marcasEventos',
+      afterDatasetsDraw: function(chart){
+        var r = REG.ten; if (!r) return;
+        var ctx = chart.ctx, ex = chart.scales.x, y0 = chart.chartArea.top;
+        r.fechas.slice(r.desde).forEach(function(f, i){
+          var x = ex.getPixelForValue(i);
+          if (EV.mercado[f]) {
+            ctx.fillStyle = C_MERCADO;
+            ctx.beginPath();
+            ctx.moveTo(x - 4.5, y0 + 1); ctx.lineTo(x + 4.5, y0 + 1); ctx.lineTo(x, y0 + 8);
+            ctx.closePath(); ctx.fill();
+          }
+          if (EV.bcra[f]) {
+            ctx.fillStyle = C_BCRA_EV;
+            ctx.save(); ctx.translate(x, y0 + 5); ctx.rotate(Math.PI / 4);
+            ctx.fillRect(-3.6, -3.6, 7.2, 7.2);
+            ctx.restore();
+          }
+        });
+      }
+    };
+
+    /* ---------- 1 · Tenencia por tenedor ---------- */
+    if (T.dates.length) {
+      var ordenT = ['Stock BCRA', 'Stock FGS', 'Privados DLK', 'Dual TAMAR/A3500'];
+      // Alguna corrida puede dejar el FGS en cero toda la serie: en ese caso
+      // ocupa lugar en la leyenda sin aportar nada.
+      var clavesT = ordenT.filter(function(k){
+        var v = T.series[k];
+        return v && v.some(function(x){ return x; });
+      });
+
+      var chT = new Chart(document.getElementById('chartTen'), {
+        type: 'line',
+        data: {
+          labels: T.dates.map(etiqueta),
+          datasets: clavesT.map(function(k){
+            return { label:k, data:T.series[k], backgroundColor:COLOR[k], borderColor:COLOR[k],
+                     borderWidth:1, fill:true, pointRadius:0, pointHoverRadius:3, stepped:true };
+          })
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false, animation:{duration:150},
+          interaction:{ mode:'index', intersect:false },
+          layout:{ padding:{ top:12 } },
+          plugins:{
+            legend:{ position:'bottom', labels:{ boxWidth:12, boxHeight:12, usePointStyle:true, pointStyle:'circle', font:{size:11} } },
+            tooltip:{ callbacks:{
+              label:function(c){ return ' ' + c.dataset.label + ': USD ' + fmt(c.raw,0) + ' M'; },
+              footer:function(items){
+                var r = REG.ten, i = r.desde + items[0].dataIndex, f = r.fechas[i];
+                var out = ['Total sistema: USD ' + fmt(T.total[i], 0) + ' M'];
+                if (EV.mercado[f]) out.push('Licitación/canje de mercado: ' + EV.mercado[f].join(', '));
+                if (EV.bcra[f])    out.push('Canje con el BCRA: ' + EV.bcra[f].join(', '));
+                var ex = (T.explicacion || [])[i];
+                if (ex && ex !== 'Sin variacion') out.push(ex);
+                return out;
+              }
+            } }
+          },
+          scales:{
+            x:{ grid:{display:false}, ticks:{ color:'#6E7679', maxRotation:0, maxTicksLimit:12, autoSkipPadding:18 } },
+            y:{ stacked:true, beginAtZero:true, grid:{color:'rgba(0,0,0,0.05)'},
+                ticks:{ color:'#6E7679', callback:function(v){ return fmt(v,0); } },
+                title:{ display:true, text:'VNO USD millones', color:'#6E7679', font:{size:10} } }
+          }
+        },
+        plugins: [marcasEventos]
+      });
+      REG.ten = { chart:chT, fechas:T.dates, desde:0,
+                  vals:clavesT.map(function(k){ return T.series[k]; }),
+                  btns:'#tenTlBtns', orden:[30,90,0] };
+    }
+
+    /* ---------- 2 · Composición al cierre ---------- */
+    if (T.dates.length) {
+      var iUlt = T.dates.length - 1;
+      var partes = ['Privados DLK', 'Dual TAMAR/A3500', 'Stock BCRA', 'Stock FGS']
+        .filter(function(k){ return T.series[k] && T.series[k][iUlt]; })
+        .map(function(k){ return { k:k, v:T.series[k][iUlt] }; });
+      var totalCierre = T.total[iUlt] || partes.reduce(function(a,p){ return a + p.v; }, 0);
+
+      // El total va en el centro de la rosquilla, como en el tablero.
+      var centro = {
+        id:'centroDona',
+        afterDraw:function(ch){
+          var m = ch.getDatasetMeta(0);
+          if (!m.data.length) return;
+          var x = m.data[0].x, y = m.data[0].y, ctx = ch.ctx;
+          ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.fillStyle='#6E7679'; ctx.font='600 10px ' + Chart.defaults.font.family;
+          ctx.fillText('Total', x, y - 14);
+          ctx.fillStyle='#15314B'; ctx.font='800 22px ' + Chart.defaults.font.family;
+          ctx.fillText(fmt(totalCierre, 0), x, y + 6);
+          ctx.restore();
+        }
+      };
+
+      new Chart(document.getElementById('chartDona'), {
+        type:'doughnut',
+        data:{ labels:partes.map(function(p){ return p.k; }),
+               datasets:[{ data:partes.map(function(p){ return p.v; }),
+                           backgroundColor:partes.map(function(p){ return COLOR[p.k]; }),
+                           borderWidth:2, borderColor:'#fff' }] },
+        options:{
+          responsive:true, maintainAspectRatio:false, cutout:'62%', animation:{duration:150},
+          plugins:{
+            legend:{ display:false },
+            tooltip:{ callbacks:{ label:function(c){
+              return ' ' + c.label + ': USD ' + fmt(c.raw,0) + ' M · ' + fmt(c.raw/totalCierre*100,1) + '%'; } } }
+          }
+        },
+        plugins:[centro]
+      });
+
+      document.getElementById('compSub').textContent = 'Al ' + etiqueta(T.dates[iUlt]) + ' · VNO USD millones';
+      document.getElementById('dlComp').innerHTML = partes.map(function(p){
+        return '<li><span class="pt" style="background:' + COLOR[p.k] + '"></span>' +
+               '<span class="nm">' + p.k + '</span>' +
+               '<span class="vl">' + fmt(p.v,0) + '</span>' +
+               '<span class="pc">' + fmt(p.v/totalCierre*100,1) + '%</span></li>';
+      }).join('');
+    }
+
+    /* ---------- 3 · Pesos retirados por intervención ---------- */
+    if (T.dates.length && T.absorcion) {
+      new Chart(document.getElementById('chartAbs'), {
+        type:'bar',
+        data:{ labels:T.dates.map(etiqueta),
+               datasets:[{ label:'Pesos retirados', data:T.absorcion, backgroundColor:C_ABS,
+                           borderWidth:0, barPercentage:1, categoryPercentage:0.9 }] },
+        options:{
+          responsive:true, maintainAspectRatio:false, animation:{duration:150},
+          interaction:{ mode:'index', intersect:false },
+          plugins:{
+            legend:{ display:false },
+            tooltip:{ callbacks:{
+              label:function(c){ return ' ' + fmt(c.raw,2) + ' billones de $'; },
+              footer:function(items){
+                var ex = (T.explicacion || [])[items[0].dataIndex];
+                return (ex && ex !== 'Sin variacion') ? ex : '';
+              }
+            } }
+          },
+          scales:{
+            x:{ grid:{display:false}, ticks:{ color:'#6E7679', maxRotation:0, maxTicksLimit:10, autoSkipPadding:18 } },
+            y:{ beginAtZero:true, grid:{color:'rgba(0,0,0,0.05)'},
+                ticks:{ color:'#6E7679', callback:function(v){ return fmt(v,2); } } }
+          }
+        }
+      });
+      var acum = num(R['Absorcion DLK BCRA acumulada']);
+      var ruedas = T.absorcion.filter(function(v){ return v; }).length;
+      if (acum !== null) {
+        document.getElementById('absNota').textContent =
+          'Acumulado ' + fmt(acum,2) + ' billones de $ en ' + ruedas + ' ruedas con intervención. ' +
+          'Fuente: Finanzas, Rava, IOL y ANSES (FGS) · elaboración propia.';
+      }
+    }
+
+    /* ---------- 4 · BCRA por título ---------- */
+    if (PT.items && PT.items.length) {
+      new Chart(document.getElementById('chartTit'), {
+        type:'bar',
+        data:{ labels:PT.items.map(function(t){ return t.ticker; }),
+               datasets:[{ label:'BCRA', data:PT.items.map(function(t){ return t.bcra; }),
+                           backgroundColor:PT.items.map(function(_, i){
+                             return i % 2 ? COLOR['Privados DLK'] : COLOR['Stock BCRA']; }),
+                           borderWidth:0, barPercentage:0.7 }] },
+        options:{
+          indexAxis:'y',
+          responsive:true, maintainAspectRatio:false, animation:{duration:150},
+          plugins:{
+            legend:{ display:false },
+            tooltip:{ callbacks:{
+              label:function(c){ return ' USD ' + fmt(c.raw,0) + ' M'; },
+              footer:function(items){
+                var t = PT.items[items[0].dataIndex];
+                return 'Privados en el mismo título: USD ' + fmt(t.privados,0) + ' M · ' + t.clase;
+              }
+            } }
+          },
+          scales:{
+            x:{ beginAtZero:true, grid:{color:'rgba(0,0,0,0.05)'}, ticks:{ color:'#6E7679', callback:function(v){ return fmt(v,0); } } },
+            y:{ grid:{display:false}, ticks:{ color:'#333', font:{weight:'700'} } }
+          }
+        }
+      });
+      document.getElementById('titSub').textContent = 'Al ' + etiqueta(PT.fecha) + ' · VNO USD millones';
+    }
+
+    /* ---------- 5 · DLK + short sobre M2 ---------- */
     if (M2 && M2.dates && M2.dates.length) {
       var ordenM2 = ['DLK lineal', 'Bono dual TAMAR/A3500', 'Short futuros'];
-      var colorM2 = { 'DLK lineal':'#1B5F5E', 'Bono dual TAMAR/A3500':'#3C9794', 'Short futuros':'#FEB15F' };
+      var colorM2 = { 'DLK lineal':COLOR['Privados DLK'],
+                      'Bono dual TAMAR/A3500':COLOR['Dual TAMAR/A3500'],
+                      'Short futuros':C_ABS };
       var clavesM2 = ordenM2.filter(function(k){ return M2.series[k]; });
 
       var chM2 = new Chart(document.getElementById('chartM2'), {
@@ -145,118 +417,110 @@
             } }
           },
           scales:{
-            x:{ grid:{display:false}, ticks:{ color:'#6E7679', maxRotation:0, maxTicksLimit:12 } },
+            x:{ grid:{display:false}, ticks:{ color:'#6E7679', maxRotation:0, maxTicksLimit:12, autoSkipPadding:18 } },
             y:{ stacked:true, beginAtZero:true, grid:{color:'rgba(0,0,0,0.05)'},
                 ticks:{ color:'#6E7679', callback:function(v){ return v + '%'; } } }
           }
         }
       });
-      REG.m2 = { chart:chM2, fechas:M2.dates, vals:clavesM2.map(function(k){ return M2.series[k]; }),
+      REG.m2 = { chart:chM2, fechas:M2.dates, desde:0,
+                 vals:clavesM2.map(function(k){ return M2.series[k]; }),
                  btns:'#m2TlBtns', orden:[90,180,365,0] };
 
       // El modelo marca como provisional el ultimo tramo, hasta que cierren los
       // datos de base: conviene decirlo y no que se lea como dato firme.
       var iProv = (M2.provisional || []).indexOf(true);
       if (iProv >= 0) {
-        document.getElementById('m2Note').textContent =
-          'Fuente: Eco Go en base a BCRA · desde el ' + etiqueta(M2.dates[iProv]) +
-          ' el tramo es provisional (datos de base aún sin cerrar).';
+        document.getElementById('m2Note').textContent +=
+          ' Desde el ' + etiqueta(M2.dates[iProv]) + ' el tramo es provisional (sin nuevas observaciones).';
       }
-    }
-
-    /* ---------- 2 · Tenencia por tenedor ---------- */
-    var T = D.tenedores;
-    if (T && T.dates && T.dates.length) {
-      var ordenT = ['Circulación privada', 'Stock BCRA', 'Stock FGS'];
-      var colorT = { 'Circulación privada':'#1B5F5E', 'Stock BCRA':'#8FCCCA', 'Stock FGS':'#CBD5D6' };
-      // Se deja afuera el tenedor que esta en cero todos los dias: ocupa lugar
-      // en la leyenda y no dice nada.
-      var clavesT = ordenT.filter(function(k){
-        var v = T.series[k];
-        return v && v.some(function(x){ return x; });
-      });
-
-      var chT = new Chart(document.getElementById('chartTen'), {
-        type: 'bar',
-        data: {
-          labels: T.dates.map(etiqueta),
-          datasets: clavesT.map(function(k){
-            return { label:k, data:T.series[k], backgroundColor:colorT[k], borderWidth:0,
-                     stack:'ten', barPercentage:1, categoryPercentage:1 };
-          })
-        },
-        options: {
-          responsive:true, maintainAspectRatio:false, animation:{duration:150},
-          interaction:{ mode:'index', intersect:false },
-          plugins:{
-            legend:{ position:'bottom', labels:{ boxWidth:12, boxHeight:12, usePointStyle:true, pointStyle:'circle', font:{size:11} } },
-            tooltip:{ callbacks:{
-              label:function(c){ return ' ' + c.dataset.label + ': USD ' + fmt(c.raw,0) + ' M'; },
-              footer:function(items){
-                var t = items.reduce(function(a,it){ return a + (Number(it.raw)||0); }, 0);
-                return 'Total sistema: USD ' + fmt(t,0) + ' M';
-              }
-            } }
-          },
-          scales:{
-            x:{ stacked:true, grid:{display:false}, ticks:{ color:'#6E7679', maxRotation:0, maxTicksLimit:12 } },
-            y:{ stacked:true, beginAtZero:true, grid:{color:'rgba(0,0,0,0.05)'},
-                ticks:{ color:'#6E7679', callback:function(v){ return 'USD '+fmt(v,0)+'M'; } } }
-          }
-        }
-      });
-      REG.ten = { chart:chT, fechas:T.dates, vals:clavesT.map(function(k){ return T.series[k]; }),
-                  btns:'#tenTlBtns', orden:[30,90,0] };
     }
 
     /* ---------- indicadores de cabecera ---------- */
     (function(){
       var k = [];
-      if (M2 && M2.dates.length) {
-        var i = M2.dates.length - 1;
-        var total = Object.keys(M2.series).reduce(function(a,s){ return a + (M2.series[s][i]||0); }, 0);
-        k.push({ l:'Cobertura total', v:fmt(total,1)+'%', s:'de M2 · al '+etiqueta(M2.dates[i]) });
-        if (M2.series['Bono dual TAMAR/A3500']) {
-          k.push({ l:'Aporte del bono dual', v:fmt(M2.series['Bono dual TAMAR/A3500'][i],1)+' pp',
-                   s:'dentro de la cobertura total' });
-        }
+      function push(label, valor, sub, color){
+        if (valor === null || valor === undefined) return;
+        k.push({ l:label, v:valor, s:sub || '', c:color || '' });
       }
-      if (T && T.dates.length) {
-        var j = T.dates.length - 1;
-        var tot = Object.keys(T.series).reduce(function(a,s){ return a + (T.series[s][j]||0); }, 0);
-        k.push({ l:'Total sistema', v:'USD '+fmt(tot,0)+'M', s:'al '+etiqueta(T.dates[j]) });
-        if (T.series['Stock BCRA']) {
-          k.push({ l:'Stock BCRA', v:'USD '+fmt(T.series['Stock BCRA'][j],0)+'M',
-                   s: tot ? fmt(T.series['Stock BCRA'][j]/tot*100,1)+'% del total' : '' });
-        }
+      var tot = num(R['Total sistema']);
+      push('Total sistema', fmt(tot,0), 'VNO USD mm', C_TOTAL);
+      [['Circulacion privada DLK lineal', 'Privados DLK', 'Privados DLK'],
+       ['Bono dual TAMAR/A3500',          'Dual A3500',   'Dual TAMAR/A3500'],
+       ['Stock BCRA',                     'Stock BCRA',   'Stock BCRA'],
+       ['Stock FGS',                      'Stock FGS',    'Stock FGS']].forEach(function(x){
+        var v = num(R[x[0]]);
+        push(x[1], fmt(v,0), tot ? fmt(v/tot*100,1) + '% del total' : '', COLOR[x[2]]);
+      });
+      var abs = num(R['Absorcion DLK BCRA acumulada']);
+      if (abs !== null && T.dates.length) {
+        push('Pesos retirados', fmt(abs,2) + ' bill.', 'desde ' + etiqueta(T.dates[0]), C_ABS);
       }
+      var vp = num(R['Variacion privados']);
+      if (vp !== null) push('Var. privados', (vp > 0 ? '+' : '') + fmt(vp,0), 'desde inicio de serie', COLOR['Stock FGS']);
+
       document.getElementById('dlKpis').innerHTML = k.map(function(x){
-        return '<div class="dl-kpi"><p class="dl-kpi__label">'+x.l+'</p>' +
-               '<p class="dl-kpi__value">'+x.v+'</p><p class="dl-kpi__sub">'+x.s+'</p></div>';
+        return '<div class="dl-kpi"><div class="dl-kpi__barra" style="--c:' + x.c + '"></div>' +
+               '<div class="dl-kpi__cuerpo"><p class="dl-kpi__label">' + x.l + '</p>' +
+               '<p class="dl-kpi__value">' + x.v + '</p>' +
+               '<p class="dl-kpi__sub">' + x.s + '</p></div></div>';
       }).join('');
+    })();
+
+    /* ---------- actualizado al ---------- */
+    (function(){
+      var f = R['Fecha de actualizacion'];
+      if (f && f.valor) {
+        var p = document.querySelector('.eg-page-header__subtitle');
+        if (p) p.textContent += ' · actualizado al ' + etiqueta(f.valor);
+      }
     })();
 
     /* ---------- descargas ---------- */
     if (window.EcoGo) {
-      function dl(sel, nombre, bloque, extra){
-        if (!bloque || !bloque.dates || !bloque.dates.length) return;
-        EcoGo.dlBtn(sel, nombre, function(){
-          var ks = Object.keys(bloque.series);
+      if (T.dates.length) {
+        EcoGo.dlBtn('#chartTen', 'tenencia_dlk_por_tenedor.csv', function(){
+          var ks = Object.keys(T.series);
           return {
-            headers: ['Fecha'].concat(ks).concat(extra ? ['Provisional'] : []),
-            rows: bloque.dates.map(function(f, i){
-              var fila = [f].concat(ks.map(function(s){
-                var v = bloque.series[s][i];
-                return (v === null || v === undefined) ? '' : v;
-              }));
-              if (extra) fila.push((bloque.provisional || [])[i] ? 'sí' : '');
-              return fila;
+            headers: ['Fecha'].concat(ks).concat(['Total sistema', 'Pesos retirados (bill. $)', 'Evento', 'Explicación']),
+            rows: T.dates.map(function(f, i){
+              var evs = [];
+              if (EV.mercado[f]) evs.push('licitación/canje mercado: ' + EV.mercado[f].join(' '));
+              if (EV.bcra[f])    evs.push('canje BCRA: ' + EV.bcra[f].join(' '));
+              return [f].concat(ks.map(function(s){
+                var v = T.series[s][i]; return (v === null || v === undefined) ? '' : v;
+              })).concat([T.total[i], T.absorcion[i], evs.join(' | '), (T.explicacion||[])[i] || '']);
+            })
+          };
+        });
+        EcoGo.dlBtn('#chartAbs', 'pesos_retirados_intervencion_bcra.csv', function(){
+          return { headers:['Fecha', 'Pesos retirados (billones de $)', 'Explicación'],
+                   rows: T.dates.map(function(f, i){
+                     return [f, T.absorcion[i], (T.explicacion||[])[i] || ''];
+                   }) };
+        });
+      }
+      if (PT.items && PT.items.length) {
+        EcoGo.dlBtn('#chartTit', 'bcra_por_titulo.csv', function(){
+          return { headers:['Fecha', 'Ticker', 'BCRA (VNO USD mm)', 'Privados (VNO USD mm)', 'Clase'],
+                   rows: PT.items.map(function(t){
+                     return [PT.fecha, t.ticker, t.bcra, t.privados, t.clase];
+                   }) };
+        });
+      }
+      if (M2 && M2.dates && M2.dates.length) {
+        EcoGo.dlBtn('#chartM2', 'dlk_short_sobre_m2.csv', function(){
+          var ks = Object.keys(M2.series);
+          return {
+            headers: ['Fecha'].concat(ks).concat(['Provisional']),
+            rows: M2.dates.map(function(f, i){
+              return [f].concat(ks.map(function(s){
+                var v = M2.series[s][i]; return (v === null || v === undefined) ? '' : v;
+              })).concat([(M2.provisional || [])[i] ? 'sí' : '']);
             })
           };
         });
       }
-      dl('#chartM2', 'dlk_short_sobre_m2.csv', M2, true);
-      dl('#chartTen', 'tenencia_dlk_por_tenedor.csv', T, false);
     }
   })();
   </script>

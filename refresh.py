@@ -1942,8 +1942,9 @@ def extract_tenencia_dlk(status):
 
       1) DLK privados + short sobre M2, diario. Sale del CSV que deja la
          corrida del modelo, no del PNG, asi queda interactivo.
-      2) Tenencia por tenedor (circulacion privada, BCRA, FGS), de la hoja
-         'Serie diaria' del Excel de outputs.
+      2) El tablero de tenencia completo (apilado por tenedor, indicadores,
+         absorcion diaria, canjes y que titulos tiene el BCRA), del Excel
+         'Tenencia DLK BCRA.xlsx' de la raiz de la carpeta.
 
     La corrida del modelo deja una subcarpeta con la fecha en el nombre
     (dlk_futuros_m2_AAAAMMDD_HHMMSS), asi que se toma la mas nueva en vez de
@@ -2018,37 +2019,129 @@ def extract_tenencia_dlk(status):
         status.fail("Tenencia DLK - sobre M2", str(e))
         traceback.print_exc()
 
-    # ---- 2) Tenencia por tenedor ----
+    # ---- 2) El tablero de tenencia (Tenencia DLK BCRA.xlsx, en la raiz) ----
+    # Ojo: en outputs/ hay un "sin restriccion stock BCRA.xlsx" que quedo
+    # congelado en julio. El que se mantiene al dia es el de la raiz, y ademas
+    # es el que trae todo el tablero: tenedores, absorcion, eventos y titulos.
     try:
-        xlsx = os.path.join(base, "outputs", "Tenencia DLK BCRA sin restriccion stock BCRA.xlsx")
+        xlsx = os.path.join(base, "Tenencia DLK BCRA.xlsx")
         if not os.path.exists(xlsx):
-            status.warn("Tenencia DLK - por tenedor", f"no se encontro {xlsx}")
+            status.warn("Tenencia DLK - tablero", f"no se encontro {xlsx}")
         else:
-            ws = _open_wb(xlsx, read_only=False)["Serie diaria"]
-            enc = {str(ws.cell(1, c).value or '').strip().lower(): c
-                   for c in range(1, (ws.max_column or 20) + 1)}
-            QUIERO = [('circulacion_privada', 'Circulación privada'),
-                      ('stock_bcra', 'Stock BCRA'),
-                      ('stock_fgs', 'Stock FGS')]
-            cols = [(enc[k], lab) for k, lab in QUIERO if k in enc]
-            fechas, series = [], {lab: [] for _, lab in cols}
+            wb = _open_wb(xlsx, read_only=False)
+
+            def _col(ws, *claves):
+                """Numero de columna cuyo encabezado empieza con alguna clave."""
+                for c in range(1, (ws.max_column or 30) + 1):
+                    h = str(ws.cell(1, c).value or "").strip().lower()
+                    if any(h.startswith(k) for k in claves):
+                        return c
+                return None
+
+            # --- 2a) Serie diaria: apilado por tenedor + absorcion diaria ---
+            ws = wb["Serie diaria"]
+            COLS = [("stock bcra", "Stock BCRA"),
+                    ("stock fgs", "Stock FGS"),
+                    ("circulacion privada dlk", "Privados DLK"),
+                    ("bono dual", "Dual TAMAR/A3500")]
+            cols = [(_col(ws, k), lab) for k, lab in COLS]
+            cols = [(c, lab) for c, lab in cols if c]
+            c_tot = _col(ws, "total sistema")
+            c_abs = _col(ws, "absorcion dlk bcra")
+            c_exp = _col(ws, "explicacion")
+
+            fechas, total, absorcion, explic = [], [], [], []
+            series = {lab: [] for _, lab in cols}
             for r in range(2, (ws.max_row or 0) + 1):
                 f = ws.cell(r, 1).value
                 if not isinstance(f, datetime):
                     continue
-                fechas.append(f.strftime('%Y-%m-%d'))
+                fechas.append(f.strftime("%Y-%m-%d"))
                 for c, lab in cols:
                     series[lab].append(fmt_n(ws.cell(r, c).value))
-            data['tenedores'] = {'dates': fechas, 'series': series}
+                total.append(fmt_n(ws.cell(r, c_tot).value) if c_tot else None)
+                absorcion.append(fmt_n(ws.cell(r, c_abs).value) if c_abs else None)
+                explic.append(str(ws.cell(r, c_exp).value or "").strip() if c_exp else "")
+
+            data["tenedores"] = {"dates": fechas, "series": series, "total": total,
+                                 "absorcion": absorcion, "explicacion": explic}
             status.ok("Tenencia DLK - por tenedor",
-                      f"{len(fechas)} dias ({fechas[0]}–{fechas[-1]}) · {len(cols)} tenedores"
+                      f"{len(fechas)} dias ({fechas[0]}-{fechas[-1]}) · {len(cols)} tenedores"
                       if fechas else "sin filas")
             if fechas:
-                _avisar_si_viejo(status, "Tenencia DLK - por tenedor", fechas[-1], meses=2,
-                                 extra="el archivo 'Tenencia DLK BCRA.xlsx' de la misma carpeta "
-                                       "suele estar mas al dia, pero es otra metodologia")
+                _avisar_si_viejo(status, "Tenencia DLK - por tenedor", fechas[-1], meses=2)
+
+            # --- 2b) Resumen: los indicadores de cabecera, tal cual el Excel ---
+            res = {}
+            wr = wb["Resumen"]
+            for r in range(2, (wr.max_row or 0) + 1):
+                k = str(wr.cell(r, 1).value or "").strip()
+                if not k:
+                    continue
+                v = wr.cell(r, 2).value
+                res[k] = {"valor": v.strftime("%Y-%m-%d") if isinstance(v, datetime) else fmt_n(v),
+                          "unidad": str(wr.cell(r, 3).value or "").strip(),
+                          "nota": str(wr.cell(r, 4).value or "").strip()}
+            data["resumen"] = res
+
+            # --- 2c) Por instrumento: que tiene el BCRA, al ultimo dia ---
+            wi = wb["Por instrumento"]
+            c_tk, c_bc = _col(wi, "ticker"), _col(wi, "bcra")
+            c_pr, c_cl = _col(wi, "privados"), _col(wi, "clase")
+            ult, porf = None, {}
+            for r in range(2, (wi.max_row or 0) + 1):
+                f = wi.cell(r, 1).value
+                if not isinstance(f, datetime):
+                    continue
+                porf.setdefault(f, []).append(r)
+                ult = f if ult is None or f > ult else ult
+            titulos = []
+            for r in porf.get(ult, []):
+                b = fmt_n(wi.cell(r, c_bc).value) if c_bc else None
+                if not b:
+                    continue
+                titulos.append({"ticker": str(wi.cell(r, c_tk).value or "").strip(),
+                                "bcra": b,
+                                "privados": fmt_n(wi.cell(r, c_pr).value) if c_pr else None,
+                                "clase": str(wi.cell(r, c_cl).value or "").strip()})
+            titulos.sort(key=lambda t: -(t["bcra"] or 0))
+            data["por_titulo"] = {"fecha": ult.strftime("%Y-%m-%d") if ult else None,
+                                  "items": titulos}
+            status.ok("Tenencia DLK - BCRA por titulo",
+                      f"{len(titulos)} titulos al {data['por_titulo']['fecha']}")
+
+            # --- 2d) Eventos: las marcas que el grafico pone sobre el eje ---
+            # Se separan como en el tablero: lo que pasa en el mercado
+            # (licitaciones y canjes) de los canjes contra el BCRA.
+            MERCADO = ("emision mercado", "canje/conversion mercado",
+                       "baja por canje/conversion mercado")
+            BCRA = ("canje/conversion bcra", "baja por canje/conversion bcra",
+                    "canje oculto bcra entrada", "canje oculto bcra salida",
+                    "reclasificacion canje oculto bcra")
+            we = wb["Eventos"]
+            desde = fechas[0] if fechas else "0000-00-00"
+            ev = {"mercado": {}, "bcra": {}}
+            for r in range(2, (we.max_row or 0) + 1):
+                f = we.cell(r, 1).value
+                if not isinstance(f, datetime):
+                    continue
+                fe = f.strftime("%Y-%m-%d")
+                if fe < desde:
+                    continue
+                tipo = str(we.cell(r, 3).value or "").strip().lower()
+                cual = "mercado" if tipo in MERCADO else ("bcra" if tipo in BCRA else None)
+                if not cual:
+                    continue
+                tk = str(we.cell(r, 2).value or "").strip()
+                ev[cual].setdefault(fe, [])
+                if tk and tk not in ev[cual][fe]:
+                    ev[cual][fe].append(tk)
+            data["eventos"] = ev
+            status.ok("Tenencia DLK - eventos",
+                      f"{len(ev['mercado'])} dias con licitacion/canje de mercado · "
+                      f"{len(ev['bcra'])} con canje BCRA")
     except Exception as e:
-        status.fail("Tenencia DLK - por tenedor", str(e))
+        status.fail("Tenencia DLK - tablero", str(e))
         traceback.print_exc()
 
     return data if data else None
