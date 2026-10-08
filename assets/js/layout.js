@@ -267,8 +267,11 @@ function dlBtn(anchorSel, filename, getFn) {
   });
 
   /* Busca el card contenedor subiendo el DOM */
+  /* Si el card no esta en esta lista se cae al fallback, que mete el boton
+     como hermano del canvas: dentro de un contenedor de alto fijo eso corre el
+     grafico hacia abajo y lo hace desbordar sobre la fuente del pie. */
   var CARD = ['chart-card','tc-chart-card','res-card','intl-chart-card',
-              'eg-card','eg-chart-card','rofex-card'];
+              'eg-card','eg-chart-card','rofex-card','dl-card'];
   var card = null;
   var node = anchor.parentElement;
   while (node && node !== document.body) {
@@ -281,7 +284,8 @@ function dlBtn(anchorSel, filename, getFn) {
   var titleEl = card
     ? (card.querySelector('h3')
        || card.querySelector('.res-title')
-       || card.querySelector('.intl-chart-card__title'))
+       || card.querySelector('.intl-chart-card__title')
+       || card.querySelector('.dl-title'))
     : null;
 
   if (titleEl) {
