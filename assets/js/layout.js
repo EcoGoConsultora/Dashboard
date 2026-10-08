@@ -22,7 +22,6 @@ const SECTIONS = [
   { id:'actividad-clientes', label:'Actividad · Monitor',       href:'pages/actividad-clientes.html',  group:'Clientes', clientes:true, icon:'activity',    desc:'Monitor de actividad económica y proyecciones.' },
   { id:'rigi',               label:'RIGI',                      href:'pages/rigi-clientes.html',       group:'Clientes', clientes:true, icon:'pie-chart',   desc:'Régimen de Incentivo para Grandes Inversiones.' },
   { id:'reservas',           label:'Reservas',                  href:'pages/reservas-clientes.html',   group:'Clientes', clientes:true, icon:'shield',      desc:'Composición RIN, reservas brutas y depósitos.' },
-  { id:'monetarias-clientes',label:'Monetarias · M3 CCL',       href:'pages/monetarias-clientes.html', group:'Clientes', clientes:true, icon:'trending-up', desc:'Agregados monetarios en dólares (M3 CCL).' },
   { id:'deuda',              label:'Deuda',                     href:'pages/deuda-clientes.html',      group:'Clientes', clientes:true, icon:'layers',      desc:'Deuda pública histórica, vencimientos en pesos y perfil con privados.' },
   { id:'tenencia-dlk',       label:'Tenencia DLK BCRA',         href:'pages/tenencia-dlk-clientes.html', group:'Clientes', clientes:true, icon:'bar-chart2', desc:'Dollar-linked privados y short de futuros sobre M2, y tenencia por tenedor.' },
   { id:'internacional2',     label:'Internacional · Consensus', href:'pages/internacional2.html',      group:'Clientes', clientes:true, icon:'map',         desc:'LatinFocus Consensus Forecast — resumen y detalle por país.' },
