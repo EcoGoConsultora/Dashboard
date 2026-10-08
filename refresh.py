@@ -57,6 +57,9 @@ EXCEL_PATHS = {
     "res_dep":        os.path.join(BASE_EXCEL, "Monetarias", "Reservas brutas y depósitos.xlsx"),
     "agregados_mon":  os.path.join(BASE_EXCEL, "Monetarias", "Copia de Agregados monetarios.xlsx"),
     "monitor_mon":    os.path.join(BASE_EXCEL, "Monetarias", "Monitor monetario mensual.xlsx"),
+    # Carpeta del proyecto, no un archivo: adentro hay una subcarpeta por corrida
+    # con la fecha en el nombre (dlk_futuros_m2_AAAAMMDD_HHMMSS).
+    "tenencia_dlk":   os.path.join(BASE_EXCEL, "Monetarias", "Tenencia DLK BCRA"),
     "rigi":           os.path.join(BASE_EXCEL, "Códigos", "Python", "Patru", "rigi", "Proyectos RIGI.xlsx"),
     "deuda_lopez_murphy":     os.path.join(BASE_EXCEL, "Deuda", "Deuda Lopez Murphy.xlsx"),
     "deuda_en_pesos":         os.path.join(BASE_EXCEL, "Deuda", "Deuda en pesos.xlsx"),
@@ -1930,6 +1933,127 @@ def extract_comercio(status):
     return data if data else None
 
 # =====================================================================
+#  TENENCIA DLK BCRA (dashboard clientes)
+# =====================================================================
+def extract_tenencia_dlk(status):
+    """
+    Seccion Tenencia DLK BCRA, con los dos cuadros que hoy se publican como
+    imagen:
+
+      1) DLK privados + short sobre M2, diario. Sale del CSV que deja la
+         corrida del modelo, no del PNG, asi queda interactivo.
+      2) Tenencia por tenedor (circulacion privada, BCRA, FGS), de la hoja
+         'Serie diaria' del Excel de outputs.
+
+    La corrida del modelo deja una subcarpeta con la fecha en el nombre
+    (dlk_futuros_m2_AAAAMMDD_HHMMSS), asi que se toma la mas nueva en vez de
+    fijar una: cuando vuelvan a correr el modelo, el refresh la encuentra solo.
+    """
+    import csv as _csv
+    base = EXCEL_PATHS["tenencia_dlk"]
+    if not os.path.isdir(base):
+        status.warn("Tenencia DLK", f"no existe la carpeta {base}")
+        return None
+
+    data = {}
+
+    # ---- 1) DLK privados + short sobre M2 (serie diaria del modelo) ----
+    try:
+        corridas = []
+        for raiz, dirs, _ in os.walk(base):
+            if raiz.count(os.sep) - base.count(os.sep) > 2:
+                dirs[:] = []
+                continue
+            for d in dirs:
+                if d.lower().startswith('dlk_futuros_m2_'):
+                    corridas.append(os.path.join(raiz, d))
+        if not corridas:
+            status.warn("Tenencia DLK - sobre M2", "no encontre ninguna carpeta dlk_futuros_m2_*")
+        else:
+            # el nombre lleva la fecha, asi que ordenar por nombre alcanza
+            corrida = sorted(corridas, key=lambda p: os.path.basename(p))[-1]
+            csvs = [f for f in os.listdir(corrida)
+                    if f.lower().endswith('.csv') and 'con_dual' in f.lower()] or \
+                   [f for f in os.listdir(corrida) if f.lower().endswith('.csv')]
+            if not csvs:
+                status.warn("Tenencia DLK - sobre M2", f"no hay CSV en {os.path.basename(corrida)}")
+            else:
+                ruta = os.path.join(corrida, sorted(csvs)[-1])
+                with open(ruta, encoding='utf-8-sig', newline='') as f:
+                    filas = list(_csv.DictReader(f))
+
+                def num(fila, col):
+                    v = (fila.get(col) or '').strip()
+                    try:
+                        return round(float(v), 4)
+                    except ValueError:
+                        return None
+
+                fechas, prov = [], []
+                # El dual esta adentro del DLK privados, asi que para apilar sin
+                # contar dos veces se grafica el DLK lineal (privados - dual).
+                series = {'DLK lineal': [], 'Bono dual TAMAR/A3500': [], 'Short futuros': []}
+                for fila in filas:
+                    fe = (fila.get('fecha') or '').strip()[:10]
+                    if not re.fullmatch(r'\d{4}-\d{2}-\d{2}', fe):
+                        continue
+                    dlk, dual = num(fila, 'dlk_m2_pct'), num(fila, 'dual_m2_pp')
+                    fechas.append(fe)
+                    series['DLK lineal'].append(
+                        round(dlk - dual, 4) if dlk is not None and dual is not None else dlk)
+                    series['Bono dual TAMAR/A3500'].append(dual)
+                    series['Short futuros'].append(num(fila, 'short_m2_pct'))
+                    prov.append((fila.get('tramo_provisional') or '').strip().lower() == 'true')
+
+                data['sobre_m2'] = {'dates': fechas, 'series': series, 'provisional': prov,
+                                    'corrida': os.path.basename(corrida)}
+                desde_prov = next((f for f, p in zip(fechas, prov) if p), None)
+                status.ok("Tenencia DLK - sobre M2",
+                          f"{len(fechas)} dias ({fechas[0]}–{fechas[-1]}) · corrida "
+                          f"{os.path.basename(corrida)}"
+                          + (f" · provisional desde {desde_prov}" if desde_prov else ""))
+                if fechas:
+                    _avisar_si_viejo(status, "Tenencia DLK - sobre M2", fechas[-1], meses=2)
+    except Exception as e:
+        status.fail("Tenencia DLK - sobre M2", str(e))
+        traceback.print_exc()
+
+    # ---- 2) Tenencia por tenedor ----
+    try:
+        xlsx = os.path.join(base, "outputs", "Tenencia DLK BCRA sin restriccion stock BCRA.xlsx")
+        if not os.path.exists(xlsx):
+            status.warn("Tenencia DLK - por tenedor", f"no se encontro {xlsx}")
+        else:
+            ws = _open_wb(xlsx, read_only=False)["Serie diaria"]
+            enc = {str(ws.cell(1, c).value or '').strip().lower(): c
+                   for c in range(1, (ws.max_column or 20) + 1)}
+            QUIERO = [('circulacion_privada', 'Circulación privada'),
+                      ('stock_bcra', 'Stock BCRA'),
+                      ('stock_fgs', 'Stock FGS')]
+            cols = [(enc[k], lab) for k, lab in QUIERO if k in enc]
+            fechas, series = [], {lab: [] for _, lab in cols}
+            for r in range(2, (ws.max_row or 0) + 1):
+                f = ws.cell(r, 1).value
+                if not isinstance(f, datetime):
+                    continue
+                fechas.append(f.strftime('%Y-%m-%d'))
+                for c, lab in cols:
+                    series[lab].append(fmt_n(ws.cell(r, c).value))
+            data['tenedores'] = {'dates': fechas, 'series': series}
+            status.ok("Tenencia DLK - por tenedor",
+                      f"{len(fechas)} dias ({fechas[0]}–{fechas[-1]}) · {len(cols)} tenedores"
+                      if fechas else "sin filas")
+            if fechas:
+                _avisar_si_viejo(status, "Tenencia DLK - por tenedor", fechas[-1], meses=2,
+                                 extra="el archivo 'Tenencia DLK BCRA.xlsx' de la misma carpeta "
+                                       "suele estar mas al dia, pero es otra metodologia")
+    except Exception as e:
+        status.fail("Tenencia DLK - por tenedor", str(e))
+        traceback.print_exc()
+
+    return data if data else None
+
+# =====================================================================
 #  POTENCIAL EXPORTADOR 2026-2036 (dashboard clientes)
 # =====================================================================
 def extract_potencial_exportador(status):
@@ -2538,7 +2662,7 @@ def main():
     status = Status()
 
     # ---- Precios ----
-    print("[1/14] Procesando Precios...")
+    print("[1/16] Procesando Precios...")
     try:
         d = extract_precios(status)
         if d:
@@ -2549,7 +2673,7 @@ def main():
         traceback.print_exc()
 
     # ---- EMAE Series ----
-    print("\n[2/14] Procesando EMAE Series (actividad)...")
+    print("\n[2/16] Procesando EMAE Series (actividad)...")
     try:
         d = extract_emae_series(status)
         if d:
@@ -2560,7 +2684,7 @@ def main():
         traceback.print_exc()
 
     # ---- Empleo ----
-    print("\n[3/14] Procesando Empleo...")
+    print("\n[3/16] Procesando Empleo...")
     try:
         d = extract_empleo(status)
         if d:
@@ -2571,7 +2695,7 @@ def main():
         traceback.print_exc()
 
     # ---- Salarios ----
-    print("\n[4/14] Procesando Salarios...")
+    print("\n[4/16] Procesando Salarios...")
     try:
         d = extract_salarios(status)
         if d:
@@ -2582,7 +2706,7 @@ def main():
         traceback.print_exc()
 
     # ---- Tipo de Cambio ----
-    print("\n[5/14] Procesando Tipo de Cambio...")
+    print("\n[5/16] Procesando Tipo de Cambio...")
     try:
         d = extract_tipo_cambio(status)
         if d:
@@ -2593,7 +2717,7 @@ def main():
         traceback.print_exc()
 
     # ---- Reservas ----
-    print("\n[6/14] Procesando Reservas...")
+    print("\n[6/16] Procesando Reservas...")
     try:
         d = extract_reservas(status)
         if d:
@@ -2604,7 +2728,7 @@ def main():
         traceback.print_exc()
 
     # ---- Internacional ----
-    print("\n[7/14] Procesando Internacional (Monitor mundial)...")
+    print("\n[7/16] Procesando Internacional (Monitor mundial)...")
     try:
         run_monitor_mundial(status)
         extract_internacional(status)
@@ -2614,14 +2738,14 @@ def main():
         traceback.print_exc()
 
     # ---- Mercados (API) ----
-    print("\n[8/14] Actualizando Mercados (EcoGo Markets API)...")
+    print("\n[8/16] Actualizando Mercados (EcoGo Markets API)...")
     try:
         extract_mercados(status)
     except Exception as e:
         status.warn("Mercados", f"no se pudo actualizar desde la API: {e}")
 
     # ---- Actividad IPI (Indicadores de actividad) ----
-    print("\n[9/14] Actualizando Indicadores de Actividad (IPI - Todos.xlsx)...")
+    print("\n[9/16] Actualizando Indicadores de Actividad (IPI - Todos.xlsx)...")
     try:
         from extract_actividad_ipi import run_extraction as run_ipi
         ipi_path = os.path.join(BASE_EXCEL, "Actividad", "IPI - Todos.xlsx")
@@ -2635,7 +2759,7 @@ def main():
         traceback.print_exc()
 
     # ---- Series Largas (Anexo histórico) ----
-    print("\n[10/14] Actualizando Series Largas (Anexo.xlsx)...")
+    print("\n[10/16] Actualizando Series Largas (Anexo.xlsx)...")
     try:
         from extract_series_largas import run_extraction
         anexo_path = os.path.join(BASE_EXCEL, "03 Informes y Anexos", "Cuadros y Anexos", "Anexos nuevos", "Anexo.xlsx")
@@ -2649,7 +2773,7 @@ def main():
         traceback.print_exc()
 
     # ---- Monetarias ----
-    print("\n[11/14] Procesando Monetarias...")
+    print("\n[11/16] Procesando Monetarias...")
     try:
         d = extract_monetarias(status)
         if d:
@@ -2660,7 +2784,7 @@ def main():
         traceback.print_exc()
 
     # ---- Deuda ----
-    print("\n[12/14] Procesando Deuda...")
+    print("\n[12/16] Procesando Deuda...")
     try:
         d = extract_deuda(status)
         if d:
@@ -2671,7 +2795,7 @@ def main():
         traceback.print_exc()
 
     # ---- Monitor de Actividad ----
-    print("\n[13/14] Procesando Monitor de Actividad...")
+    print("\n[13/16] Procesando Monitor de Actividad...")
     try:
         d = extract_monitor_actividad(status)
         if d:
@@ -2681,7 +2805,7 @@ def main():
         traceback.print_exc()
 
     # ---- Comercio exterior ----
-    print("\n[14/15] Procesando Comercio exterior...")
+    print("\n[14/16] Procesando Comercio exterior...")
     try:
         d = extract_comercio(status)
         if d:
@@ -2692,7 +2816,7 @@ def main():
         traceback.print_exc()
 
     # ---- Potencial exportador 2026-2036 ----
-    print("\n[15/15] Procesando Potencial exportador...")
+    print("\n[15/16] Procesando Potencial exportador...")
     try:
         d = extract_potencial_exportador(status)
         if d:
@@ -2700,6 +2824,17 @@ def main():
             status.ok("Potencial exportador", f"{sz:,} bytes")
     except Exception as e:
         status.fail("Potencial exportador", str(e))
+        traceback.print_exc()
+
+    # ---- Tenencia DLK BCRA ----
+    print("\n[16/16] Procesando Tenencia DLK BCRA...")
+    try:
+        d = extract_tenencia_dlk(status)
+        if d:
+            sz = save_data("tenencia_dlk", d)
+            status.ok("Tenencia DLK BCRA", f"{sz:,} bytes")
+    except Exception as e:
+        status.fail("Tenencia DLK BCRA", str(e))
         traceback.print_exc()
 
     # ---- Sellar la version de los datos en las paginas ----

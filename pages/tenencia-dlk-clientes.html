@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Tenencia DLK BCRA · Eco Go</title>
+  <link rel="stylesheet" href="../assets/css/theme.css?v=202610081219"/>
+  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .dl-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:20px 24px 24px;margin-bottom:24px}
+    .dl-title{font-size:1rem;font-weight:700;color:var(--eg-teal-dark);margin:0 0 4px}
+    .dl-sub{font-size:.76rem;color:var(--color-text-muted);margin:0 0 14px}
+    .dl-note{font-size:.72rem;color:var(--color-text-muted);margin-top:10px}
+    .dl-box{position:relative;height:400px}
+    .dl-head{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+    .tl-bar{display:flex;align-items:center;gap:6px}
+    .tl-btn{padding:3px 11px;border-radius:16px;border:1.5px solid var(--color-border);font-size:.74rem;font-weight:700;cursor:pointer;background:transparent;color:var(--color-text-muted);transition:all .15s}
+    .tl-btn.is-active{background:var(--eg-teal-dark);border-color:var(--eg-teal-dark);color:#fff}
+    .tl-sep{width:1px;height:16px;background:var(--color-border);margin:0 4px}
+    /* fila de indicadores */
+    .dl-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px}
+    .dl-kpi{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:16px 18px}
+    .dl-kpi__label{font-size:.68rem;color:var(--color-text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px}
+    .dl-kpi__value{font-size:1.5rem;font-weight:800;color:var(--eg-teal-dark);line-height:1;margin:0 0 4px}
+    .dl-kpi__sub{font-size:.72rem;color:var(--color-text-muted);margin:0}
+  </style>
+</head>
+<body data-depth="1" data-active-section="tenencia-dlk">
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+    <main class="eg-main">
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title">Tenencia DLK BCRA</h1>
+          <p class="eg-page-header__subtitle">Dollar-linked en manos privadas y posición en futuros, medidos contra M2, y tenencia por tenedor</p>
+        </div>
+      </section>
+
+      <div class="dl-kpis" id="dlKpis"></div>
+
+      <!-- DLK + short sobre M2 -->
+      <div class="dl-card">
+        <div class="dl-head">
+          <div>
+            <p class="dl-title">DLK privados y short de futuros sobre M2</p>
+            <p class="dl-sub" style="margin:0">Serie diaria · en % de M2 · el apilado suma la cobertura total</p>
+          </div>
+          <div class="tl-bar" id="m2TlBtns">
+            <button class="tl-btn" onclick="dlSetRange('m2',90)">3M</button>
+            <button class="tl-btn" onclick="dlSetRange('m2',180)">6M</button>
+            <button class="tl-btn" onclick="dlSetRange('m2',365)">1A</button>
+            <span class="tl-sep"></span>
+            <button class="tl-btn is-active" onclick="dlSetRange('m2',0)">Todo</button>
+          </div>
+        </div>
+        <div class="dl-box"><canvas id="chartM2"></canvas></div>
+        <p class="dl-note" id="m2Note">Fuente: Eco Go en base a BCRA</p>
+      </div>
+
+      <!-- Tenencia por tenedor -->
+      <div class="dl-card">
+        <div class="dl-head">
+          <div>
+            <p class="dl-title">Tenencia por tenedor</p>
+            <p class="dl-sub" style="margin:0">Serie diaria · valor nominal en millones de USD · sin restricción sobre el stock del BCRA</p>
+          </div>
+          <div class="tl-bar" id="tenTlBtns">
+            <button class="tl-btn" onclick="dlSetRange('ten',30)">1M</button>
+            <button class="tl-btn" onclick="dlSetRange('ten',90)">3M</button>
+            <span class="tl-sep"></span>
+            <button class="tl-btn is-active" onclick="dlSetRange('ten',0)">Todo</button>
+          </div>
+        </div>
+        <div class="dl-box"><canvas id="chartTen"></canvas></div>
+        <p class="dl-note">Fuente: Eco Go en base a BCRA</p>
+      </div>
+
+      <footer class="eg-footer">
+        <span>Tenencia DLK BCRA · Eco Go</span>
+        <a href="../index-clientes.html">← Volver al inicio</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../assets/js/layout.js?v=202610081219"></script>
+  <script src="../assets/data/tenencia_dlk.js?v=202610081219"></script>
+  <script>
+  (function(){
+    var D = window.TENENCIA_DLK_DATA || {};
+    Chart.defaults.font.family = "'HK Grotesk', system-ui, sans-serif";
+    Chart.defaults.color = '#333333';
+
+    function fmt(v, dec){
+      return Number(v).toLocaleString('es-AR', {minimumFractionDigits:dec||0, maximumFractionDigits:dec||0});
+    }
+    function etiqueta(iso){
+      var M=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      var p=String(iso).split('-');
+      return p[2]+'-'+M[(parseInt(p[1],10)||1)-1]+'-'+p[0].slice(2);
+    }
+
+    var REG = {};
+    window.dlSetRange = function(id, dias){
+      var r = REG[id];
+      if (!r) return;
+      var n = r.fechas.length;
+      var desde = dias === 0 ? 0 : Math.max(0, n - dias);
+      r.chart.data.labels = r.fechas.slice(desde).map(etiqueta);
+      r.chart.data.datasets.forEach(function(ds, i){ ds.data = r.vals[i].slice(desde); });
+      r.chart.update('none');
+      document.querySelectorAll(r.btns + ' .tl-btn').forEach(function(b, i){
+        b.classList.toggle('is-active', r.orden[i] === dias);
+      });
+    };
+
+    /* ---------- 1 · DLK + short sobre M2 ---------- */
+    var M2 = D.sobre_m2;
+    if (M2 && M2.dates && M2.dates.length) {
+      var ordenM2 = ['DLK lineal', 'Bono dual TAMAR/A3500', 'Short futuros'];
+      var colorM2 = { 'DLK lineal':'#1B5F5E', 'Bono dual TAMAR/A3500':'#3C9794', 'Short futuros':'#FEB15F' };
+      var clavesM2 = ordenM2.filter(function(k){ return M2.series[k]; });
+
+      var chM2 = new Chart(document.getElementById('chartM2'), {
+        type: 'line',
+        data: {
+          labels: M2.dates.map(etiqueta),
+          datasets: clavesM2.map(function(k){
+            return { label:k, data:M2.series[k], backgroundColor:colorM2[k], borderColor:colorM2[k],
+                     borderWidth:1, fill:true, pointRadius:0, pointHoverRadius:3, tension:0.15 };
+          })
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false, animation:{duration:150},
+          interaction:{ mode:'index', intersect:false },
+          plugins:{
+            legend:{ position:'bottom', labels:{ boxWidth:12, boxHeight:12, usePointStyle:true, pointStyle:'circle', font:{size:11} } },
+            tooltip:{ callbacks:{
+              label:function(c){ return ' ' + c.dataset.label + ': ' + fmt(c.raw,1) + '% de M2'; },
+              footer:function(items){
+                var t = items.reduce(function(a,it){ return a + (Number(it.raw)||0); }, 0);
+                return 'Cobertura total: ' + fmt(t,1) + '% de M2';
+              }
+            } }
+          },
+          scales:{
+            x:{ grid:{display:false}, ticks:{ color:'#6E7679', maxRotation:0, maxTicksLimit:12 } },
+            y:{ stacked:true, beginAtZero:true, grid:{color:'rgba(0,0,0,0.05)'},
+                ticks:{ color:'#6E7679', callback:function(v){ return v + '%'; } } }
+          }
+        }
+      });
+      REG.m2 = { chart:chM2, fechas:M2.dates, vals:clavesM2.map(function(k){ return M2.series[k]; }),
+                 btns:'#m2TlBtns', orden:[90,180,365,0] };
+
+      // El modelo marca como provisional el ultimo tramo, hasta que cierren los
+      // datos de base: conviene decirlo y no que se lea como dato firme.
+      var iProv = (M2.provisional || []).indexOf(true);
+      if (iProv >= 0) {
+        document.getElementById('m2Note').textContent =
+          'Fuente: Eco Go en base a BCRA · desde el ' + etiqueta(M2.dates[iProv]) +
+          ' el tramo es provisional (datos de base aún sin cerrar).';
+      }
+    }
+
+    /* ---------- 2 · Tenencia por tenedor ---------- */
+    var T = D.tenedores;
+    if (T && T.dates && T.dates.length) {
+      var ordenT = ['Circulación privada', 'Stock BCRA', 'Stock FGS'];
+      var colorT = { 'Circulación privada':'#1B5F5E', 'Stock BCRA':'#8FCCCA', 'Stock FGS':'#CBD5D6' };
+      // Se deja afuera el tenedor que esta en cero todos los dias: ocupa lugar
+      // en la leyenda y no dice nada.
+      var clavesT = ordenT.filter(function(k){
+        var v = T.series[k];
+        return v && v.some(function(x){ return x; });
+      });
+
+      var chT = new Chart(document.getElementById('chartTen'), {
+        type: 'bar',
+        data: {
+          labels: T.dates.map(etiqueta),
+          datasets: clavesT.map(function(k){
+            return { label:k, data:T.series[k], backgroundColor:colorT[k], borderWidth:0,
+                     stack:'ten', barPercentage:1, categoryPercentage:1 };
+          })
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false, animation:{duration:150},
+          interaction:{ mode:'index', intersect:false },
+          plugins:{
+            legend:{ position:'bottom', labels:{ boxWidth:12, boxHeight:12, usePointStyle:true, pointStyle:'circle', font:{size:11} } },
+            tooltip:{ callbacks:{
+              label:function(c){ return ' ' + c.dataset.label + ': USD ' + fmt(c.raw,0) + ' M'; },
+              footer:function(items){
+                var t = items.reduce(function(a,it){ return a + (Number(it.raw)||0); }, 0);
+                return 'Total sistema: USD ' + fmt(t,0) + ' M';
+              }
+            } }
+          },
+          scales:{
+            x:{ stacked:true, grid:{display:false}, ticks:{ color:'#6E7679', maxRotation:0, maxTicksLimit:12 } },
+            y:{ stacked:true, beginAtZero:true, grid:{color:'rgba(0,0,0,0.05)'},
+                ticks:{ color:'#6E7679', callback:function(v){ return 'USD '+fmt(v,0)+'M'; } } }
+          }
+        }
+      });
+      REG.ten = { chart:chT, fechas:T.dates, vals:clavesT.map(function(k){ return T.series[k]; }),
+                  btns:'#tenTlBtns', orden:[30,90,0] };
+    }
+
+    /* ---------- indicadores de cabecera ---------- */
+    (function(){
+      var k = [];
+      if (M2 && M2.dates.length) {
+        var i = M2.dates.length - 1;
+        var total = Object.keys(M2.series).reduce(function(a,s){ return a + (M2.series[s][i]||0); }, 0);
+        k.push({ l:'Cobertura total', v:fmt(total,1)+'%', s:'de M2 · al '+etiqueta(M2.dates[i]) });
+        if (M2.series['Bono dual TAMAR/A3500']) {
+          k.push({ l:'Aporte del bono dual', v:fmt(M2.series['Bono dual TAMAR/A3500'][i],1)+' pp',
+                   s:'dentro de la cobertura total' });
+        }
+      }
+      if (T && T.dates.length) {
+        var j = T.dates.length - 1;
+        var tot = Object.keys(T.series).reduce(function(a,s){ return a + (T.series[s][j]||0); }, 0);
+        k.push({ l:'Total sistema', v:'USD '+fmt(tot,0)+'M', s:'al '+etiqueta(T.dates[j]) });
+        if (T.series['Stock BCRA']) {
+          k.push({ l:'Stock BCRA', v:'USD '+fmt(T.series['Stock BCRA'][j],0)+'M',
+                   s: tot ? fmt(T.series['Stock BCRA'][j]/tot*100,1)+'% del total' : '' });
+        }
+      }
+      document.getElementById('dlKpis').innerHTML = k.map(function(x){
+        return '<div class="dl-kpi"><p class="dl-kpi__label">'+x.l+'</p>' +
+               '<p class="dl-kpi__value">'+x.v+'</p><p class="dl-kpi__sub">'+x.s+'</p></div>';
+      }).join('');
+    })();
+
+    /* ---------- descargas ---------- */
+    if (window.EcoGo) {
+      function dl(sel, nombre, bloque, extra){
+        if (!bloque || !bloque.dates || !bloque.dates.length) return;
+        EcoGo.dlBtn(sel, nombre, function(){
+          var ks = Object.keys(bloque.series);
+          return {
+            headers: ['Fecha'].concat(ks).concat(extra ? ['Provisional'] : []),
+            rows: bloque.dates.map(function(f, i){
+              var fila = [f].concat(ks.map(function(s){
+                var v = bloque.series[s][i];
+                return (v === null || v === undefined) ? '' : v;
+              }));
+              if (extra) fila.push((bloque.provisional || [])[i] ? 'sí' : '');
+              return fila;
+            })
+          };
+        });
+      }
+      dl('#chartM2', 'dlk_short_sobre_m2.csv', M2, true);
+      dl('#chartTen', 'tenencia_dlk_por_tenedor.csv', T, false);
+    }
+  })();
+  </script>
+</body>
+</html>
