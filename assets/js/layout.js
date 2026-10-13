@@ -202,6 +202,94 @@ function mountGate(activeId) {
 document.addEventListener('DOMContentLoaded', mountLayout);
 
 /* ================================================================
+   Registro de uso
+   Anota en una planilla de Google (un Apps Script) cada sección que se
+   abre, cuánto tiempo queda a la vista y cada descarga. El "quién" lo pone
+   WordPress: la página de clientes abre index-clientes.html?u=<ID del
+   usuario de WordPress>, y ese ID se recuerda en la sesión igual que el
+   acceso. Sin ?u= los eventos quedan anónimos.
+   Instalación y planilla: SEGUIMIENTO.md. Con REGISTRO_URL vacío no se
+   manda nada.
+   ================================================================ */
+const REGISTRO_URL = 'https://script.google.com/a/macros/ecogo.com.ar/s/AKfycbzYg6x057Hlhu0LixCIK9IvPnlnDZ07-VTrmCZ--MPe-RfIH10OprGQpdKr3xJAG2KA-w/exec';
+
+/* sessionStorage puede estar bloqueado dentro del iframe; window.name
+   sobrevive a la navegación dentro del mismo iframe y sirve de respaldo. */
+function memoria(clave, nuevo) {
+  try {
+    if (nuevo !== undefined) sessionStorage.setItem(clave, nuevo);
+    return sessionStorage.getItem(clave) || '';
+  } catch (e) {
+    var m = {};
+    try { if (window.name.indexOf('eg:') === 0) m = JSON.parse(window.name.slice(3)); } catch (e2) {}
+    if (nuevo !== undefined) { m[clave] = nuevo; window.name = 'eg:' + JSON.stringify(m); }
+    return m[clave] || '';
+  }
+}
+
+function idAleatorio(prefijo) { return prefijo + Math.random().toString(36).slice(2, 10); }
+
+/* Las pruebas locales (python -m http.server, file://) no ensucian la planilla */
+function registroActivo() {
+  return !!REGISTRO_URL && location.protocol !== 'file:' &&
+    !/^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+}
+
+const VISTA = idAleatorio('v');   // una por carga de página: ata el tiempo a su fila
+
+function track(evento, detalle, extra) {
+  if (!registroActivo()) return;
+  var m = /[?&]u=(\d{1,10})(&|$)/.exec(location.search);
+  var u = memoria('eg_u', m ? m[1] : undefined);
+  var sesion = memoria('eg_sesion') || memoria('eg_sesion', idAleatorio('s'));
+  var activeId = document.body.dataset.activeSection || 'home';
+  var section = SECTIONS.find(s => s.id === activeId);
+  var datos = {
+    evento: evento,
+    u: u,
+    acceso: esCliente() ? 'cliente' : 'publico',
+    seccion: section ? section.label : document.title,
+    detalle: detalle || '',
+    dispositivo: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 'Móvil' : 'Escritorio',
+    sesion: sesion,
+    vista: VISTA
+  };
+  for (var k in extra) datos[k] = extra[k];
+  var cuerpo = JSON.stringify(datos);
+  // keepalive: el último aviso de tiempo sale cuando la página ya se está yendo
+  try {
+    fetch(REGISTRO_URL, { method: 'POST', mode: 'no-cors', keepalive: true, credentials: 'omit',
+                          headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: cuerpo })
+      .catch(function(){});
+  } catch (e) {
+    try { navigator.sendBeacon(REGISTRO_URL, cuerpo); } catch (e2) {}
+  }
+}
+
+/* Una fila por página vista; el tiempo a la vista se va actualizando en esa
+   misma fila cada vez que la pestaña se oculta o se cierra. */
+function iniciarRegistro() {
+  if (!registroActivo()) return;
+  const activeId = document.body.dataset.activeSection || 'home';
+  track('vista', bloqueada(SECTIONS.find(s => s.id === activeId)) ? 'Bloqueada: sin sesión de cliente' : '');
+
+  var visible = 0, enviado = 0;
+  var desde = document.visibilityState === 'visible' ? Date.now() : 0;
+  function cortar() {
+    if (desde) { visible += Date.now() - desde; desde = 0; }
+    var seg = Math.round(visible / 1000);
+    if (seg > 0 && seg !== enviado) { enviado = seg; track('tiempo', '', { segundos: seg }); }
+  }
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'hidden') cortar();
+    else desde = Date.now();
+  });
+  window.addEventListener('pagehide', cortar);
+}
+
+document.addEventListener('DOMContentLoaded', iniciarRegistro);
+
+/* ================================================================
    Descarga XLSX  (usa SheetJS — se carga dinámicamente si no está)
    ================================================================ */
 function _doDownloadXLSX(filename, headers, rows) {
@@ -223,6 +311,7 @@ function _doDownloadXLSX(filename, headers, rows) {
 }
 
 function downloadCSV(filename, headers, rows) {
+  track('descarga', filename.replace(/\.csv$/i, '.xlsx'));
   if (typeof XLSX !== 'undefined') {
     _doDownloadXLSX(filename, headers, rows);
   } else {
@@ -311,4 +400,4 @@ function dlBtn(anchorSel, filename, getFn) {
 
 window.EcoGo = { SECTIONS: SECTIONS, icon: icon, resolve: resolve, mountLayout: mountLayout,
                  esCliente: esCliente, bloqueada: bloqueada, linkAttrs: linkAttrs,
-                 downloadCSV: downloadCSV, dlBtn: dlBtn };
+                 downloadCSV: downloadCSV, dlBtn: dlBtn, track: track };
