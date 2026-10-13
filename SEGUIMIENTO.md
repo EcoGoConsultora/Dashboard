@@ -5,8 +5,8 @@ Anota en una planilla de Google qué hace cada cliente en el tablero: qué secci
 ## Cómo funciona
 
 ```
-WordPress (página de clientes, con el cliente logueado)
-  │  1. arma el iframe: index-clientes.html?u=<ID de usuario de WordPress>
+WordPress (con el cliente logueado)
+  │  1. le agrega al iframe del tablero: ?u=<ID de usuario de WordPress>
   │  2. le manda a la planilla nombre, email y empresa de ese ID  ──────────┐
   ▼                                                                         │
 Tablero (GitHub Pages) · assets/js/layout.js                                │
@@ -47,20 +47,15 @@ y subir el cambio a GitHub como siempre.
 
 ### 3. WordPress
 
-1. Instalar el plugin **Code Snippets**, si no está.
-2. Crear un snippet PHP nuevo, pegar `seguimiento/wordpress-snippet.php` (sin la primera línea `<?php`) y completar:
-   - `$registro_url` → la URL `/exec` del paso 1.
-   - `$registro_clave` → la clave del paso 1. **Va solo en WordPress, nunca en GitHub.**
-3. Activarlo en modo "Ejecutar en todas partes".
-4. Editar la página de clientes (`/estadisticas/tableros/tableros-clientes`) y reemplazar el iframe actual por el shortcode:
+1. Instalar el plugin **Code Snippets** ("Fragmentos de código"), si no está.
+2. Crear un fragmento PHP nuevo, pegar `seguimiento/wordpress-snippet.php` (sin la primera línea `<?php`) y completar:
+   - `$registro_url` → la URL `/exec` del paso 1 (ya viene puesta).
+   - `$registro_clave` → la clave del paso 1, entre comillas simples. **Va solo en WordPress, nunca en GitHub.**
+3. Activarlo en modo "Ejecutar el fragmento en todas partes".
 
-   ```
-   [ecogo_tablero_clientes]
-   ```
+No hay que tocar las entradas. El iframe del tablero vive en un campo de JetEngine que muestra la plantilla de Elementor de la categoría Tableros, y el fragmento le agrega `?u=<ID>` a cualquier URL del tablero (`ecogoconsultora.github.io/Dashboard/...`) en la página que ve un usuario logueado. Por eso Elementor muestra esas entradas vacías: **no publicar desde ahí**, porque se pisaría el contenido.
 
-   Si el iframe actual tenía otro alto, ajustar `height="900px"` en el snippet.
-
-> Si el sitio usa un plugin de caché (WP Rocket, LiteSpeed, etc.), revisar que **no cachee páginas para usuarios logueados**. Si las cacheara, todos los clientes verían el ID del primero. Casi todos vienen así configurados por defecto.
+> El sitio está en Kinsta, que por defecto no cachea páginas para usuarios logueados. Eso es necesario: si se cachearan, todos los clientes verían el ID del primero.
 
 ### 4. Probar
 
