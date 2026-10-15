@@ -41,9 +41,11 @@ else:
 
 EXCEL_PATHS = {
     "ipc":         os.path.join(BASE_EXCEL, "Precios", "IPC TODESCA.xlsx"),
-    "gd":          os.path.join(BASE_EXCEL, "Precios", "Gráficos de dispersión - copia - copia.xlsx"),
+    "gd":          os.path.join(BASE_EXCEL, "Precios",
+                                "Gráfico 5 - Precios relativos (Eco Go).xlsx"),
     "cm":          os.path.join(BASE_EXCEL, "Precios", "CM - DB.xlsx"),  # opcional (ya no se usa para proyeccion)
-    "rpm_cuadro":  os.path.join(BASE_EXCEL, "Precios", "RPM Estudio Bein", "Alimentos Scrapping", "Cuadro Mensual - Capítulos Nuevo.xlsx"),
+    "rpm_cuadro":  os.path.join(BASE_EXCEL, "Precios", "RPM Estudio Bein",
+                                "Ponderadores - ENGHO18", "00 Nivel general", "00 RPM.xlsx"),
     "empleo":      os.path.join(BASE_EXCEL, "Empleo",  "Empleo_limpio.xlsx"),
     "salarios":    os.path.join(BASE_EXCEL, "Empleo",  "Salarios.xlsx"),
     "tcr_bandas":  os.path.join(BASE_EXCEL, "Tipo de Cambio", "TCR bandas.xlsx"),
@@ -712,98 +714,172 @@ def extract_precios(status):
         })
     data['chart22'] = chart22
 
-    # ---- Chart 5: Gráficos de dispersión - Hoja3 ----
-    wb_gd = _open_wb(EXCEL_PATHS["gd"])
-    ws_gd = wb_gd["Hoja3"]
-    CATS = {
-        'Pan y cereales':'Bienes','Carnes y derivados':'Bienes',
-        'Leche, productos lácteos y huevos':'Bienes','Aceites, grasas y manteca':'Bienes',
-        'Frutas y verduras':'Bienes','Azúcar, dulces, chocolates':'Bienes',
-        'Bebidas':'Bienes','Tabaco':'Bienes','Indumentaria':'Bienes',
-        'Medicamentos':'Bienes','Medicamentos ':'Bienes',
-        'Adquisición de vehículos':'Bienes','Combustibles':'Bienes',
-        'Electrodomésticos':'Bienes','Bienes y servicios para la conservación del hogar':'Bienes',
-        'Bienes':'Bienes',
-        'Vivienda':'Servicios','Alquiler de la vivienda y gastos conexos':'Servicios',
-        'Prepagas':'Servicios','Servicios recreativos':'Servicios','Servicios recreativos ':'Servicios',
-        'Educación':'Servicios','Restaurantes':'Servicios','Servicios':'Servicios',
-        'Electricidad, gas y otros combustibles':'Regulados','Transporte público':'Regulados',
-        'Servicios  de telefonía e internet':'Regulados','Servicios de telefonía e internet':'Regulados',
-        'Tarifa de Agua':'Regulados','Regulados':'Regulados',
-        'Salarios Formales Privados':'Salarios','Salarios Informales':'Salarios',
-        'Salarios Informales ':'Salarios','Jubilación Mínima c/Bono':'Salarios',
-        'Jubilación s/Bono':'Salarios','Salarios Formales Públicos':'Salarios',
-        'AUH':'Salarios','Salario de Cuentapropistas':'Salarios',
-        'Dólar CCL':'Dólar','Dólar Oficial':'Dólar',
-        'ICC(Materiales p/construcción)':'Construcción','ICC (Nivel Gral.)':'Construcción',
-        'ICC (Mano de Obra)':'Construcción','ICC (Gastos Generales)':'Construcción',
-        'IPIM (Nivel General)':'Mayorista','IPIM (Nacionales)':'Mayorista',
-        'IPIM (Importados)':'Mayorista'
+    # ---- Chart 5: Precios relativos ----
+    # Sale de 'Gráfico 5 - Precios relativos (Eco Go).xlsx', hoja 'Datos', que
+    # ya viene armada para esto: cada rubro trae su etiqueta, sus dos
+    # coordenadas reales y un 'Mostrar' Si/No, y las categorias son filas de
+    # seccion dentro de la misma tabla. Antes la categoria de cada rubro estaba
+    # escrita a mano en un diccionario de este archivo: cada rubro nuevo caia
+    # en 'Otros' hasta que alguien lo notara.
+    wb_gd = _open_wb(EXCEL_PATHS["gd"], read_only=False)
+    ws_gd = wb_gd["Datos"]
+
+    # Nombres cortos para los chips del tablero; la pertenencia la decide el
+    # Excel, aca solo se acorta el titulo de la seccion.
+    CORTO = {
+        "bienes del ipc": "Bienes",
+        "servicios del ipc": "Servicios",
+        "tarifas y servicios regulados": "Regulados",
+        "ingresos": "Ingresos",
+        "tipo de cambio": "Tipo de cambio",
+        "costos mayoristas y de la construccion": "Costos",
+        "agregados del ipc": "Agregados",
     }
-    points = []
-    for r in list(range(3, 42)) + list(range(44, 48)):
-        label = ws_gd.cell(r, 1).value
-        x = ws_gd.cell(r, 6).value
-        y = ws_gd.cell(r, 7).value
-        if label and x is not None and y is not None:
-            cat = CATS.get(label, 'Otros') if not isinstance(label, str) else CATS.get(label.strip(), 'Otros')
-            points.append({"label": str(label).strip(), "categoria": cat, "x": x, "y": y})
-    def _fmt_scatter_label(raw):
-        """'Nov23-Jun26' → 'Nov 2023 – Jun 2026 (gap vs Nivel general)'"""
-        import re as _re
-        if not raw:
-            return str(raw or "")
-        mt = _re.match(r'([A-Za-z]+)(\d{2})-([A-Za-z]+)(\d{2})', str(raw).strip())
-        if mt:
-            return f"{mt.group(1)} 20{mt.group(2)} – {mt.group(3)} 20{mt.group(4)} (gap vs Nivel general)"
-        return str(raw)
+
+    def _col_de(ws, fila, nombre):
+        for c in range(1, (ws.max_column or 30) + 1):
+            if str(ws.cell(fila, c).value or "").strip().lower() == nombre:
+                return c
+        return None
+
+    # la fila de encabezados es la que tiene 'RUBRO' en la primera columna
+    fila_enc = next((r for r in range(1, 15)
+                     if str(ws_gd.cell(r, 1).value or "").strip().lower() == "rubro"), 5)
+    c_etq = _col_de(ws_gd, fila_enc, "etiqueta en el gráfico") or 2
+    c_most = _col_de(ws_gd, fila_enc, "mostrar") or 9
+    c_ult = _col_de(ws_gd, fila_enc, "último dato") or 11
+    # NOMINAL/IPC/REAL aparece dos veces, una por eje: la primera es X
+    reales = [c for c in range(1, (ws_gd.max_column or 30) + 1)
+              if str(ws_gd.cell(fila_enc, c).value or "").strip().lower() == "real"]
+    c_x = reales[0] if reales else 5
+    c_y = reales[1] if len(reales) > 1 else 8
+
+    points, categoria = [], "Otros"
+    for r in range(fila_enc + 1, (ws_gd.max_row or 0) + 1):
+        rubro = ws_gd.cell(r, 1).value
+        if not isinstance(rubro, str) or not rubro.strip():
+            continue
+        rubro = rubro.strip()
+        mostrar = str(ws_gd.cell(r, c_most).value or "").strip().lower()
+        x, y = ws_gd.cell(r, c_x).value, ws_gd.cell(r, c_y).value
+        if mostrar == "visible" and not isinstance(x, (int, float)):
+            # fila de seccion: abre la categoria de las filas que siguen
+            clave = _sin_tildes(rubro).lower()
+            categoria = CORTO.get(clave, rubro)
+            continue
+        if mostrar not in ("si", "sí", "s", "true", "1"):
+            continue
+        if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
+            continue
+        etq = ws_gd.cell(r, c_etq).value
+        ult = ws_gd.cell(r, c_ult).value
+        points.append({"label": str(etq or rubro).strip(),
+                       "rubro": rubro, "categoria": categoria,
+                       "x": fmt_n(x), "y": fmt_n(y),
+                       "ultimo": ult.strftime("%Y-%m") if isinstance(ult, datetime) else None})
+
+    # Los extremos de cada eje salen del bloque PARAMETROS, no de parsear un
+    # titulo: ahi estan como fecha y no hay que adivinar el formato.
+    par = {}
+    for r in range(1, (ws_gd.max_row or 0) + 1):
+        k = ws_gd.cell(r, 14).value
+        if isinstance(k, str) and k.strip():
+            par[k.strip().lower()] = ws_gd.cell(r, 15).value
+
+    MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun',
+             'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+    def _mes(f):
+        return f"{MESES[f.month - 1]}-{str(f.year)[2:]}" if isinstance(f, datetime) else None
+
+    hasta = par.get("último ipc") or par.get("ultimo ipc")
+    def _eje(base):
+        d, h = _mes(par.get(base)), _mes(hasta)
+        return f"{d} – {h} (gap vs Nivel general)" if d and h else (d or "")
 
     data['chart5'] = {
         "title": "Precios relativos: cuánto corregimos y cuánto falta corregir",
-        "x_label": _fmt_scatter_label(ws_gd.cell(1, 6).value),
-        "y_label": _fmt_scatter_label(ws_gd.cell(1, 7).value),
-        "points": points
+        "x_label": _eje("base eje x"),
+        "y_label": _eje("base eje y"),
+        "points": points,
     }
+    cats = []
+    for p in points:
+        if p["categoria"] not in cats:
+            cats.append(p["categoria"])
+    status.ok("Precios - Precios relativos",
+              f"{len(points)} rubros · {len(cats)} categorias · hasta {_mes(hasta)}")
+    if not points:
+        status.warn("Precios - Precios relativos", "la hoja 'Datos' no devolvio ningun rubro")
 
-    # ---- Proyección RPM (Cuadro Mensual - Capítulos Nuevo.xlsx, hoja siguiente a 'base') ----
+    # ---- Proyección RPM ----
+    # Sale de '00 RPM.xlsx' (Ponderadores - ENGHO18 / 00 Nivel general). Ahi el
+    # cuadro no existe como tal: hay tres hojas paralelas - variacion mensual,
+    # acumulada e interanual - y cada una viene transpuesta, con los meses en
+    # filas y los capitulos en columnas. El cuadro del tablero se arma dando
+    # vuelta la ultima fila de cada hoja.
     if os.path.exists(EXCEL_PATHS["rpm_cuadro"]):
         try:
-            wb_cm = _open_wb(EXCEL_PATHS["rpm_cuadro"])
-            # La hoja de datos es siempre la que está al lado de 'base' (índice 1)
-            # Las hojas tienen formato YYMM (ej: '2605'), ordenadas de más reciente a más antigua
-            idx_base = next((i for i, s in enumerate(wb_cm.sheetnames) if s.strip().lower() == 'base'), None)
-            if idx_base is not None and idx_base + 1 < len(wb_cm.sheetnames):
-                hoja = wb_cm.sheetnames[idx_base + 1]
-            else:
-                # Fallback: hoja YYMM más reciente
-                yymm = sorted([s for s in wb_cm.sheetnames if s.strip().isdigit() and len(s.strip()) == 4], reverse=True)
-                hoja = yymm[0] if yymm else None
-            if hoja:
-                ws_cm = wb_cm[hoja]
-                # Sección limpia: filas 26-40 (1-indexed), cols A-D
-                # Fila 26: título, fila 30+: datos (capítulo, mensual, anual, acumulada)
-                rows = list(ws_cm.iter_rows(min_row=26, max_row=42, max_col=4, values_only=True))
-                titulo = str(rows[0][0] or "").strip()
-                proy = {
-                    "titulo": titulo,
-                    "header_periodo": f"Proyección — RPM Eco Go · {hoja}",
-                    "filas": []
+            wb_cm = _open_wb(EXCEL_PATHS["rpm_cuadro"], read_only=False)
+            HOJAS = {"mensual":   "Nivel general - Var",
+                     "acumulada": "Nivel general - Var acum",
+                     "anual":     "Nivel general - Var. i.a"}
+
+            def _ultima_fila(hoja):
+                """{capitulo: valor} del ultimo mes, y el mes."""
+                if hoja not in wb_cm.sheetnames:
+                    return {}, None
+                ws = wb_cm[hoja]
+                # el encabezado es la fila que dice 'Fecha' en la primera columna;
+                # no esta siempre en el mismo lugar entre las tres hojas
+                fe = next((r for r in range(1, 8)
+                           if str(ws.cell(r, 1).value or "").strip().lower() == "fecha"), None)
+                if fe is None:
+                    return {}, None
+                cols = [(c, str(ws.cell(fe, c).value).replace("\n", " ").strip())
+                        for c in range(2, (ws.max_column or 0) + 1)
+                        if ws.cell(fe, c).value]
+                ult, mes = None, None
+                for r in range(fe + 1, (ws.max_row or 0) + 1):
+                    f = ws.cell(r, 1).value
+                    if isinstance(f, datetime):
+                        ult, mes = r, f
+                if ult is None:
+                    return {}, None
+                return ({lab: fmt_n(ws.cell(ult, c).value) for c, lab in cols}, mes)
+
+            vals, meses = {}, {}
+            for clave, hoja in HOJAS.items():
+                vals[clave], meses[clave] = _ultima_fila(hoja)
+
+            # el orden de los capitulos lo manda la hoja de variacion mensual
+            orden = list(vals.get("mensual", {}).keys())
+            filas = []
+            for cap in orden:
+                fila = {"capitulo": cap}
+                for clave in HOJAS:
+                    fila[clave] = vals.get(clave, {}).get(cap)
+                if fila["mensual"] is None and fila["anual"] is None:
+                    continue
+                filas.append(fila)
+
+            mes = meses.get("mensual")
+            if filas and mes:
+                etiqueta = f"{mes.strftime('%y')}{mes.strftime('%m')}"
+                data['proyeccion'] = {
+                    "titulo": "Proyección de precios — RPM Eco Go",
+                    "header_periodo": f"Proyección — RPM Eco Go · {etiqueta}",
+                    "filas": filas,
                 }
-                for r in rows:
-                    cap = r[0]
-                    if not cap or not isinstance(cap, str): continue
-                    cap = cap.strip()
-                    if not cap or cap.startswith("Fuente") or cap.startswith("PIEBGEB"): continue
-                    mensual = r[1]; anual = r[2]; acum = r[3]
-                    if mensual is None and anual is None: continue
-                    proy["filas"].append({
-                        "capitulo": cap,
-                        "mensual": fmt_n(mensual),
-                        "anual":   fmt_n(anual),
-                        "acumulada": fmt_n(acum)
-                    })
-                data['proyeccion'] = proy
-                status.ok("Precios - Proyección RPM", f"hoja {hoja}, {len(proy['filas'])} filas")
+                desfasados = [k for k, v in meses.items() if v and mes and v != mes]
+                status.ok("Precios - Proyección RPM",
+                          f"{mes.strftime('%b-%y')} · {len(filas)} capitulos")
+                if desfasados:
+                    # una hoja que quedo un mes atras pondria en la misma linea
+                    # datos de meses distintos sin que se note
+                    status.warn("Precios - Proyección RPM",
+                                "hojas con otro ultimo mes: " + ", ".join(
+                                    f"{HOJAS[k]} ({meses[k].strftime('%b-%y')})" for k in desfasados))
             else:
                 _keep_old_proy(data, status)
         except Exception as e:

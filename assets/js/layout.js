@@ -3,7 +3,7 @@
    ============================================================ */
 
 const SECTIONS = [
-  { id:'series-largas',  label:'Series Largas',           href:'pages/series-largas.html',   group:'Destacado', icon:'database',      desc:'Variables macroeconómicas históricas 1993–2025 · Anexo EcoGo.' },
+  { id:'series-largas',  label:'Series Largas',           href:'pages/series-largas.html',   group:'Destacado', clientes:true, icon:'database', desc:'Variables macroeconómicas históricas 1993–2025 · Anexo EcoGo.' },
   { id:'home',           label:'Inicio',                  href:'index.html',                 group:'General',   icon:'home',          desc:'Resumen y acceso rápido a todas las secciones.' },
   { id:'actividad',      label:'Actividad',               href:'pages/actividad.html',       group:'Real',      icon:'activity',      desc:'Monitor de actividad económica, EMAE y proyecciones de PIB.' },
   { id:'empleo',         label:'Empleo',                  href:'pages/empleo.html',          group:'Real',      icon:'users',         desc:'Mercado laboral, desempleo, salarios e informalidad.' },

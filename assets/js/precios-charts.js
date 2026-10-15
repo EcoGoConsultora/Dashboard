@@ -16,16 +16,30 @@
   const GRAY      = '#B8BEC0';
 
   // Colores por categoría (paleta Eco Go)
+  /* Las categorias las define el Excel del Gráfico 5, en sus filas de seccion.
+     Si manana aparece una nueva, cae en la paleta de reserva y se muestra
+     igual, en vez de quedar sin color o desaparecer del filtro. */
   const CAT_COLORS = {
-    'Bienes':       TEAL,
-    'Servicios':    ORANGE,
-    'Regulados':    RED,
-    'Salarios':     GREEN,
-    'Dólar':        TEAL_DARK,
-    'Construcción': '#A5896C',
-    'Mayorista':    TEAL_LITE,
-    'Otros':        GRAY
+    'Bienes':         TEAL,
+    'Servicios':      ORANGE,
+    'Regulados':      RED,
+    'Ingresos':       GREEN,
+    'Salarios':       GREEN,
+    'Tipo de cambio': TEAL_DARK,
+    'Dólar':          TEAL_DARK,
+    'Costos':         '#A5896C',
+    'Construcción':   '#A5896C',
+    'Mayorista':      TEAL_LITE,
+    'Agregados':      '#7E5CCB',
+    'Otros':          GRAY
   };
+  const CAT_RESERVA = ['#2890A4', '#89C442', '#FE8B5F', '#7E5CCB', '#8FCCCA', '#DA4531'];
+  function catColor(c){
+    if (CAT_COLORS[c]) return CAT_COLORS[c];
+    var i = 0, s = String(c);
+    for (var k = 0; k < s.length; k++) i = (i + s.charCodeAt(k)) % CAT_RESERVA.length;
+    return CAT_RESERVA[i];
+  }
 
   const MESES_LONG = ['enero','febrero','marzo','abril','mayo','junio',
                       'julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -61,7 +75,9 @@
   /* ---------- Stat cards ---------- */
   function renderKpis(){
     const u = D.ultimo;
-    document.getElementById('ultimoMesTag').textContent =
+    const tag = document.getElementById('ultimoMesTag');
+    if (!tag || !u) return;
+    tag.textContent =
       'Último dato: ' + fmtMonthLong(u.fecha);
 
     // IPC General es el destacado
@@ -105,6 +121,7 @@
 
   /* ---------- Gráfico 21 ---------- */
   function buildChart21(){
+    if (!document.getElementById('chart21') || !D.chart21) return;
     const d = D.chart21.filter(function(p){ return p.fecha; });
     const labels = d.map(function(p){ return p.fecha; });
     new Chart(document.getElementById('chart21'), {
@@ -137,6 +154,7 @@
 
   /* ---------- Gráfico 23 ---------- */
   function buildChart23(){
+    if (!document.getElementById('chart23') || !D.chart23) return;
     const d = D.chart23.filter(function(p){ return p.fecha; });
     const labels = d.map(function(p){ return p.fecha; });
     new Chart(document.getElementById('chart23'), {
@@ -185,21 +203,26 @@
   let activeCat = null;  // null = todas
 
   function getCategorias(){
-    const set = new Set();
-    D.chart5.points.forEach(function(p){ set.add(p.categoria || 'Otros'); });
-    // Orden deseado
-    const orden = ['Bienes','Servicios','Regulados','Salarios','Dólar','Construcción','Mayorista','Otros'];
-    return orden.filter(function(c){ return set.has(c); });
+    /* El orden es el que trae el Excel, que agrupa los rubros como los piensa
+       el analista. Filtrar contra una lista fija escrita aca haria desaparecer
+       del filtro cualquier categoria nueva, sin aviso. */
+    const vistas = [];
+    D.chart5.points.forEach(function(p){
+      const c = p.categoria || 'Otros';
+      if (vistas.indexOf(c) < 0) vistas.push(c);
+    });
+    return vistas;
   }
 
   function renderChips(){
-    const cats = getCategorias();
     const wrap = document.getElementById('chart5Filters');
+    if (!wrap) return;
+    const cats = getCategorias();
     let html = '<button class="eg-chip is-active" data-cat="__all__">' +
       '<span class="eg-chip__dot" style="background:' + CHARCOAL + '"></span>Todas</button>';
     cats.forEach(function(c){
       html += '<button class="eg-chip" data-cat="' + c + '">' +
-        '<span class="eg-chip__dot" style="background:' + CAT_COLORS[c] + '"></span>' + c + '</button>';
+        '<span class="eg-chip__dot" style="background:' + catColor(c) + '"></span>' + c + '</button>';
     });
     wrap.innerHTML = html;
     wrap.addEventListener('click', function(e){
@@ -293,9 +316,10 @@
   };
 
   function buildChart5(){
+    if (!document.getElementById('chart5') || !D.chart5) return;
     const allPoints = D.chart5.points.map(function(p){
       const cat = p.categoria || 'Otros';
-      const color = CAT_COLORS[cat] || GRAY;
+      const color = catColor(cat);
       const dim   = activeCat && cat !== activeCat;
       return {
         x: p.x, y: p.y, label: p.label, categoria: cat,
@@ -375,9 +399,12 @@
 
   /* ---------- Gráfico 22 ---------- */
   function buildChart22(){
+    // idem: este grafico solo esta en la pagina de clientes
+    const cv = document.getElementById('chart22');
+    if (!cv || !D.chart22) return;
     const d = D.chart22.filter(function(p){ return p.fecha; });
     const labels = d.map(function(p){ return p.fecha; });
-    new Chart(document.getElementById('chart22'), {
+    new Chart(cv, {
       data:{
         labels: labels,
         datasets:[
@@ -410,8 +437,13 @@
   /* ---------- Tabla proyección RPM ---------- */
   function buildTablaProyeccion(){
     const p = D.proyeccion;
-    document.getElementById('proyeccionTitulo').textContent =
-      p.header_periodo || p.subtitulo;
+    /* Este script corre en las dos paginas de Precios y la tabla de
+       proyeccion solo existe en la de clientes. Sin esta guarda tiraba al
+       entrar a la publica, y el error cortaba el resto del arranque: los
+       botones de descarga nunca llegaban a engancharse. */
+    const titulo = document.getElementById('proyeccionTitulo');
+    if (!p || !titulo) return;
+    titulo.textContent = p.header_periodo || p.subtitulo;
     const tbody = p.filas.map(function(f){
       const isTotal = (f.capitulo || '').toUpperCase().indexOf('NIVEL GENERAL') >= 0;
       return '<tr class="' + (isTotal ? 'is-total' : '') + '">' +
