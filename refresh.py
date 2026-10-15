@@ -3483,6 +3483,65 @@ def push_to_github(status):
 # =====================================================================
 #  MAIN
 # =====================================================================
+def main_online():
+    r"""
+    Corrida reducida, pensada para GitHub Actions.
+
+    El refresh completo lee 16 de sus 18 pasos de los Excel de
+    'OneDrive - ECOGO S.A\BD', una carpeta que existe solo en la maquina de
+    la oficina. Un runner de GitHub es una maquina nueva en la nube: esos
+    archivos no estan ahi y no hay forma de que lo esten. Lo que si puede
+    correr sin la PC son los dos pasos que bajan de fuentes publicas y viven
+    dentro de este mismo repositorio: el Monitor mundial (Internacional) y el
+    pipeline de Mercados.
+
+    El resto de las secciones queda con el ultimo dato que se haya subido
+    desde la oficina. No se tocan ni se borran: cada pagina sigue mostrando su
+    propia fecha de ultimo dato.
+    """
+    print("=" * 64)
+    print("ECO GO DASHBOARD - Refresh online (sin los Excel locales)")
+    print("=" * 64)
+    print(f"Dashboard dir: {DASHBOARD_DIR}")
+    print()
+
+    status = Status()
+
+    print("[1/2] Internacional (Monitor mundial)...")
+    try:
+        run_monitor_mundial(status)
+        extract_internacional(status)
+    except Exception as e:
+        status.fail("Internacional", str(e))
+        traceback.print_exc()
+
+    print("\n[2/2] Mercados...")
+    try:
+        extract_mercados(status)
+    except Exception as e:
+        status.warn("Mercados", f"no se pudo actualizar: {e}")
+
+    sellar_versiones(status)
+
+    print("\nSubiendo cambios a GitHub...")
+    try:
+        push_to_github(status)
+    except Exception as e:
+        status.fail("GitHub", str(e))
+        traceback.print_exc()
+
+    print()
+    print("=" * 64)
+    ok = sum(1 for r in status.results if r[0] == "OK")
+    warn = sum(1 for r in status.results if r[0] == "WARN")
+    fail = sum(1 for r in status.results if r[0] == "FAIL")
+    print(f"Resumen: {ok} OK - {warn} warnings - {fail} errores")
+    for r in status.results:
+        print(f"  [{r[0]}] {r[1]}: {r[2]}")
+    # Un fallo de red no deberia pintar la corrida de rojo todos los dias:
+    # la seccion se queda con el dato previo, que es el comportamiento buscado.
+    return 0
+
 def main():
     print("=" * 64)
     print("ECO GO DASHBOARD - Refresh de datos")
@@ -3732,5 +3791,6 @@ def main():
         return 1
 
 if __name__ == "__main__":
-    rc = main()
+    # --online corre solo lo que no necesita los Excel de OneDrive
+    rc = main_online() if "--online" in sys.argv else main()
     sys.exit(rc)
