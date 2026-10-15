@@ -1,0 +1,103 @@
+{
+ "destino": "word",
+ "fondo": "blanco",
+ "eyebrow": "Crédito y mora de las cadenas de supermercados y electrodomésticos",
+ "titulo": "La mora de las cadenas llegó a 44,8% del crédito, casi el doble que hace un año",
+ "bajada": "Central de Deudores, agosto de 2026",
+ "fuente": "Eco Go en base a BCRA (Central de Deudores) e INDEC",
+ "fecha": "Dato a agosto de 2026",
+ "nota": "Supermercados: Carrefour (BSF), Cencosud, La Anónima (Tarjetas del Mar) y Coto. Electro: Megatone, Naldo, Cetrogar, Frávega, Favanet y Carsa (Musimundo). Pesos constantes de sep-26 (IPC INDEC).",
+ "filas": [
+  {
+   "tipo": "kpis",
+   "items": [
+    {
+     "etiqueta": "Crédito real",
+     "cifra": "2,14",
+     "unidad": "billones de $",
+     "variacion": "-2,5% i.a.",
+     "texto": "Super 1,16 · Electro 0,98",
+     "color": "teal"
+    },
+    {
+     "etiqueta": "Mora conjunta",
+     "cifra": "44,8",
+     "unidad": "%",
+     "variacion": "+21,5 pp",
+     "invertir": true,
+     "texto": "23,3% en ago-25",
+     "color": "rojo"
+    },
+    {
+     "etiqueta": "Mora temprana",
+     "cifra": "4,9",
+     "unidad": "%",
+     "texto": "Situación 2, jul-26",
+     "color": "verde"
+    }
+   ]
+  },
+  {
+   "tipo": "tabla",
+   "titulo": "Por segmento",
+   "subtitulo": "Saldo en miles de millones de $ de sep-26; mora en % del saldo",
+   "columnas": [
+    "Segmento",
+    {
+     "texto": "Saldo ago-26",
+     "decimales": 0
+    },
+    {
+     "texto": "Var. real i.a.",
+     "decimales": 1,
+     "sufijo": "%",
+     "signo": true
+    },
+    {
+     "texto": "Mora ago-25",
+     "decimales": 1,
+     "sufijo": "%"
+    },
+    {
+     "texto": "Mora ago-26",
+     "decimales": 1,
+     "sufijo": "%",
+     "color": "rojo"
+    }
+   ],
+   "filas": [
+    [
+     "Supermercados",
+     1161,
+     -3.3,
+     20.1,
+     40.4
+    ],
+    [
+     "Electrodomésticos",
+     980,
+     -1.4,
+     27.3,
+     50.1
+    ]
+   ],
+   "total": [
+    "Super + electro",
+    2141,
+    -2.5,
+    23.3,
+    44.8
+   ]
+  },
+  {
+   "tipo": "claves",
+   "icono": "deuda",
+   "titulo": "Lo que muestran los datos",
+   "items": [
+    "El crédito real se multiplicó por **2,6** desde febrero de 2024, pero está estancado desde el máximo de octubre de 2025.",
+    "La mora de supermercados se duplicó en un año (de 20,1% a **40,4%**); la de electro subió 22,8 pp, a **50,1%**.",
+    "La mora temprana baja desde fines de 2025: entra menos deuda nueva en atraso."
+   ]
+  }
+ ]
+}
