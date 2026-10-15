@@ -1,0 +1,69 @@
+# Actualizacion diaria de las secciones que no dependen de los Excel locales.
+#
+# El refresh completo (refresh.py sin argumentos) lee 16 de sus 18 pasos de
+# 'C:\Users\...\OneDrive - ECOGO S.A\BD', que existe solo en la PC de la
+# oficina. Un runner de GitHub no tiene esos archivos, asi que aca corre
+# 'refresh.py --online': el Monitor mundial (Internacional) y el pipeline de
+# Mercados, que bajan de fuentes publicas y viven dentro de este repositorio.
+# El resto de las secciones conserva el ultimo dato subido desde la oficina.
+
+name: Actualizar datos (online)
+
+on:
+  schedule:
+    # 20:00 UTC = 17:00 en Argentina (UTC-3, sin horario de verano).
+    # GitHub corre el cron en UTC y puede demorarlo si hay cola.
+    - cron: "0 20 * * *"
+  workflow_dispatch:        # para poder dispararlo a mano desde la pestaña Actions
+
+concurrency:
+  # Si una corrida se solapa con la anterior, las dos harian push del mismo
+  # archivo y la segunda fallaria por conflicto.
+  group: actualizar-online
+  cancel-in-progress: false
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write       # el job commitea y pushea los datos nuevos
+
+    steps:
+      - name: Traer el repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # push_to_github hace fetch + merge antes de subir
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install openpyxl python-docx requests
+          if [ -f markets_pipeline/requirements.txt ]; then
+            python -m pip install -r markets_pipeline/requirements.txt
+          fi
+
+      - name: Identificar al autor de los commits
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Correr el refresh online
+        run: python refresh.py --online
+
+      - name: Avisar si no quedo nada por subir
+        if: always()
+        run: |
+          if [ -z "$(git log origin/main..HEAD --oneline)" ]; then
+            echo "Sin cambios: las fuentes no publicaron datos nuevos."
+          fi
