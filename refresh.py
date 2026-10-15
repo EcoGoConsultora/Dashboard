@@ -31,13 +31,18 @@ except Exception:
 # (definido aquí para que BASE_EXCEL pueda derivarse de él en Linux)
 DASHBOARD_DIR = os.path.dirname(os.path.abspath(__file__))
 
-import platform as _platform
-if _platform.system() == 'Windows':
-    BASE_EXCEL = r"C:\Users\fscalise\OneDrive - ECOGO S.A\BD"
-else:
-    # En Linux (sandbox Cowork): el dashboard está en BD/07 Tableros/EcoGo-Dashboard
-    # → BASE_EXCEL es dos niveles arriba
-    BASE_EXCEL = os.path.dirname(os.path.dirname(DASHBOARD_DIR))
+# El repo vive en <OneDrive>/BD/07 Tableros/EcoGo-Dashboard, asi que la carpeta
+# de los Excel son dos niveles arriba. Derivarla en vez de escribirla hace que
+# el refresh corra en cualquier maquina que tenga OneDrive sincronizado: antes
+# la ruta decia 'C:\Users\fscalise\...' y, si lo corria un companero, buscaba
+# los Excel en la carpeta de otro usuario y no encontraba ninguno.
+BASE_EXCEL = os.path.dirname(os.path.dirname(DASHBOARD_DIR))
+
+if not os.path.isdir(os.path.join(BASE_EXCEL, "Precios")):
+    # El repo esta en otro lado: se cae a la ruta de la PC de la oficina.
+    _alt = r"C:\Users\fscalise\OneDrive - ECOGO S.A\BD"
+    if os.path.isdir(_alt):
+        BASE_EXCEL = _alt
 
 EXCEL_PATHS = {
     "ipc":         os.path.join(BASE_EXCEL, "Precios", "IPC TODESCA.xlsx"),
