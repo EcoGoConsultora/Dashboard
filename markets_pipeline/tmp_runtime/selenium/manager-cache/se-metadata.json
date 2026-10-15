@@ -1,0 +1,13 @@
+{
+  "browsers": [],
+  "drivers": [
+    {
+      "major_browser_version": "155",
+      "driver_name": "chromedriver",
+      "driver_version": "155.0.8059.79",
+      "driver_ttl": 1792100031
+    }
+  ],
+  "stats": [],
+  "cached_assets": []
+}
