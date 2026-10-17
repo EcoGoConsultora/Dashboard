@@ -1,0 +1,314 @@
+[1792274571.591][INFO]: Starting ChromeDriver 155.0.8059.39 (3ff7ac5a9224be9156d7f8703a06e22890aafd34-refs/branch-heads/8059@{#935}) on port 57047
+[1792274571.591][INFO]: Please see https://chromedriver.chromium.org/security-considerations for suggestions on keeping ChromeDriver safe.
+[1792274571.594][INFO]: ChromeDriver was started successfully on port 57047
+[1792274571.601][INFO]: [a8def68d840a1209bbed553ea715b8fb] COMMAND InitSession {
+   "capabilities": {
+      "alwaysMatch": {
+         "browserName": "chrome",
+         "browserVersion": null,
+         "goog:chromeOptions": {
+            "args": [ "--headless=new", "--disable-gpu", "--disable-dev-shm-usage", "--no-sandbox", "--window-size=1600,1200", "--remote-debugging-pipe", "--no-first-run", "--no-default-browser-check", "--disable-background-networking", "--disable-default-apps", "--disable-extensions", "--disable-sync", "--disable-breakpad", "--noerrdialogs", "--user-data-dir=/home/runner/work/Dashboard/Dashboard/markets_pipeline/tmp_runtime/selenium/profiles/byma/20261017_220251_556017_primary/user-data", "--data-path=/home/runner/work/Dashboard/Dashboard/markets_pipeline/tmp_runtime/selenium/profiles/byma/20261017_220251_556017_primary/data-path", "--disk-cache-dir=/home/runner/work/Dashboard/Dashboard/markets_pipeline/tmp_runtime/selenium/profiles/byma/20261017_220251_556017_primary/disk-cache" ],
+            "binary": "/opt/google/chrome/chrome",
+            "extensions": [  ]
+         },
+         "goog:loggingPrefs": {
+            "performance": "ALL"
+         },
+         "pageLoadStrategy": "normal"
+      },
+      "firstMatch": [ {
+      } ]
+   }
+}
+[1792274571.601][INFO]: Populating Preferences file: {
+   "alternate_error_pages": {
+      "enabled": false
+   },
+   "autofill": {
+      "enabled": false
+   },
+   "browser": {
+      "check_default_browser": false
+   },
+   "distribution": {
+      "import_bookmarks": false,
+      "import_history": false,
+      "import_search_engine": false,
+      "make_chrome_default_for_user": false,
+      "skip_first_run_ui": true
+   },
+   "dns_prefetching": {
+      "enabled": false
+   },
+   "profile": {
+      "content_settings": {
+         "pattern_pairs": {
+            "https://*,*": {
+               "media-stream": {
+                  "audio": "Default",
+                  "video": "Default"
+               }
+            }
+         }
+      },
+      "default_content_setting_values": {
+         "geolocation": 1
+      },
+      "default_content_settings": {
+         "geolocation": 1,
+         "mouselock": 1,
+         "notifications": 1,
+         "popups": 1,
+         "ppapi-broker": 1
+      },
+      "password_manager_enabled": false
+   },
+   "safebrowsing": {
+      "enabled": false
+   },
+   "search": {
+      "suggest_enabled": false
+   },
+   "translate": {
+      "enabled": false
+   }
+}
+[1792274571.601][INFO]: Populating Local State file: {
+   "background_mode": {
+      "enabled": false
+   },
+   "ssl": {
+      "rev_checking": {
+         "enabled": false
+      }
+   }
+}
+[1792274571.601][INFO]: Launching chrome: /opt/google/chrome/chrome --allow-pre-commit-input --data-path=/home/runner/work/Dashboard/Dashboard/markets_pipeline/tmp_runtime/selenium/profiles/byma/20261017_220251_556017_primary/data-path --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-breakpad --disable-client-side-phishing-detection --disable-default-apps --disable-dev-shm-usage --disable-extensions --disable-features=IgnoreDuplicateNavs,Prewarm --disable-gpu --disable-hang-monitor --disable-popup-blocking --disable-prompt-on-repost --disable-sync --disk-cache-dir=/home/runner/work/Dashboard/Dashboard/markets_pipeline/tmp_runtime/selenium/profiles/byma/20261017_220251_556017_primary/disk-cache --enable-automation --enable-logging=stderr --headless=new --log-level=0 --no-default-browser-check --no-first-run --no-sandbox --no-service-autorun --noerrdialogs --password-store=basic --remote-debugging-pipe --test-type=webdriver --use-mock-keychain --user-data-dir=/home/runner/work/Dashboard/Dashboard/markets_pipeline/tmp_runtime/selenium/profiles/byma/20261017_220251_556017_primary/user-data --window-size=1600,1200
+[1017/220251.623427:WARNING:chrome/app/chrome_main_linux.cc:84] Read channel stable from /opt/google/chrome/CHROME_VERSION_EXTRA
+[3051:3069:1017/220251.647121:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[3051:3069:1017/220251.647557:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[3051:3069:1017/220251.647591:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[3051:3051:1017/220251.654668:INFO:components/enterprise/browser/controller/chrome_browser_cloud_management_controller.cc:241] No machine level policy manager exists.
+[3085:3085:1017/220251.672980:WARNING:media/gpu/vaapi/vaapi_wrapper.cc:1660] drmGetDevices2() has not found any devices
+[3085:3085:1017/220251.674743:WARNING:sandbox/policy/linux/sandbox_linux.cc:405] InitializeSandbox() called with multiple threads in process gpu-process.
+[3051:3069:1017/220251.688655:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[3051:3051:1017/220251.771197:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: 
+[3051:3051:1017/220251.771333:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: 
+[3051:3069:1017/220251.771660:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[3051:3069:1017/220251.771738:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[3051:3051:1017/220251.774856:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: 
+[3051:3069:1017/220251.774992:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[3051:3051:1017/220251.797164:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: 
+[3051:3051:1017/220251.797193:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: 
+[3051:3069:1017/220251.797540:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[3051:3051:1017/220251.800676:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: 
+[3051:3051:1017/220251.809993:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: 
+[3051:3051:1017/220251.810035:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.Properties.GetAll: object_path= /org/freedesktop/UPower/devices/DisplayDevice: org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.UPower was not provided by any .service files
+[3051:3051:1017/220251.810040:WARNING:dbus/property.cc:174] GetAll request failed for: org.freedesktop.UPower.Device
+[3051:3069:1017/220251.810252:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[3051:3051:1017/220251.815768:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: 
+[3051:3069:1017/220251.816192:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[3051:3051:1017/220251.828898:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: 
+[3051:3051:1017/220251.828916:WARNING:ui/base/idle/idle_linux.cc:111] None of the known D-Bus ScreenSaver services could be used.
+[1792274571.893][INFO]: [a8def68d840a1209bbed553ea715b8fb] RESPONSE InitSession {
+   "capabilities": {
+      "acceptInsecureCerts": false,
+      "browserName": "chrome",
+      "browserVersion": "155.0.8059.39",
+      "chrome": {
+         "chromedriverVersion": "155.0.8059.39 (3ff7ac5a9224be9156d7f8703a06e22890aafd34-refs/branch-heads/8059@{#935})",
+         "userDataDir": "/home/runner/work/Dashboard/Dashboard/markets_pipeline/tmp_runtime/selenium/profiles/byma/20261017_220251_556017_primary/user-data"
+      },
+      "fedcm:accounts": true,
+      "goog:processID": 3051,
+      "networkConnectionEnabled": false,
+      "pageLoadStrategy": "normal",
+      "platformName": "linux",
+      "proxy": {
+      },
+      "setWindowRect": true,
+      "strictFileInteractability": false,
+      "timeouts": {
+         "implicit": 0,
+         "pageLoad": 300000,
+         "script": 30000
+      },
+      "unhandledPromptBehavior": "dismiss and notify",
+      "webauthn:extension:cmtgKey": true,
+      "webauthn:extension:credBlob": true,
+      "webauthn:extension:largeBlob": true,
+      "webauthn:extension:minPinLength": true,
+      "webauthn:extension:prf": true,
+      "~~~": "..."
+   },
+   "sessionId": "a8def68d840a1209bbed553ea715b8fb"
+}
+[1792274571.897][INFO]: [a8def68d840a1209bbed553ea715b8fb] COMMAND Navigate {
+   "url": "https://open.bymadata.com.ar/#/dashboard"
+}
+[1792274571.900][INFO]: Waiting for pending navigations...
+[1792274572.052][INFO]: Done waiting for pending navigations. Status: ok
+[3051:3051:1017/220252.486098:WARNING:CONSOLE:0] "Error with Permissions-Policy header: Invalid allowlist item(*Cross-Origin-Enbedder-Policy) for feature vertical-scroll. Allowlist item must be *, self or quoted url.", source:  (0)
+[3051:3051:1017/220252.486243:WARNING:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'document-domain'.", source:  (0)
+[3051:3051:1017/220252.486296:WARNING:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'execution-while-not-rendered'.", source:  (0)
+[3051:3051:1017/220252.486339:WARNING:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'execution-while-out-of-viewport'.", source:  (0)
+[3051:3051:1017/220252.486377:WARNING:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'navigation-override'.", source:  (0)
+[3051:3051:1017/220252.486425:WARNING:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'web-share'.", source:  (0)
+[3051:3051:1017/220252.486451:WARNING:CONSOLE:0] "Error with Permissions-Policy header: Origin trial controlled feature not enabled: 'focus-without-user-activation'.", source:  (0)
+[3051:3051:1017/220252.486473:WARNING:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'window-placement'.", source:  (0)
+[3051:3051:1017/220252.486490:WARNING:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'vertical-scroll'.", source:  (0)
+[1792274572.509][INFO]: Waiting for pending navigations...
+[3051:3051:1017/220254.179660:INFO:CONSOLE:1] "onReflow [object Object]", source: https://open.bymadata.com.ar/main.cd077c72f0dab8d2.js (1)
+[3051:3051:1017/220254.349051:INFO:CONSOLE:0] "Error with Permissions-Policy header: Invalid allowlist item(*Cross-Origin-Enbedder-Policy) for feature vertical-scroll. Allowlist item must be *, self or quoted url.", source:  (0)
+[3051:3051:1017/220254.349107:INFO:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'document-domain'.", source:  (0)
+[3051:3051:1017/220254.349145:INFO:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'execution-while-not-rendered'.", source:  (0)
+[3051:3051:1017/220254.349175:INFO:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'execution-while-out-of-viewport'.", source:  (0)
+[3051:3051:1017/220254.349196:INFO:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'navigation-override'.", source:  (0)
+[3051:3051:1017/220254.349216:INFO:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'web-share'.", source:  (0)
+[3051:3051:1017/220254.349238:INFO:CONSOLE:0] "Error with Permissions-Policy header: Origin trial controlled feature not enabled: 'focus-without-user-activation'.", source:  (0)
+[3051:3051:1017/220254.349265:INFO:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'window-placement'.", source:  (0)
+[3051:3051:1017/220254.349293:INFO:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'vertical-scroll'.", source:  (0)
+[3051:3051:1017/220254.504864:INFO:CONSOLE:0] "Error with Permissions-Policy header: Invalid allowlist item(*Cross-Origin-Enbedder-Policy) for feature vertical-scroll. Allowlist item must be *, self or quoted url.", source:  (0)
+[3051:3051:1017/220254.504932:INFO:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'document-domain'.", source:  (0)
+[3051:3051:1017/220254.504982:INFO:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'execution-while-not-rendered'.", source:  (0)
+[3051:3051:1017/220254.505026:INFO:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'execution-while-out-of-viewport'.", source:  (0)
+[3051:3051:1017/220254.505070:INFO:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'navigation-override'.", source:  (0)
+[3051:3051:1017/220254.505113:INFO:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'web-share'.", source:  (0)
+[3051:3051:1017/220254.505232:INFO:CONSOLE:0] "Error with Permissions-Policy header: Origin trial controlled feature not enabled: 'focus-without-user-activation'.", source:  (0)
+[3051:3051:1017/220254.505262:INFO:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'window-placement'.", source:  (0)
+[3051:3051:1017/220254.505304:INFO:CONSOLE:0] "Error with Permissions-Policy header: Unrecognized feature: 'vertical-scroll'.", source:  (0)
+[1792274575.127][INFO]: Done waiting for pending navigations. Status: ok
+[1792274575.127][INFO]: [a8def68d840a1209bbed553ea715b8fb] RESPONSE Navigate
+[1792274575.128][INFO]: [a8def68d840a1209bbed553ea715b8fb] COMMAND FindElement {
+   "using": "tag name",
+   "value": "app-root"
+}
+[1792274575.128][INFO]: Waiting for pending navigations...
+[1792274575.143][INFO]: Done waiting for pending navigations. Status: ok
+[3051:3051:1017/220255.151680:INFO:CONSOLE:0] "<meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">", source: https://open.bymadata.com.ar/#/dashboard (0)
+[1792274575.167][INFO]: Waiting for pending navigations...
+[1792274575.167][INFO]: Done waiting for pending navigations. Status: ok
+[1792274575.167][INFO]: [a8def68d840a1209bbed553ea715b8fb] RESPONSE FindElement {
+   "element-6066-11e4-a52e-4f735466cecf": "f.1ABC3C9A477A577DA4AF70170C091FCD.d.4A8D3D6B85677136AAB9AB4DF2EE3CB9.e.152"
+}
+[3051:3070:1017/220257.985052:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: PHONE_REGISTRATION_ERROR
+[3051:3070:1017/220257.986802:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: PHONE_REGISTRATION_ERROR
+[3051:3070:1017/220257.989997:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: PHONE_REGISTRATION_ERROR
+[1792274583.169][INFO]: [a8def68d840a1209bbed553ea715b8fb] COMMAND FindElement {
+   "using": "tag name",
+   "value": "body"
+}
+[1792274583.177][INFO]: Waiting for pending navigations...
+[1792274583.177][INFO]: Done waiting for pending navigations. Status: ok
+[1792274583.183][INFO]: Waiting for pending navigations...
+[1792274583.183][INFO]: Done waiting for pending navigations. Status: ok
+[1792274583.183][INFO]: [a8def68d840a1209bbed553ea715b8fb] RESPONSE FindElement {
+   "element-6066-11e4-a52e-4f735466cecf": "f.1ABC3C9A477A577DA4AF70170C091FCD.d.4A8D3D6B85677136AAB9AB4DF2EE3CB9.e.167"
+}
+[1792274583.184][INFO]: [a8def68d840a1209bbed553ea715b8fb] COMMAND GetElementText {
+   "id": "f.1ABC3C9A477A577DA4AF70170C091FCD.d.4A8D3D6B85677136AAB9AB4DF2EE3CB9.e.167"
+}
+[1792274583.184][INFO]: Waiting for pending navigations...
+[1792274583.184][INFO]: Done waiting for pending navigations. Status: ok
+[1792274583.585][INFO]: Waiting for pending navigations...
+[1792274583.587][INFO]: Done waiting for pending navigations. Status: ok
+[1792274583.587][INFO]: [a8def68d840a1209bbed553ea715b8fb] RESPONSE GetElementText "Mercado cerradoÚlt. actualizac. 17/10/2026 - 19:02 -Precios con 20 minutos de demora\nREGISTRARSE\nRENTA VARIABLE\nRENTA FIJA\nDERIVADOS\nNOTICIAS Y EVENTOS\nDashboard\nÍNDICES RENTA VARIABLE\nEspecie\nDe..."
+[1792274583.588][INFO]: [a8def68d840a1209bbed553ea715b8fb] COMMAND GetLog {
+   "type": "performance"
+}
+[1792274583.588][INFO]: [a8def68d840a1209bbed553ea715b8fb] RESPONSE GetLog [ {
+   "level": "INFO",
+   "message": "{\"message\":{\"method\":\"Network.dataReceived\",\"params\":{\"dataLength\":18386,\"encodedDataLength\":0,\"requestId\":\"3138.2\",\"timestamp\":287.438228}},\"webview\":\"1ABC3C9A477A577DA4AF70170C091FCD\"}",
+   "timestamp": 1.79227457187e+12
+}, {
+   "level": "INFO",
+   "message": "{\"message\":{\"method\":\"Network.loadingFinished\",\"params\":{\"encodedDataLength\":411602,\"requestId\":\"3138.2\",\"timestamp\":287.392745}},\"webview\":\"1ABC3C9A477A577DA4AF70170C091FCD\"}",
+   "timestamp": 1.792274571884e+12
+}, {
+   "level": "INFO",
+   "message": "{\"message\":{\"method\":\"Network.requestWillBeSent\",\"params\":{\"documentURL\":\"chrome://new-tab-page/\",\"frameId\":\"1ABC3C9A477A577DA4AF70170C091FCD\",\"hasUserGesture\":false,\"initiator\":{\"columnNumber\":167...",
+   "timestamp": 1.792274571884e+12
+}, {
+   "level": "INFO",
+   "message": "{\"message\":{\"method\":\"Network.requestWillBeSent\",\"params\":{\"documentURL\":\"chrome://new-tab-page/\",\"frameId\":\"1ABC3C9A477A577DA4AF70170C091FCD\",\"hasUserGesture\":false,\"initiator\":{\"columnNumber\":572...",
+   "timestamp": 1.792274571884e+12
+}, {
+   "level": "INFO",
+   "message": "{\"message\":{\"method\":\"Network.requestWillBeSent\",\"params\":{\"documentURL\":\"chrome://new-tab-page/\",\"frameId\":\"1ABC3C9A477A577DA4AF70170C091FCD\",\"hasUserGesture\":false,\"initiator\":{\"columnNumber\":580...",
+   "timestamp": 1.792274571884e+12
+}, {
+   "level": "INFO",
+   "message": "{\"message\":{\"method\":\"Network.requestWillBeSent\",\"params\":{\"documentURL\":\"chrome://new-tab-page/\",\"frameId\":\"1ABC3C9A477A577DA4AF70170C091FCD\",\"hasUserGesture\":false,\"initiator\":{\"columnNumber\":586...",
+   "timestamp": 1.792274571884e+12
+}, {
+   "level": "INFO",
+   "message": "{\"message\":{\"method\":\"Network.requestWillBeSent\",\"params\":{\"documentURL\":\"chrome://new-tab-page/\",\"frameId\":\"1ABC3C9A477A577DA4AF70170C091FCD\",\"hasUserGesture\":false,\"initiator\":{\"columnNumber\":594...",
+   "timestamp": 1.792274571884e+12
+}, {
+   "level": "INFO",
+   "message": "{\"message\":{\"method\":\"Network.requestWillBeSent\",\"params\":{\"documentURL\":\"chrome://new-tab-page/\",\"frameId\":\"1ABC3C9A477A577DA4AF70170C091FCD\",\"hasUserGesture\":false,\"initiator\":{\"columnNumber\":606...",
+   "timestamp": 1.792274571884e+12
+}, {
+   "level": "INFO",
+   "message": "{\"message\":{\"method\":\"Network.requestWillBeSent\",\"params\":{\"documentURL\":\"chrome://new-tab-page/\",\"frameId\":\"1ABC3C9A477A577DA4AF70170C091FCD\",\"hasUserGesture\":false,\"initiator\":{\"columnNumber\":609...",
+   "timestamp": 1.792274571884e+12
+}, {
+   "level": "INFO",
+   "message": "{\"message\":{\"method\":\"Network.requestWillBeSent\",\"params\":{\"documentURL\":\"chrome://new-tab-page/\",\"frameId\":\"1ABC3C9A477A577DA4AF70170C091FCD\",\"hasUserGesture\":false,\"initiator\":{\"columnNumber\":619...",
+   "timestamp": 1.792274571884e+12
+}, {
+   "level": "INFO",
+   "message": "{\"message\":{\"method\":\"Network.requestWillBeSent\",\"params\":{\"documentURL\":\"chrome://new-tab-page/\",\"frameId\":\"1ABC3C9A477A577DA4AF70170C091FCD\",\"hasUserGesture\":false,\"initiator\":{\"columnNumber\":631...",
+   "timestamp": 1.792274571884e+12
+}, {
+   "level": "INFO",
+   "message": "{\"message\":{\"method\":\"Network.requestWillBeSent\",\"params\":{\"documentURL\":\"chrome://new-tab-page/\",\"frameId\":\"1ABC3C9A477A577DA4AF70170C091FCD\",\"hasUserGesture\":false,\"initiator\":{\"columnNumber\":641...",
+   "timestamp": 1.792274571884e+12
+}, {
+   "level": "INFO",
+   "message": "{\"message\":{\"method\":\"Network.requestWillBeSent\",\"params\":{\"documentURL\":\"chrome://new-tab-page/\",\"frameId\":\"1ABC3C9A477A577DA4AF70170C091FCD\",\"hasUserGesture\":false,\"initiator\":{\"columnNumber\":649...",
+   "timestamp": 1.792274571884e+12
+}, {
+   "level": "INFO",
+   "message": "{\"message\":{\"method\":\"Network.requestWillBeSent\",\"params\":{\"documentURL\":\"chrome://new-tab-page/\",\"frameId\":\"1ABC3C9A477A577DA4AF70170C091FCD\",\"hasUserGesture\":false,\"initiator\":{\"columnNumber\":656...",
+   "timestamp": 1.792274571884e+12
+}, {
+   "level": "INFO",
+   "message": "{\"message\":{\"method\":\"Network.requestWillBeSent\",\"params\":{\"documentURL\":\"chrome://new-tab-page/\",\"frameId\":\"1ABC3C9A477A577DA4AF70170C091FCD\",\"hasUserGesture\":false,\"initiator\":{\"columnNumber\":664...",
+   "timestamp": 1.792274571884e+12
+}, {
+   "level": "INFO",
+   "message": "{\"message\":{\"method\":\"Network.requestWillBeSent\",\"params\":{\"documentURL\":\"chrome://new-tab-page/\",\"frameId\":\"1ABC3C9A477A577DA4AF70170C091FCD\",\"hasUserGesture\":false,\"initiator\":{\"columnNumber\":672...",
+   "timestamp": 1.792274571884e+12
+}, {
+   "level": "INFO",
+   "message": "{\"message\":{\"method\":\"Network.responseReceived\",\"params\":{\"frameId\":\"1ABC3C9A477A577DA4AF70170C091FCD\",\"hasExtraInfo\":false,\"loaderId\":\"8F13383A88A489C8EFE753433CF8B613\",\"requestId\":\"3138.15\",\"resp...",
+   "timestamp": 1.79227457189e+12
+}, {
+   "level": "INFO",
+   "message": "{\"message\":{\"method\":\"Network.dataReceived\",\"params\":{\"dataLength\":2259,\"encodedDataLength\":0,\"requestId\":\"3138.15\",\"timestamp\":287.451185}},\"webview\":\"1ABC3C9A477A577DA4AF70170C091FCD\"}",
+   "timestamp": 1.79227457189e+12
+}, {
+   "level": "INFO",
+   "message": "{\"message\":{\"method\":\"Network.responseReceived\",\"params\":{\"frameId\":\"1ABC3C9A477A577DA4AF70170C091FCD\",\"hasExtraInfo\":false,\"loaderId\":\"8F13383A88A489C8EFE753433CF8B613\",\"requestId\":\"3138.16\",\"resp...",
+   "timestamp": 1.792274571891e+12
+}, "..." ]
+[1792274583.625][INFO]: [a8def68d840a1209bbed553ea715b8fb] COMMAND ExecuteCDP {
+   "cmd": "Network.getResponseBody",
+   "params": {
+      "requestId": "3136.164"
+   }
+}
+[1792274583.626][INFO]: Waiting for pending navigations...
+[1792274583.626][INFO]: Done waiting for pending navigations. Status: ok
+[1792274583.627][INFO]: Waiting for pending navigations...
+[1792274583.627][INFO]: Done waiting for pending navigations. Status: ok
+[1792274583.627][INFO]: [a8def68d840a1209bbed553ea715b8fb] RESPONSE ExecuteCDP {
+   "base64Encoded": false,
+   "body": "{\"content\":{\"page_number\":1,\"page_count\":1,\"page_size\":50,\"total_elements_count\":16},\"data\":[{\"quantityOffer\":0,\"symbol\":\"G\",\"country\":\"Argentina\",\"highestPrice\":1.2522335685E8,\"isRate\":false,\"lowe..."
+}
+[1792274583.633][INFO]: [a8def68d840a1209bbed553ea715b8fb] COMMAND Quit {
+}
+[3088:3115:1017/220303.674813:WARNING:net/extras/sqlite/sqlite_persistent_store_backend_base.cc:182] Failed to post task from FlushAndNotifyInBackground@net/extras/sqlite/sqlite_persistent_store_backend_base.cc:232 to client_task_runner_.
+[3088:3115:1017/220303.674876:WARNING:net/extras/sqlite/sqlite_persistent_store_backend_base.cc:182] Failed to post task from FlushAndNotifyInBackground@net/extras/sqlite/sqlite_persistent_store_backend_base.cc:232 to client_task_runner_.
+[1792274583.709][INFO]: [a8def68d840a1209bbed553ea715b8fb] RESPONSE Quit
