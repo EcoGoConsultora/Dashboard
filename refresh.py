@@ -2273,6 +2273,24 @@ def run_monitor_tasas(status):
         if d.weekday() < 5:                      # sabados y domingos no son rueda
             intentos.append(d.strftime("%Y-%m-%d"))
 
+    def _publicar_pagina():
+        """La seccion Mercados es la pagina que arma el propio Monitor.
+
+        src/monitor.py rellena site/template.html con los datos del dia y
+        escribe index.html, asi que la pagina se rehace sola en cada corrida.
+        Se copia al repo con otro nombre para que la sirva GitHub Pages sin
+        exponer el resto de la carpeta del proyecto.
+        """
+        origen = os.path.join(MONITOR_TASAS_DIR, "index.html")
+        destino = os.path.join(DASHBOARD_DIR, "pages", "mercados-monitor.html")
+        if not os.path.exists(origen):
+            status.warn("Monitor de tasas - pagina", "la corrida no dejo index.html")
+            return
+        import shutil
+        shutil.copyfile(origen, destino)
+        status.ok("Monitor de tasas - pagina",
+                  f"{os.path.getsize(destino):,} bytes en pages/mercados-monitor.html")
+
     for i, fecha in enumerate(intentos):
         r = _correr(fecha)
         salida = ((r.stdout or "") + (r.stderr or "")).strip()
@@ -2280,6 +2298,7 @@ def run_monitor_tasas(status):
             etiqueta = fecha or "hoy"
             extra = " (se uso la ultima rueda cerrada)" if i else ""
             status.ok("Monitor de tasas - corrida", f"rueda {etiqueta}{extra}")
+            _publicar_pagina()
             return True
         if "Sin cotizaciones" not in salida:
             # fallo por otra cosa: no tiene sentido seguir probando fechas
