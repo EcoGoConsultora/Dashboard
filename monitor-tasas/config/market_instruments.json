@@ -1,0 +1,386 @@
+{
+  "registry_version": "2026-10-08",
+  "fixed": [
+    {
+      "symbol": "T15D5",
+      "family": "BONCAP",
+      "issue_date": "2025-01-01",
+      "maturity_date": "2025-12-15",
+      "tem_decimal": 0.025,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "S17A6",
+      "family": "LECAP",
+      "issue_date": "2025-04-30",
+      "maturity_date": "2026-03-31",
+      "tem_decimal": 0.024,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "S15Y6",
+      "family": "LECAP",
+      "issue_date": "2025-06-30",
+      "maturity_date": "2026-05-15",
+      "tem_decimal": 0.0235,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "S29Y6",
+      "family": "LECAP",
+      "issue_date": "2025-06-30",
+      "maturity_date": "2026-05-29",
+      "tem_decimal": 0.0235,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "T30J6",
+      "family": "BONCAP",
+      "issue_date": "2025-06-30",
+      "maturity_date": "2026-06-30",
+      "tem_decimal": 0.023,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "S31L6",
+      "family": "LECAP",
+      "issue_date": "2026-01-30",
+      "maturity_date": "2026-07-31",
+      "tem_decimal": 0.0275,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "S30S6",
+      "family": "LECAP",
+      "issue_date": "2026-03-16",
+      "maturity_date": "2026-09-30",
+      "tem_decimal": 0.0253,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "S30O6",
+      "family": "LECAP",
+      "issue_date": "2025-10-31",
+      "maturity_date": "2026-10-30",
+      "tem_decimal": 0.0255,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "S30N6",
+      "family": "LECAP",
+      "issue_date": "2025-12-15",
+      "maturity_date": "2026-11-30",
+      "tem_decimal": 0.023,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "S29E7",
+      "family": "LECAP",
+      "issue_date": "2026-08-31",
+      "maturity_date": "2027-01-29",
+      "tem_decimal": 0.0225,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "T30A7",
+      "family": "BONCAP",
+      "issue_date": "2025-10-31",
+      "maturity_date": "2027-04-30",
+      "tem_decimal": 0.0255,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "T31Y7",
+      "family": "BONCAP",
+      "issue_date": "2025-12-15",
+      "maturity_date": "2027-05-31",
+      "tem_decimal": 0.024,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "T30J7",
+      "family": "BONCAP",
+      "issue_date": "2026-01-16",
+      "maturity_date": "2027-06-30",
+      "tem_decimal": 0.0258,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "S13N6",
+      "family": "LECAP",
+      "issue_date": "2026-06-30",
+      "maturity_date": "2026-11-13",
+      "tem_decimal": 0.021,
+      "terms_source": "https://www.argentina.gob.ar/noticias/resultado-de-la-licitacion-por-efectivo-de-instrumentos-del-tesoro-nacional-denominados-5"
+    },
+    {
+      "symbol": "T15E7",
+      "family": "BONCAP",
+      "issue_date": "2025-01-31",
+      "maturity_date": "2027-01-15",
+      "tem_decimal": 0.0205,
+      "terms_source": "https://www.argentina.gob.ar/node/480563"
+    },
+    {
+      "symbol": "S16O6",
+      "family": "LECAP",
+      "issue_date": "2026-07-31",
+      "maturity_date": "2026-10-16",
+      "tem_decimal": 0.0205,
+      "terms_source": "https://www.argentina.gob.ar/noticias/resultado-de-la-licitacion-por-efectivo-de-instrumentos-del-tesoro-nacional-denominados-8"
+    }
+  ],
+  "cer": [
+    {
+      "symbol": "TZXD5",
+      "family": "BONCER",
+      "maturity_date": "2025-12-15",
+      "cer_base_index": 271.05,
+      "zero_coupon": true,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "TZXM6",
+      "family": "BONCER",
+      "maturity_date": "2026-03-31",
+      "cer_base_index": 337.03,
+      "zero_coupon": true,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "X15Y6",
+      "family": "LECER",
+      "maturity_date": "2026-05-15",
+      "cer_base_index": 701.61,
+      "zero_coupon": true,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "X29Y6",
+      "family": "LECER",
+      "maturity_date": "2026-05-29",
+      "cer_base_index": 651.9,
+      "zero_coupon": true,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "TZX26",
+      "family": "BONCER",
+      "maturity_date": "2026-06-30",
+      "cer_base_index": 200.39,
+      "zero_coupon": true,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "X31L6",
+      "family": "LECER",
+      "maturity_date": "2026-07-31",
+      "cer_base_index": 685.55,
+      "zero_coupon": true,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "X30S6",
+      "family": "LECER",
+      "maturity_date": "2026-09-30",
+      "cer_base_index": 714.98,
+      "zero_coupon": true,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "TZXO6",
+      "family": "BONCER",
+      "maturity_date": "2026-10-30",
+      "cer_base_index": 480.15,
+      "zero_coupon": true,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "X30N6",
+      "family": "LECER",
+      "maturity_date": "2026-11-30",
+      "cer_base_index": 659.68,
+      "zero_coupon": true,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "X29E7",
+      "family": "LECER",
+      "maturity_date": "2027-01-29",
+      "cer_base_index": 822.4,
+      "zero_coupon": true,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "TZXA7",
+      "family": "BONCER",
+      "maturity_date": "2027-04-30",
+      "cer_base_index": 651.9,
+      "zero_coupon": true,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "TZXY7",
+      "family": "BONCER",
+      "maturity_date": "2027-05-31",
+      "cer_base_index": 659.68,
+      "zero_coupon": true,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "TZX27",
+      "family": "BONCER",
+      "maturity_date": "2027-06-30",
+      "cer_base_index": 200.39,
+      "zero_coupon": true,
+      "terms_source": "legacy:Infla breakeven/config/instruments.yml"
+    },
+    {
+      "symbol": "TZXD6",
+      "family": "BONCER",
+      "maturity_date": "2026-12-15",
+      "cer_base_index": 271.05,
+      "zero_coupon": true,
+      "terms_source": "https://www.argentina.gob.ar/node/435889"
+    },
+    {
+      "symbol": "TZXD7",
+      "family": "BONCER",
+      "maturity_date": "2027-12-15",
+      "cer_base_index": 271.05,
+      "zero_coupon": true,
+      "terms_source": "https://www.argentina.gob.ar/node/435889"
+    },
+    {
+      "symbol": "TZXM7",
+      "family": "BONCER",
+      "maturity_date": "2027-03-31",
+      "cer_base_index": 361.32,
+      "zero_coupon": true,
+      "terms_source": "https://www.argentina.gob.ar/node/463058"
+    },
+    {
+      "symbol": "TZX28",
+      "family": "BONCER",
+      "maturity_date": "2028-06-30",
+      "cer_base_index": 200.39,
+      "zero_coupon": true,
+      "terms_source": "https://www.argentina.gob.ar/node/433582"
+    },
+    {
+      "symbol": "TZXS7",
+      "family": "BONCER",
+      "maturity_date": "2027-09-30",
+      "cer_base_index": 723.0599806219161,
+      "zero_coupon": true,
+      "terms_source": "https://www.argentina.gob.ar/node/496356"
+    },
+    {
+      "symbol": "TZXS8",
+      "family": "BONCER",
+      "maturity_date": "2028-09-29",
+      "cer_base_index": 723.0599806219161,
+      "zero_coupon": true,
+      "terms_source": "https://www.argentina.gob.ar/node/496356"
+    },
+    {
+      "symbol": "TZXM8",
+      "family": "BONCER",
+      "maturity_date": "2028-03-31",
+      "cer_base_index": 725.2064092137492,
+      "zero_coupon": true,
+      "terms_source": "https://www.argentina.gob.ar/node/496356"
+    },
+    {
+      "symbol": "TZXM9",
+      "family": "BONCER",
+      "maturity_date": "2029-03-28",
+      "cer_base_index": 725.2064092137492,
+      "zero_coupon": true,
+      "terms_source": "https://www.argentina.gob.ar/node/496356"
+    },
+    {
+      "symbol": "TZXO7",
+      "family": "BONCER",
+      "issue_date": "2026-06-30",
+      "maturity_date": "2027-10-29",
+      "cer_base_index": 791.48970450621,
+      "zero_coupon": true,
+      "terms_source": "https://www.argentina.gob.ar/normativa/nacional/norma-427225/texto"
+    },
+    {
+      "symbol": "TZXD8",
+      "family": "BONCER",
+      "issue_date": "2026-06-30",
+      "maturity_date": "2028-12-15",
+      "cer_base_index": 791.48970450621,
+      "zero_coupon": true,
+      "terms_source": "https://www.argentina.gob.ar/normativa/nacional/norma-427225/texto"
+    }
+  ],
+  "dollar_linked": [
+    {
+      "symbol": "D30S6",
+      "family": "LELINK",
+      "maturity_date": "2026-09-30",
+      "zero_coupon": true,
+      "terms_source": "https://www.argentina.gob.ar/noticias/conversion-de-la-lelink-d30s6-en-el-marco-del-articulo-2-del-decreto-84624"
+    },
+    {
+      "symbol": "D30O6",
+      "family": "LELINK",
+      "maturity_date": "2026-10-30",
+      "zero_coupon": true,
+      "terms_source": "https://www.argentina.gob.ar/noticias/conversion-de-la-lelink-d30s6-en-el-marco-del-articulo-2-del-decreto-84624"
+    },
+    {
+      "symbol": "D30N6",
+      "family": "LELINK",
+      "maturity_date": "2026-11-30",
+      "zero_coupon": true,
+      "terms_source": "https://www.argentina.gob.ar/noticias/conversion-de-la-lelink-d30s6-en-el-marco-del-articulo-2-del-decreto-84624"
+    },
+    {
+      "symbol": "TZV27",
+      "family": "BONO_DOLLAR_LINKED",
+      "maturity_date": "2027-06-30",
+      "zero_coupon": true,
+      "terms_source": "https://www.argentina.gob.ar/node/513407"
+    },
+    {
+      "symbol": "TZV28",
+      "family": "BONO_DOLLAR_LINKED",
+      "maturity_date": "2028-06-30",
+      "zero_coupon": true,
+      "terms_source": "https://www.argentina.gob.ar/noticias/conversion-de-la-lelink-d30s6-en-el-marco-del-articulo-2-del-decreto-84624"
+    },
+    {
+      "symbol": "D15E7",
+      "family": "LELINK",
+      "maturity_date": "2027-01-15",
+      "zero_coupon": true,
+      "terms_source": "https://www.rava.com/perfil/D15E7"
+    },
+    {
+      "symbol": "D10Y7",
+      "family": "LELINK",
+      "maturity_date": "2027-05-10",
+      "zero_coupon": true,
+      "terms_source": "https://www.argentina.gob.ar/noticias/llamado-licitacion-de-instrumentos-del-tesoro-nacional-denominados-en-pesos-y-en-dolares-7"
+    },
+    {
+      "symbol": "D31M7",
+      "family": "LELINK",
+      "maturity_date": "2027-03-31",
+      "zero_coupon": true,
+      "terms_source": "https://www.argentina.gob.ar/noticias/resultado-de-la-licitacion-por-efectivo-de-instrumentos-del-tesoro-nacional-denominados-12"
+    },
+    {
+      "symbol": "TZVD8",
+      "family": "BONO_DOLLAR_LINKED",
+      "maturity_date": "2028-12-15",
+      "zero_coupon": true,
+      "terms_source": "https://www.argentina.gob.ar/noticias/resultado-de-la-licitacion-para-la-conversion-de-la-lelink-d31l6-con-vencimiento-31-de"
+    }
+  ]
+}

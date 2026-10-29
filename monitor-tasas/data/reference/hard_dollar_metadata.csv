@@ -1,0 +1,259 @@
+symbol,source_url,issue_date,maturity_date,description,tir_reference,modified_duration_reference,parity_reference,technical_value_reference,price_reference
+AL29D,https://bonistas.com/bono-cotizacion-rendimiento-precio-hoy/AL29D,2020-09-04,2029-07-09,"**AL29D** - Bono de la República Argentina
+
+**Características generales:**
+- Moneda: USD MEP (USD MEP)
+- Legislación: Ley Argentina
+- Tipo: hard dollar (tasa fija en USD)
+- Emisión: 4 de septiembre de 2020
+- Vencimiento: 9 de julio de 2029
+- Pago de cupones: semestral
+
+**Cupón:**
+- Tasa nominal anual (TNA): 1.00%
+
+**Amortización:**
+- Tipo: bullet (100% al vencimiento)",0.06048859073186204,1.6082678439992462,0.9215392303848076,,55.32
+AN29D,https://bonistas.com/bono-cotizacion-rendimiento-precio-hoy/AN29D,2025-12-12,2029-11-30,"**AN29D** - Bono de la República Argentina
+
+**Características generales:**
+- Moneda: USD MEP (USD MEP)
+- Legislación: Ley Argentina
+- Tipo: hard dollar (tasa fija en USD)
+- Emisión: 12 de diciembre de 2025
+- Vencimiento: 30 de noviembre de 2029
+- Pago de cupones: semestral
+
+**Cupón:**
+- Tasa nominal anual (TNA): 6.50%
+
+**Amortización:**
+- Tipo: bullet (100% al vencimiento)",0.08062740037177112,2.905972822360282,0.9594259083597971,,96.93
+AL30D,https://bonistas.com/bono-cotizacion-rendimiento-precio-hoy/AL30D,2020-09-04,2030-07-09,"**AL30D** - Bono de la República Argentina
+
+**Características generales:**
+- Moneda: USD MEP (USD MEP)
+- Legislación: Ley Argentina
+- Tipo: hard dollar (tasa fija en USD)
+- Emisión: 4 de septiembre de 2020
+- Vencimiento: 9 de julio de 2030
+- Pago de cupones: semestral
+
+**Cupón:**
+Este bono paga cupones con tasas crecientes (estructura step-up):
+  - Cupón 1: 0.12% TNA
+  - Cupones 2-5: 0.50% TNA
+  - Cupones 6-13: 0.75% TNA
+  - Cupones 14-19: 1.75% TNA
+
+**Amortización:**
+- Tipo: bullet (100% al vencimiento)",0.07126407352978396,2.0357649277334398,0.887792077970761,,56.84
+AO27D,https://bonistas.com/bono-cotizacion-rendimiento-precio-hoy/AO27D,2026-02-27,2027-10-29,"**AO27D** - Bono de la República Argentina
+
+**Características generales:**
+- Moneda: USD MEP (USD MEP)
+- Legislación: Ley Argentina
+- Tipo: hard dollar (tasa fija en USD)
+- Emisión: 27 de febrero de 2026
+- Vencimiento: 29 de octubre de 2027
+- Pago de cupones: mensual
+
+**Cupón:**
+- Tasa nominal anual (TNA): 6.00%
+
+**Amortización:**
+- Tipo: bullet (100% al vencimiento)",0.037435511266430264,1.2061904031277828,1.028372324539572,,103.3
+AO28D,https://bonistas.com/bono-cotizacion-rendimiento-precio-hoy/AO28D,2026-03-31,2028-10-31,"**AO28D** - Bono de la República Argentina
+
+**Características generales:**
+- Moneda: USD MEP (USD MEP)
+- Legislación: Ley Argentina
+- Tipo: hard dollar (tasa fija en USD)
+- Emisión: 31 de marzo de 2026
+- Vencimiento: 31 de octubre de 2028
+- Pago de cupones: mensual
+
+**Cupón:**
+- Tasa nominal anual (TNA): 6.00%
+
+**Amortización:**
+- Tipo: bullet (100% al vencimiento)",0.07169335077616787,2.0981313442503953,0.9803882528621205,,98.48
+AO29D,https://www.boletinoficial.gob.ar/detalleAviso/primera/344429/20260716,2026-07-17,2029-10-31,"AO29D - Bono del Tesoro Nacional USD 6% 31/10/2029. Emisión 17/07/2026, cupón mensual con primer período irregular y amortización íntegra al vencimiento. Resolución Conjunta 44/2026; VNO total colocado USD 620 M.",,,,,
+AL35D,https://bonistas.com/bono-cotizacion-rendimiento-precio-hoy/AL35D,2020-09-04,2035-07-09,"**AL35D** - Bono de la República Argentina
+
+**Características generales:**
+- Moneda: USD MEP (USD MEP)
+- Legislación: Ley Argentina
+- Tipo: hard dollar (tasa fija en USD)
+- Emisión: 4 de septiembre de 2020
+- Vencimiento: 9 de julio de 2035
+- Pago de cupones: semestral
+
+**Cupón:**
+Este bono paga cupones con tasas crecientes (estructura step-up):
+  - Cupón 1: 0.12% TNA
+  - Cupones 2-3: 1.12% TNA
+  - Cupones 4-5: 1.50% TNA
+  - Cupones 6-7: 3.62% TNA
+  - Cupones 8-13: 4.12% TNA
+  - Cupones 14-15: 4.75% TNA
+  - Cupones 16-29: 5.00% TNA
+
+**Amortización:**
+- Tipo: bullet (100% al vencimiento)",0.0905437349474642,5.36700116061517,0.8000498970872576,,80.17
+AE38D,https://bonistas.com/bono-cotizacion-rendimiento-precio-hoy/AE38D,2020-09-04,2038-01-09,"**AE38D** - Bono de la República Argentina
+
+**Características generales:**
+- Moneda: USD MEP (USD MEP)
+- Legislación: Ley Argentina
+- Tipo: hard dollar (tasa fija en USD)
+- Emisión: 4 de septiembre de 2020
+- Vencimiento: 9 de enero de 2038
+- Pago de cupones: semestral
+
+**Cupón:**
+Este bono paga cupones con tasas crecientes (estructura step-up):
+  - Cupón 1: 0.12% TNA
+  - Cupones 2-3: 2.00% TNA
+  - Cupones 4-5: 3.88% TNA
+  - Cupones 6-7: 4.25% TNA
+  - Cupones 8-34: 5.00% TNA
+
+**Amortización:**
+- Tipo: bullet (100% al vencimiento)",0.09084225430976435,4.640614744248573,0.8275311720698253,,82.96
+AL41D,https://bonistas.com/bono-cotizacion-rendimiento-precio-hoy/AL41D,2020-09-04,2041-07-09,"**AL41D** - Bono de la República Argentina
+
+**Características generales:**
+- Moneda: USD MEP (USD MEP)
+- Legislación: Ley Argentina
+- Tipo: hard dollar (tasa fija en USD)
+- Emisión: 4 de septiembre de 2020
+- Vencimiento: 9 de julio de 2041
+- Pago de cupones: semestral
+
+**Cupón:**
+Este bono paga cupones con tasas crecientes (estructura step-up):
+  - Cupón 1: 0.12% TNA
+  - Cupones 2-3: 2.50% TNA
+  - Cupones 4-17: 3.50% TNA
+  - Cupones 18-41: 4.88% TNA
+
+**Amortización:**
+- Tipo: bullet (100% al vencimiento)",0.08903975676614163,5.934201749490216,0.757674070376841,,75.9
+GD29D,https://bonistas.com/bono-cotizacion-rendimiento-precio-hoy/GD29D,2020-09-04,2029-07-09,"**GD29D** - Bono de la República Argentina
+
+**Características generales:**
+- Moneda: USD CABLE (USD CABLE)
+- Legislación: Ley Nueva York
+- Tipo: hard dollar (tasa fija en USD)
+- Emisión: 4 de septiembre de 2020
+- Vencimiento: 9 de julio de 2029
+- Pago de cupones: semestral
+
+**Cupón:**
+- Tasa nominal anual (TNA): 1.00%
+
+**Amortización:**
+- Tipo: bullet (100% al vencimiento)",0.05497968841484928,1.616246881603554,0.9295352323838081,,55.8
+GD30D,https://bonistas.com/bono-cotizacion-rendimiento-precio-hoy/GD30D,2020-09-04,2030-07-09,"**GD30D** - Bono de la República Argentina
+
+**Características generales:**
+- Moneda: USD CABLE (USD CABLE)
+- Legislación: Ley Nueva York
+- Tipo: hard dollar (tasa fija en USD)
+- Emisión: 4 de septiembre de 2020
+- Vencimiento: 9 de julio de 2030
+- Pago de cupones: semestral
+
+**Cupón:**
+Este bono paga cupones con tasas crecientes (estructura step-up):
+  - Cupón 1: 0.12% TNA
+  - Cupones 2-5: 0.50% TNA
+  - Cupones 6-13: 0.75% TNA
+  - Cupones 14-19: 1.75% TNA
+
+**Amortización:**
+- Tipo: bullet (100% al vencimiento)",0.05987225796486064,2.0604400783607764,0.9080969636386355,,58.14
+GD35D,https://bonistas.com/bono-cotizacion-rendimiento-precio-hoy/GD35D,2020-09-04,2035-07-09,"**GD35D** - Bono de la República Argentina
+
+**Características generales:**
+- Moneda: USD CABLE (USD CABLE)
+- Legislación: Ley Nueva York
+- Tipo: hard dollar (tasa fija en USD)
+- Emisión: 4 de septiembre de 2020
+- Vencimiento: 9 de julio de 2035
+- Pago de cupones: semestral
+
+**Cupón:**
+Este bono paga cupones con tasas crecientes (estructura step-up):
+  - Cupón 1: 0.12% TNA
+  - Cupones 2-3: 1.12% TNA
+  - Cupones 4-5: 1.50% TNA
+  - Cupones 6-7: 3.62% TNA
+  - Cupones 8-13: 4.12% TNA
+  - Cupones 14-15: 4.75% TNA
+  - Cupones 16-29: 5.00% TNA
+
+**Amortización:**
+- Tipo: bullet (100% al vencimiento)",0.08507063540160668,5.403793297617568,0.8230025572257219,,82.47
+GD38D,https://bonistas.com/bono-cotizacion-rendimiento-precio-hoy/GD38D,2020-09-04,2038-01-09,"**GD38D** - Bono de la República Argentina
+
+**Características generales:**
+- Moneda: USD CABLE (USD CABLE)
+- Legislación: Ley Nueva York
+- Tipo: hard dollar (tasa fija en USD)
+- Emisión: 4 de septiembre de 2020
+- Vencimiento: 9 de enero de 2038
+- Pago de cupones: semestral
+
+**Cupón:**
+Este bono paga cupones con tasas crecientes (estructura step-up):
+  - Cupón 1: 0.12% TNA
+  - Cupones 2-3: 2.00% TNA
+  - Cupones 4-5: 3.88% TNA
+  - Cupones 6-7: 4.25% TNA
+  - Cupones 8-34: 5.00% TNA
+
+**Amortización:**
+- Tipo: bullet (100% al vencimiento)",0.08240307309010775,4.730110909279814,0.8595511221945136,,86.17
+GD41D,https://bonistas.com/bono-cotizacion-rendimiento-precio-hoy/GD41D,2020-09-04,2041-07-09,"**GD41D** - Bono de la República Argentina
+
+**Características generales:**
+- Moneda: USD CABLE (USD CABLE)
+- Legislación: Ley Nueva York
+- Tipo: hard dollar (tasa fija en USD)
+- Emisión: 4 de septiembre de 2020
+- Vencimiento: 9 de julio de 2041
+- Pago de cupones: semestral
+
+**Cupón:**
+Este bono paga cupones con tasas crecientes (estructura step-up):
+  - Cupón 1: 0.12% TNA
+  - Cupones 2-3: 2.50% TNA
+  - Cupones 4-17: 3.50% TNA
+  - Cupones 18-41: 4.88% TNA
+
+**Amortización:**
+- Tipo: bullet (100% al vencimiento)",0.08577689719026069,5.98603391713925,0.7719490890940857,,77.33
+GD46D,https://bonistas.com/bono-cotizacion-rendimiento-precio-hoy/GD46D,2020-09-04,2046-07-09,"**GD46D** - Bono de la República Argentina
+
+**Características generales:**
+- Moneda: USD CABLE (USD CABLE)
+- Legislación: Ley Nueva York
+- Tipo: hard dollar (tasa fija en USD)
+- Emisión: 4 de septiembre de 2020
+- Vencimiento: 9 de julio de 2046
+- Pago de cupones: semestral
+
+**Cupón:**
+Este bono paga cupones con tasas crecientes (estructura step-up):
+  - Cupón 1: 0.12% TNA
+  - Cupones 2-3: 1.12% TNA
+  - Cupones 4-5: 1.50% TNA
+  - Cupones 6-7: 3.62% TNA
+  - Cupones 8-13: 4.12% TNA
+  - Cupones 14-15: 4.38% TNA
+  - Cupones 16-51: 5.00% TNA
+
+**Amortización:**
+- Tipo: bullet (100% al vencimiento)",0.0859626591653375,6.502902232593415,0.7767579367554425,,70.76

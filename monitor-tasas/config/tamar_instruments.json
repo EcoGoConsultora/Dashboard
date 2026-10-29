@@ -1,0 +1,98 @@
+{
+  "registry_version": "2026-08-06",
+  "methodology": {
+    "benchmark": "TAMAR bancos privados, BCRA variable 44, TNA porcentual",
+    "price_basis": "pesos por VN 100",
+    "settlement_business_days": 1,
+    "forecast": {
+      "method": "trailing_simple_mean_of_published_fixings",
+      "lookback_observations": 5,
+      "warning": "La proyeccion de fijaciones futuras es un supuesto explicito; los nodos son TIR de mercado condicionales a ese supuesto, no forwards TAMAR observados."
+    },
+    "calendar_policy": "official_bcra_with_argentine_national_fallback"
+  },
+  "instruments": [
+    {
+      "symbol": "M31G6",
+      "instrument_type": "LETAMAR",
+      "issue_date": "2025-11-10",
+      "maturity_date": "2026-08-31",
+      "margin_tna_pct": 5.0,
+      "include_in_curve": true,
+      "terms_sources": [
+        "https://www.boletinoficial.gob.ar/detalleAviso/primera/334181/20251107",
+        "https://www.argentina.gob.ar/noticias/resultado-de-licitacion-de-lecap-boncap-boncer-letamar-bono-tamar-y-lelink"
+      ]
+    },
+    {
+      "symbol": "TMF27",
+      "instrument_type": "BONO_TAMAR",
+      "issue_date": "2026-02-13",
+      "maturity_date": "2027-02-26",
+      "margin_tna_pct": 6.5,
+      "include_in_curve": true,
+      "terms_sources": [
+        "https://www.boletinoficial.gob.ar/detalleAviso/primera/338415/20260212",
+        "https://www.argentina.gob.ar/noticias/resultado-de-la-licitacion-de-instrumentos-del-tesoro-nacional-en-pesos-y-en-dolares-0"
+      ]
+    },
+    {
+      "symbol": "TMG27",
+      "instrument_type": "BONO_TAMAR",
+      "issue_date": "2026-04-01",
+      "maturity_date": "2027-08-31",
+      "margin_tna_pct": 6.0,
+      "include_in_curve": true,
+      "terms_sources": [
+        "https://www.boletinoficial.gob.ar/detalleAviso/primera/340193/20260331",
+        "https://www.argentina.gob.ar/noticias/resultado-de-la-licitacion-por-efectivo-de-instrumentos-del-tesoro-nacional-denominados-en"
+      ]
+    },
+    {
+      "symbol": "TML27",
+      "instrument_type": "BONO_TAMAR",
+      "issue_date": "2026-06-30",
+      "maturity_date": "2027-07-30",
+      "margin_tna_pct": 5.4,
+      "include_in_curve": true,
+      "terms_sources": [
+        "https://www.boletinoficial.gob.ar/detalleAviso/primera/343851/20260701",
+        "https://www.argentina.gob.ar/noticias/resultado-de-la-licitacion-por-efectivo-de-instrumentos-del-tesoro-nacional-denominados-pesos-dolar-linked-y-dolar-estadounidenses"
+      ]
+    },
+    {
+      "symbol": "TMF28",
+      "instrument_type": "BONO_TAMAR",
+      "issue_date": "2026-04-20",
+      "maturity_date": "2028-02-25",
+      "margin_tna_pct": 6.5,
+      "include_in_curve": true,
+      "terms_sources": [
+        "https://www.boletinoficial.gob.ar/detalleAviso/primera/340830/20260416",
+        "https://www.argentina.gob.ar/noticias/resultado-de-la-licitacion-por-efectivo-de-instrumentos-del-tesoro-nacional-denominados-0"
+      ]
+    },
+    {
+      "symbol": "TMG28",
+      "instrument_type": "BONO_TAMAR",
+      "issue_date": "2026-04-30",
+      "maturity_date": "2028-08-31",
+      "margin_tna_pct": 6.9,
+      "include_in_curve": true,
+      "terms_sources": [
+        "https://www.boletinoficial.gob.ar/detalleAviso/primera/341303/20260429",
+        "https://www.argentina.gob.ar/noticias/resultado-de-la-licitacion-por-efectivo-de-instrumentos-del-tesoro-nacional-denominados-1"
+      ]
+    }
+  ],
+  "excluded_instruments": [
+    {
+      "symbol": "T31Y7",
+      "reason": "No es un nodo TAMAR vigente: la especie TAMAR ofrecida fue declarada desierta; no mezclar con BONCAP homonima."
+    },
+    {
+      "symbols": ["TXMJ8", "TXMD8", "TXMJ9", "TXMD9", "TXMJ0"],
+      "reason": "Instrumentos duales CER/TAMAR: requieren valuacion de opcion y no pertenecen a la curva pura TAMAR."
+    }
+  ]
+}

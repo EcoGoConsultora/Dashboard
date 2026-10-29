@@ -1,0 +1,26 @@
+# Difiere del .gitignore del proyecto original a proposito.
+#
+# Alla 'output/' es una salida que se regenera en cada corrida local, asi que
+# no se versiona. Aca el que corre el monitor es el workflow diario de GitHub,
+# en una maquina nueva que no conserva nada entre corridas: si el historico no
+# esta en el repo, cada dia arrancaria de cero y el grafico de tasas de
+# referencia se quedaria con un solo punto.
+#
+# Por eso 'output/history/' y 'output/latest.json' SI se versionan: cada
+# corrida agrega su snapshot del dia y lo commitea.
+
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
+logs/
+
+# Respuestas crudas de cada corrida: utiles para auditar en local, pero pesan
+# y se vuelven a bajar solas.
+data/raw/
+
+# El HTML del monitor y los Excel exportados son entregables de ese proyecto,
+# no entradas del tablero.
+index.html
+output/exports/
+output/analysis/
