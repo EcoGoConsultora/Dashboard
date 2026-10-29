@@ -1358,63 +1358,99 @@ def extract_tipo_cambio(status):
     wb2 = _open_wb(EXCEL_PATHS["rofex"], read_only=False)
     ws2 = wb2["Cuadros para informes"]
 
-    # Detectar ocultas
-    hidden_cols = set()
-    for letter, dim in ws2.column_dimensions.items():
-        if dim.hidden:
-            hidden_cols.add(openpyxl.utils.column_index_from_string(letter))
-    hidden_rows = set()
-    for r_num, dim in ws2.row_dimensions.items():
-        if dim.hidden:
-            hidden_rows.add(r_num)
+    # Las columnas y filas ocultas del Excel estan ocultas a proposito
+    # (contratos vencidos, filas de control): se respetan.
+    hidden_cols = {openpyxl.utils.column_index_from_string(l)
+                   for l, dim in ws2.column_dimensions.items() if dim.hidden}
+    hidden_rows = {r for r, dim in ws2.row_dimensions.items() if dim.hidden}
 
-    BLOQUES = [
-        {"id":"nominal", "label":"Nominal $/USD",  "fmt":"money", "header_row":5,  "month_row":6,  "data_start":7,  "data_end":29},
-        {"id":"tna",     "label":"TNA %",          "fmt":"pct",   "header_row":36, "month_row":37, "data_start":38, "data_end":60},
-        {"id":"varmens", "label":"Var. % mensual", "fmt":"pct",   "header_row":66, "month_row":67, "data_start":68, "data_end":90},
-        {"id":"interes", "label":"Interés abierto","fmt":"int",   "header_row":96, "month_row":97, "data_start":98, "data_end":120},
-    ]
-    rofex = {}
-    for b in BLOQUES:
-        # Meses: saltar columnas ocultas
-        meses = []
-        col_indices = []
+    # Los bloques se buscan, no se fijan por numero de fila. Antes estaban
+    # escritos a mano (month_row 6, 37, 67, 97) y cuando alguien inserto dos
+    # filas arriba el cuadro entero se publico vacio, sin romper nada: la
+    # pagina mostraba el titulo y una tabla sin filas. Ademas se habia sumado
+    # un bloque nuevo (TEA%) que nadie iba a ver hasta tocar el codigo.
+    #
+    # La marca de un bloque es su fila de meses: varias fechas seguidas en las
+    # columnas de la derecha. El titulo es el texto de la fila de arriba.
+    def _fmt_de(titulo):
+        t = (titulo or "").lower()
+        if "interes" in t or "interés" in t:
+            return "int"
+        if "%" in t:
+            return "pct"
+        return "money"
+
+    rofex, usados = {}, set()
+    for r in range(1, (ws2.max_row or 0) + 1):
+        cols, meses = [], []
         for c in range(3, 25):
-            if c in hidden_cols: continue
-            v = ws2.cell(b["month_row"], c).value
+            if c in hidden_cols:
+                continue
+            v = ws2.cell(r, c).value
             if isinstance(v, (datetime, date)):
                 meses.append(v.strftime("%Y-%m"))
-                col_indices.append(c)
-            elif v is None and meses:
+                cols.append(c)
+            elif meses:
                 break
+        if len(meses) < 3:
+            continue
 
-        # Filas: saltar ocultas y filas sin fecha
+        crudo = ws2.cell(r - 1, 2).value or ws2.cell(r - 1, 1).value or ""
+        titulo = " ".join(str(crudo).split())
+        # La hoja tambien tiene cuadros de trabajo con la misma forma (por
+        # ejemplo 'Distancia banda superior'). Se publican los que el analista
+        # titula como monitor; asi un monitor nuevo entra solo y uno auxiliar
+        # no se cuela.
+        bajo = _sin_tildes(titulo).lower()
+        if not (bajo.startswith("monitor rofex") or bajo.startswith("interes abierto")):
+            continue
+        # "Monitor Rofex (Nominal $ /USD)" -> "Nominal $/USD"
+        # "Interés abierto En millones de dolares" -> "Interés abierto"
+        m = re.search(r"\((.+?)\)", titulo)
+        label = (m.group(1) if m else titulo.split(" En millones")[0]).replace("$ /", "$/").strip()
+        label = label or f"Bloque {r}"
+
         filas = []
-        for r in range(b["data_start"], b["data_end"]+1):
-            if r in hidden_rows: continue
-            fecha = ws2.cell(r, 2).value
-            if not isinstance(fecha, (datetime, date)): continue
+        for rr in range(r + 1, (ws2.max_row or 0) + 1):
+            if rr in hidden_rows:
+                continue
+            fecha = ws2.cell(rr, 2).value
+            if not isinstance(fecha, (datetime, date)):
+                break          # el bloque termina donde dejan de venir fechas
             valores = []
-            for c in col_indices:
-                v = ws2.cell(r, c).value
-                if isinstance(v, (int, float)):
-                    valores.append(None if v == 0 else v)
-                else:
-                    valores.append(None)
+            for c in cols:
+                v = ws2.cell(rr, c).value
+                valores.append(v if isinstance(v, (int, float)) and v != 0 else None)
             if any(v is not None for v in valores):
                 filas.append({"fecha": fecha.strftime("%Y-%m-%d"), "valores": valores})
 
-        # Drop columnas que están TODAS en None (meses vencidos sin datos)
-        keep_idx = []
-        for c_i in range(len(meses)):
-            if any(row['valores'][c_i] is not None for row in filas):
-                keep_idx.append(c_i)
-        meses = [meses[i] for i in keep_idx]
-        for row in filas:
-            row['valores'] = [row['valores'][i] for i in keep_idx]
+        if not filas:
+            continue
 
-        rofex[b["id"]] = {"label": b["label"], "fmt": b["fmt"], "meses": meses, "filas": filas}
+        # Contratos cuya columna quedo entera vacia: no aportan nada a la tabla
+        quedan = [i for i in range(len(meses))
+                  if any(f["valores"][i] is not None for f in filas)]
+        meses = [meses[i] for i in quedan]
+        for f in filas:
+            f["valores"] = [f["valores"][i] for i in quedan]
+
+        # id estable derivado del titulo, para que la pagina pueda referirlo
+        bid = re.sub(r"[^a-z0-9]+", "", _sin_tildes(label).lower())[:12] or f"b{r}"
+        while bid in usados:
+            bid += "x"
+        usados.add(bid)
+        rofex[bid] = {"label": label, "fmt": _fmt_de(label),
+                      "meses": meses, "filas": filas}
+
     data['rofex'] = rofex
+    if rofex:
+        detalle = " · ".join(f"{b['label']} ({len(b['filas'])}x{len(b['meses'])})"
+                             for b in rofex.values())
+        status.ok("Tipo de cambio - Rofex", f"{len(rofex)} cuadros: {detalle}")
+    else:
+        status.warn("Tipo de cambio - Rofex",
+                    "no encontre ningun cuadro en 'Cuadros para informes'; "
+                    "revisar si cambio la hoja")
 
     return data
 

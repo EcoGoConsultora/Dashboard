@@ -253,12 +253,22 @@
   /* ===== Rofex picker ===== */
   function setupRofex(){
     const picker = document.getElementById('rofexPicker');
+    /* Los botones se arman con los cuadros que trajo el Excel, no con una
+       lista fija en el HTML. Cuando el analista sumó el monitor de TEA% no
+       había forma de verlo sin tocar la página; ahora un cuadro nuevo aparece
+       solo, y uno que se deje de publicar no deja un botón muerto. */
+    const ids = Object.keys(D.rofex || {});
+    if (!ids.length) { picker.innerHTML = ''; return; }
+    picker.innerHTML = ids.map(function(id, i){
+      return '<button' + (i ? '' : ' class="is-active"') + ' data-id="' + id + '">' +
+             D.rofex[id].label + '</button>';
+    }).join('');
     picker.addEventListener('click', function(e){
       const btn = e.target.closest('button'); if (!btn) return;
       picker.querySelectorAll('button').forEach(function(b){ b.classList.toggle('is-active', b === btn); });
       renderRofex(btn.dataset.id);
     });
-    renderRofex('nominal');
+    renderRofex(ids[0]);
   }
 
   function renderRofex(id){

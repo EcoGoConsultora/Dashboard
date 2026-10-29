@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tipo de Cambio · Eco Go</title>
-  <link rel="stylesheet" href="../assets/css/theme.css?v=202610291143" />
+  <link rel="stylesheet" href="../assets/css/theme.css?v=202610291207" />
   <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
@@ -201,12 +201,8 @@
               <h3 id="rofexTitle">Monitor Rofex</h3>
               <div class="sub" id="rofexSub">Curva de futuros · valores por contrato</div>
             </div>
-            <div class="rofex-picker" id="rofexPicker">
-              <button class="is-active" data-id="nominal">Nominal $/USD</button>
-              <button data-id="tna">TNA %</button>
-              <button data-id="varmens">Var. % mensual</button>
-              <button data-id="interes">Interés abierto</button>
-            </div>
+            <!-- Los botones los arma tipo-cambio.js con los cuadros que trae el Excel -->
+            <div class="rofex-picker" id="rofexPicker"></div>
           </div>
 
           <div class="rofex-table-wrap">
@@ -279,8 +275,8 @@
     </div>
   </div>
 
-  <script src="../assets/js/layout.js?v=202610291143"></script>
-  <script src="../assets/data/tipo-cambio.js?v=202610291143"></script>
-  <script src="../assets/js/tipo-cambio.js?v=202610291143"></script>
+  <script src="../assets/js/layout.js?v=202610291207"></script>
+  <script src="../assets/data/tipo-cambio.js?v=202610291207"></script>
+  <script src="../assets/js/tipo-cambio.js?v=202610291207"></script>
 </body>
 </html>
