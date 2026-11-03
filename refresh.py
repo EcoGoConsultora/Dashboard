@@ -2571,9 +2571,12 @@ def completar_mercados(status, monitor):
     # Unica excepcion al reemplazo: el Monitor calcula solo CER cupon cero, a
     # proposito. Los bonos con cupon (TX*, DICP, DIPO) no estan ahi porque no
     # los cubre, no porque hayan vencido, asi que se conservan — filtrando los
-    # que ya vencieron, que de eso el worker no se ocupa.
+    # que ya vencieron, que de eso el worker no se ocupa. Lo que trae
+    # fuente "monitor" es de una pasada anterior (extract_mercados ya completa
+    # una vez): no es del worker y no se conserva.
     cupon = [x for x in limpiar(M.get("cer_curve"), "CER")
-             if x["symbol"] not in {it["symbol"] for it in curvas.get("cer", [])}]
+             if x.get("fuente") != "monitor"
+             and x["symbol"] not in {it["symbol"] for it in curvas.get("cer", [])}]
     antes = {x["symbol"] for x in (M.get("cer_curve") or [])}
     M["cer_curve"] = [{
         "symbol": it["symbol"],
@@ -3426,7 +3429,14 @@ def extract_mercados(status):
     if r.returncode != 0:
         status.warn("Mercados", f"el pipeline local fallo; se conserva mercados.js: {last_line}")
         return False
-    return _publicar_mercados_payload(status, MARKETS_PIPELINE_PAYLOAD)
+    if not _publicar_mercados_payload(status, MARKETS_PIPELINE_PAYLOAD):
+        return False
+    # El pipeline deja las curvas del worker. Los notebooks llaman a esta
+    # funcion sola, sin el paso del Monitor de tasas, y publicaban Mercados con
+    # especies vencidas y sin las emisiones nuevas hasta la corrida de la noche.
+    # Se completa ya con la ultima rueda que tenga el Monitor.
+    completar_mercados(status, extract_monitor_tasas(Status()))
+    return True
 
 @_nunca_rompe("Internacional Consensus")
 def run_latinfocus(status):
@@ -3534,12 +3544,93 @@ def run_resto(status):
 # =====================================================================
 #  GITHUB — copiar datos actualizados al repo clonado y hacer push
 # =====================================================================
+def _resolver_conflictos(status, detalle):
+    """Termina un merge trabado por archivos que escribe el propio refresh.
+
+    El robot de GitHub (refresh.py --online) sube Internacional, Mercados y el
+    Monitor de tasas todas las noches. Si esta PC pasa dias sin subir, al
+    mezclar choca con el robot en los mismos archivos aunque nadie haya
+    editado nada a mano. Esos choques se deciden sin mirar:
+    - paginas que solo difieren en el sello ?v= -> va el de esta corrida, que
+      es el mas nuevo;
+    - datos de assets/data -> si esta corrida no cambio el dato (solo la linea
+      de encabezado con la hora), va el de GitHub; si lo cambio, va el de esta
+      corrida, que es lo ultimo que se bajo.
+    Si Mercados estaba entre los choques, se vuelve a completar con el Monitor
+    de tasas que quedo despues de mezclar, que puede ser el que trajo GitHub.
+
+    Cualquier otro choque si es de contenido: se cancela el merge y el repo
+    queda como antes, para no subir archivos con marcas <<<<<<<.
+    Devuelve True si el merge quedo commiteado."""
+    import subprocess
+
+    def git(*args):
+        return subprocess.run(["git", *args], cwd=DASHBOARD_DIR, capture_output=True)
+
+    if not os.path.exists(os.path.join(DASHBOARD_DIR, ".git", "MERGE_HEAD")):
+        # el merge ni arranco (p. ej. un archivo local que pisaria): no hay choque que resolver
+        status.fail("GitHub - git merge", detalle)
+        return False
+
+    def lado(n, ruta):
+        # 1 = ancestro comun, 2 = esta PC, 3 = GitHub
+        r = git("show", f":{n}:{ruta}")
+        return r.stdout if r.returncode == 0 else None
+
+    def sin_encabezado(b):
+        # save_data y el pipeline anotan la hora de la corrida en la primera linea del .js
+        return b.split(b"\n", 1)[1] if b.startswith(b"//") and b"\n" in b else b
+
+    sello = re.compile(rb"\?v=[0-9]+")
+    r = git("diff", "--name-only", "--diff-filter=U", "-z")
+    pendientes = [p for p in r.stdout.decode("utf-8").split("\0") if p]
+
+    nuestro, de_github, sin_resolver = [], [], []
+    for ruta in pendientes:
+        base, local, remoto = (lado(n, ruta) for n in (1, 2, 3))
+        if local is None or remoto is None:
+            sin_resolver.append(ruta)           # uno de los dos lados lo borro
+        elif ruta.endswith(".html"):
+            (nuestro if sello.sub(b"", local) == sello.sub(b"", remoto) else sin_resolver).append(ruta)
+        elif ruta.startswith("assets/data/"):
+            sin_cambio = base is not None and sin_encabezado(local) == sin_encabezado(base)
+            (de_github if sin_cambio else nuestro).append(ruta)
+        else:
+            sin_resolver.append(ruta)
+
+    if sin_resolver:
+        git("merge", "--abort")
+        status.fail("GitHub - git merge",
+                    "GitHub y esta PC cambiaron el contenido de: "
+                    + ", ".join(sin_resolver[:5]) + (" ..." if len(sin_resolver) > 5 else "")
+                    + ". No se subio nada y el repo quedo como antes del merge: "
+                      "hay que resolverlo a mano (GitHub Desktop)")
+        return False
+
+    if nuestro:
+        git("checkout", "--ours", "--", *nuestro)
+    if de_github:
+        git("checkout", "--theirs", "--", *de_github)
+    if "assets/data/mercados.js" in pendientes:
+        completar_mercados(status, extract_monitor_tasas(Status()))
+
+    git("add", "-A")
+    r = git("commit", "--no-edit")
+    if r.returncode != 0:
+        status.fail("GitHub - git merge", (r.stdout + r.stderr).decode("utf-8", "replace").strip())
+        return False
+    status.ok("GitHub - git merge",
+              f"{len(pendientes)} archivos chocaban con lo que subio el robot; resueltos solos "
+              f"({len(de_github)} con el dato de GitHub)")
+    return True
+
 def push_to_github(status):
     """
     Hace git add + commit + push directo desde DASHBOARD_DIR: esta misma
     carpeta es el clon local del repo de GitHub (EcoGoConsultora/Dashboard).
     Antes de subir, trae los cambios del remoto (fetch + merge) para evitar
-    que el push se rechace por estar desactualizado.
+    que el push se rechace por estar desactualizado; si chocan archivos que
+    genera el refresh, los resuelve _resolver_conflictos.
     No falla el refresh si git no está disponible o no hay cambios: solo
     deja un WARN/FAIL en el resumen.
     """
@@ -3569,6 +3660,13 @@ def push_to_github(status):
         except Exception:
             pass
 
+    # Un merge que quedo a medio hacer no se puede tapar con un git add -A:
+    # subiria los archivos con las marcas <<<<<<< y romperia la pagina.
+    if os.path.exists(os.path.join(DASHBOARD_DIR, ".git", "MERGE_HEAD")):
+        status.fail("GitHub", "hay un merge sin terminar de una corrida anterior; no se subio nada "
+                              "(resolverlo a mano en GitHub Desktop y volver a correr)")
+        return
+
     r = _run(["git", "add", "-A"])
     if r.returncode != 0:
         status.fail("GitHub - git add", (r.stderr or r.stdout).strip())
@@ -3591,11 +3689,7 @@ def push_to_github(status):
         status.warn("GitHub - git fetch", (r.stderr or r.stdout).strip())
     else:
         r = _run(["git", "merge", "--no-edit", "origin/main"])
-        if r.returncode != 0:
-            status.fail(
-                "GitHub - git merge",
-                (r.stdout + r.stderr).strip() + " (puede necesitar resolucion manual de conflictos en GitHub Desktop)"
-            )
+        if r.returncode != 0 and not _resolver_conflictos(status, (r.stdout + r.stderr).strip()):
             return
 
     if nothing_local_to_commit:
