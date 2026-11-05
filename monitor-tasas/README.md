@@ -66,4 +66,13 @@ Cada fecha pasa por la misma valuación que la corrida diaria, con el cierre exa
 
 Los vencidos se filtran automáticamente. Las nuevas especies requieren verificación de ticker, tipo, fecha de emisión original, vencimiento, TEM/base CER/margen TAMAR o flujos. La revisión quincenal debe comparar el universo público de BYMA, A3 y Rava con este registro, confirmar términos en Secretaría de Finanzas/Boletín Oficial, y recién entonces modificar configuración y ejecutar una corrida de control. Ver `docs/provenance.md`.
 
-El calendario de liquidación cargado llega a 2026. Antes del primer cierre de 2027 se debe incorporar el calendario oficial de 2027. La curva TAMAR usa feriados BCRA y marca los años estimados cuando no hay tabla oficial.
+El calendario de liquidación cargado llega a 2027: los feriados de 2027 salen de la Ley 27.399 (incluidos los traslados del art. 6); el 24 y 31 de diciembre de 2027 están marcados ESTIMADO con el criterio BYMA 2026, y faltan los días no laborables con fines turísticos de 2027 hasta que se publique el decreto. La curva TAMAR usa feriados BCRA y marca los años estimados cuando no hay tabla oficial.
+
+
+## Volúmenes y duales (contrato 1.1, noviembre de 2026)
+
+`output/latest.json` agrega `volumes` con volumen nominal por instrumento, agregados por tipo y curva, monedas y cobertura. Cada nodo tiene además una estimación de monto a precio de cierre; no es monto efectivo negociado. Los agregados nunca mezclan monedas nominales o de negociación y sólo cubren las especies valuadas del registro.
+
+`curves.dual` incluye TTD26 (fija/TAMAR), TXMJ8, TXMD8, TXMJ9, TXMD9 y TXMJ0 (CER/TAMAR) y TMVE8 (TAMAR/dólar linked). Se calculan rendimientos, duración y paridad por pata, con TAMAR futura proyectada por la media de las últimas cinco fijaciones publicadas. Para CER/dólar linked se publican rendimientos normalizados por los índices actuales; no se inventa una TIR nominal total sin escenario de esos índices. No se estima el precio de la opción. El detalle de campos, límites y reglas para superponer los duales en cada curva está en `site/CLAUDE_BRIEF.md`.
+
+Las condiciones originales, bases CER BCRA, A3500 inicial y fuentes están en `config/market_instruments.json`; las fórmulas oficiales consultadas quedan en `data/reference/dual_*`. Los nodos y volúmenes duales también se reconstruyen para los snapshots históricos guardados con `py -3.14 -m src.backfill_duals --start 2026-01-02 --end 2026-11-04`, conservando las otras curvas. Se incluyen TTM26, TTJ26 y TTS26 hasta sus vencimientos. `src.backfill` también reconoce el registro dual y excluye instrumentos aún no emitidos a la fecha valuada.

@@ -26,6 +26,8 @@ from src.breakeven.sources_bcra import fetch_cer, fetch_variable
 from src.breakeven.sources_rava import fetch_rava_bond_prices
 from src.common.fixed_income import hard_dollar_symbols
 from src.common.hard_dollar_curve import build_hard_dollar_metrics
+from src.common.dual_curve import build_dual_nodes
+from src.common.volumes import add_volume_data, turnover_estimate
 from src.ingest.rava import fetch_rava_hard_dollar_prices, merge_rava_price_history
 from src.tamar_curve.calendar import estimate_argentine_national_holidays, make_bank_calendar
 from src.tamar_curve.model import InstrumentTerms, calculate_curve_node
@@ -45,12 +47,16 @@ def _write_json(path: Path, payload: object) -> None:
     tmp.replace(path)
 
 
-HISTORY_TEXT_FIELDS = {"symbol", "family", "maturity_date", "settlement_date"}
+HISTORY_TEXT_FIELDS = {"symbol", "family", "maturity_date", "settlement_date", "market_date",
+                       "nominal_currency", "trading_currency", "yield_method"}
 # Lo que la página compara contra fechas previas: rendimientos, plazo y precio.
 HISTORY_NUMERIC_FIELDS = {
     "yield_tea_pct", "yield_tem_pct", "real_yield_tea_pct", "nominal_yield_tea_pct_if_known",
     "tir_tea_pct", "tir_tna_pct", "tir_tem_pct", "usd_equivalent_yield_tea_pct", "modified_duration_years",
     "parity_pct", "price_ars_per_vn100", "price_per_vn_100", "price_usd_equivalent_per_vn100", "price_usd_dirty_per_vn100",
+    "volume_nominal", "turnover_at_close_estimate", "tamar_yield_tea_pct", "tamar_yield_tem_pct",
+    "tamar_modified_duration_years", "fixed_yield_tea_pct", "fixed_modified_duration_years",
+    "cer_modified_duration_years", "dollar_linked_modified_duration_years", "projected_nominal_floor_yield_tea_pct",
 }
 HISTORY_MAX_DAYS = 400
 
@@ -80,9 +86,16 @@ def _history_for_html(payload: dict, max_days: int = HISTORY_MAX_DAYS) -> dict:
         snapshot = json.loads(path.read_text(encoding="utf-8"))
         snapshots[day.isoformat()] = {
             "backfill": bool(snapshot.get("meta", {}).get("backfill")),
-            "curves": {group: [_compact_history_row(row) for row in rows]
+            "dual_backfill": bool(snapshot.get("meta", {}).get("dual_history_backfill")),
+            # Las ruedas guardadas antes del contrato 1.1 traen VN y precio pero no el monto: se
+            # deriva con la misma estimación de la corrida diaria para el gráfico de volumen diario.
+            "curves": {group: [_compact_history_row(row if "turnover_at_close_estimate" in row else
+                                                    {**row, "turnover_at_close_estimate": turnover_estimate(row)})
+                               for row in rows]
                        for group, rows in snapshot.get("curves", {}).items()},
-            "money_market": {key: {"date": value.get("date"), "tna_pct": value.get("tna_pct")}
+            "volumes": {key: snapshot["volumes"][key] for key in ("by_curve_group", "by_type")
+                        if key in snapshot.get("volumes", {})},
+            "money_market": {key: {field: value.get(field) for field in ("date", "tna_pct", "volume_ars") if field in value}
                              for key, value in snapshot.get("money_market", {}).items() if isinstance(value, dict)},
         }
     return {"dates": sorted(snapshots), "snapshots": snapshots}
@@ -116,6 +129,7 @@ def _records(frame: pd.DataFrame) -> list[dict]:
 
 def _validate_registry(registry: dict, tamar_registry: dict) -> None:
     entries = [entry for family in ("fixed", "cer", "dollar_linked") for entry in registry[family]]
+    entries += registry.get("dual", [])
     entries += [entry for entry in tamar_registry["instruments"] if entry.get("include_in_curve")]
     symbols = [str(entry["symbol"]).upper() for entry in entries]
     if len(symbols) != len(set(symbols)):
@@ -130,6 +144,18 @@ def _validate_registry(registry: dict, tamar_registry: dict) -> None:
             raise ValueError(f"TEM de emisión inválida: {entry['symbol']}")
         if entry in registry["cer"] and float(entry["cer_base_index"]) <= 0:
             raise ValueError(f"CER base inválido: {entry['symbol']}")
+        if entry in registry.get("dual", []):
+            family = entry["family"]
+            if family not in {"DUAL_FIXED_TAMAR", "DUAL_CER_TAMAR", "DUAL_TAMAR_DOLLAR_LINKED"}:
+                raise ValueError(f"Familia dual inválida: {entry['symbol']}")
+            if not math.isfinite(float(entry["margin_tna_pct"])):
+                raise ValueError(f"Margen dual inválido: {entry['symbol']}")
+            if family == "DUAL_FIXED_TAMAR" and not 0 <= entry["fixed_tem_decimal"] < 1:
+                raise ValueError(f"TEM dual inválida: {entry['symbol']}")
+            if family == "DUAL_CER_TAMAR" and not (entry["cer_base_index"] > 0 and date.fromisoformat(entry["cer_base_date"]) < date.fromisoformat(entry["issue_date"])):
+                raise ValueError(f"Base CER dual inválida: {entry['symbol']}")
+            if family == "DUAL_TAMAR_DOLLAR_LINKED" and not entry["initial_fx_ars_per_usd"] > 0:
+                raise ValueError(f"FX inicial dual inválido: {entry['symbol']}")
 
 
 def _get_a3(path: str, params: dict | None = None) -> object:
@@ -158,7 +184,7 @@ def _fetch_quotes(symbols: set[str], market_date: date) -> tuple[dict[str, dict]
                 return symbol, None, f"Cotización de {quoted}, se esperaba {market_date}"
             return symbol, {
                 "price": float(row["price"]),
-                "volume_nominal": float(row["volume"]),
+                "volume_nominal": float(row["volume"]) if pd.notna(row["volume"]) else None,
                 "market_date": quoted.isoformat(),
                 "source_url": f"https://www2.rava.com/perfil/{symbol}",
             }, None
@@ -321,12 +347,12 @@ def _dollar_linked_nodes(entries: list[dict], quotes: dict[str, dict], market_da
     return sorted(rows, key=lambda row: (row["maturity_date"], row["symbol"]))
 
 
-def _tamar_nodes(entries: list[dict], quotes: dict[str, dict], market_date: date, tamar_frame: pd.DataFrame) -> tuple[list[dict], list[str]]:
+def _tamar_context(entries: list[dict], market_date: date, tamar_frame: pd.DataFrame):
     series = {row.date: float(row.value) for row in tamar_frame.itertuples(index=False) if row.date <= market_date}
     if not series:
         raise ValueError("TAMAR BCRA vacía")
     latest = max(series)
-    max_maturity = max(date.fromisoformat(entry["maturity_date"]).year for entry in entries)
+    max_maturity = max([latest.year] + [date.fromisoformat(entry["maturity_date"]).year for entry in entries])
     holidays = {}
     warnings = []
     for year in range(latest.year, max_maturity + 1):
@@ -337,6 +363,11 @@ def _tamar_nodes(entries: list[dict], quotes: dict[str, dict], market_date: date
             warnings.append(f"Calendario bancario {year} estimado")
     bank_calendar = make_bank_calendar(series, holidays)
     forecast = fmean(series[day] for day in sorted(series)[-5:])
+    return series, bank_calendar, forecast, warnings
+
+
+def _tamar_nodes(entries: list[dict], quotes: dict[str, dict], market_date: date, tamar_frame: pd.DataFrame, context=None) -> tuple[list[dict], list[str]]:
+    series, bank_calendar, forecast, warnings = context or _tamar_context(entries, market_date, tamar_frame)
     rows = []
     for entry in entries:
         symbol = entry["symbol"]
@@ -398,9 +429,12 @@ def run(market_date: date, root: Path = ROOT, *, publish: bool = True, quote_fet
     tamar_registry = json.loads((ROOT / "config/tamar_instruments.json").read_text(encoding="utf-8"))
     _validate_registry(registry, tamar_registry)
     calendar = MarketCalendar.from_csv(CALENDAR_PATH)
-    active = lambda entry: date.fromisoformat(entry["maturity_date"]) > market_date
+    active = lambda entry: (date.fromisoformat(entry["maturity_date"]) > calendar.next_business_day(market_date, 1)
+                            and date.fromisoformat(entry.get("issue_date", "1900-01-01")) <= market_date)
     all_terms = [entry for family in ("fixed", "cer", "dollar_linked") for entry in registry[family] if active(entry)]
     active_tamar = [entry for entry in tamar_registry["instruments"] if entry.get("include_in_curve") and active(entry)]
+    active_dual = [entry for entry in registry.get("dual", []) if active(entry)]
+    all_terms += active_dual
     quotes, errors = (quote_fetcher or _fetch_quotes)({entry["symbol"] for entry in all_terms + active_tamar}, market_date)
     raw_dir = ROOT / "data/raw" / market_date.isoformat()
     _write_json(raw_dir / "rava_quotes.json", {"quotes": quotes, "errors": errors})
@@ -417,7 +451,10 @@ def run(market_date: date, root: Path = ROOT, *, publish: bool = True, quote_fet
     _write_json(raw_dir / "bcra_reference.json", {"tamar": tamar_raw, "bank_lending": bank_raw,
                                                     "fx_a3500": _records(fx_frame), "cer": _records(cer)})
     tamar_full = fetch_variable(44, date(2025, 1, 1), market_date)
-    tamar_nodes, tamar_warnings = _tamar_nodes(active_tamar, quotes, market_date, tamar_full)
+    context = _tamar_context(active_tamar + active_dual, market_date, tamar_full)
+    tamar_nodes, tamar_warnings = _tamar_nodes(active_tamar, quotes, market_date, tamar_full, context)
+    series, bank_calendar, forecast, _ = context
+    dual_nodes = build_dual_nodes(active_dual, quotes, market_date, calendar, cer, fx, series, bank_calendar, forecast)
     hard_nodes, hard_errors = _hard_dollar_nodes(market_date)
     money["tamar_private"] = {"series": "tamar_private", **tamar_rate}
     money["bank_lending_1_7d_10m"] = {"series": "bank_lending_1_7d_10m", **bank_rate}
@@ -427,6 +464,7 @@ def run(market_date: date, root: Path = ROOT, *, publish: bool = True, quote_fet
         "tamar": tamar_nodes,
         "dollar_linked": _dollar_linked_nodes(registry["dollar_linked"], quotes, market_date, calendar, fx),
         "hard_dollar": hard_nodes,
+        "dual": dual_nodes,
     }
     if not any(curves.values()):
         # Típico de una corrida antes del cierre o de una rueda que Rava todavía no actualizó:
@@ -440,16 +478,20 @@ def run(market_date: date, root: Path = ROOT, *, publish: bool = True, quote_fet
         warnings.append("Hard dollar sin precio de fecha: " + ", ".join(missing_hard))
     if missing_bonds:
         warnings.append("Rava sin precio de fecha: " + ", ".join(missing_bonds))
+    volumes = add_volume_data(curves, market_date.isoformat(),
+                              {entry["symbol"] for entry in all_terms + active_tamar} | set(hard_dollar_symbols()))
+    if volumes["missing_volume_symbols"]:
+        warnings.append("Volumen nominal no informado: " + ", ".join(volumes["missing_volume_symbols"]))
     payload = {
-        "schema_version": "1.0", "meta": {
+        "schema_version": "1.1", "meta": {
             "market_date": market_date.isoformat(),
             "generated_at": datetime.now(ZoneInfo("America/Argentina/Buenos_Aires")).isoformat(),
-            "status": "complete" if not missing_money and not missing_bonds and not missing_hard else "partial",
+            "status": "complete" if not missing_money and not missing_bonds and not missing_hard and not volumes["missing_volume_symbols"] else "partial",
             "registry_version": registry["registry_version"],
             "rate_units": "pct; annual rates TEA unless field says TNA or TEM",
             **({} if publish else {"backfill": True}),
         },
-        "curves": curves, "money_market": money,
+        "curves": curves, "money_market": money, "volumes": volumes,
         "quality": {"warnings": warnings, "rava_errors": errors, "hard_dollar_fetch_errors": hard_errors,
                     "missing_money_market": missing_money, "missing_hard_dollar": missing_hard},
     }

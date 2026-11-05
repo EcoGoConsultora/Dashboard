@@ -2275,6 +2275,75 @@ if not os.path.isdir(MONITOR_TASAS_DIR):
         MONITOR_TASAS_DIR = _alt
 
 
+@_nunca_rompe("Monitor de tasas - sincronizar")
+def sincronizar_monitor_tasas(status):
+    """
+    Trae al repo los cambios que se hicieron en la copia de trabajo del
+    Monitor de tasas.
+
+    El proyecto se edita en 'BD\\Mercados\\Monitor tasas' (ahi trabaja el
+    analista) pero el refresh corre la copia que vive dentro del repo, porque
+    es la unica que existe en el runner de GitHub. Sin sincronizar, los dos se
+    separan en silencio: el 05/11 la plantilla del monitor tenia cambios de
+    ese dia y el repo seguia con la del 29/10, asi que correr el refresh no
+    cambiaba nada en la pagina y no habia ningun error que lo delatara.
+
+    Solo se copia el codigo y la configuracion. Las salidas (output/) son del
+    repo: ahi el historico tiene que persistir entre corridas del workflow.
+    En la nube la carpeta de OneDrive no existe y no se copia nada, que es lo
+    correcto: ahi manda lo que se haya commiteado.
+    """
+    import filecmp, shutil
+
+    origen = os.path.join(BASE_EXCEL, "Mercados", "Monitor tasas")
+    if not os.path.isdir(origen) or os.path.abspath(origen) == os.path.abspath(MONITOR_TASAS_DIR):
+        return                                  # en la nube, o ya es la misma carpeta
+
+    COPIAR = ["src", "config", "site", "scripts", "data/reference"]
+    SUELTOS = ["requirements.txt", "README.md", "AGENTS.md"]
+
+    nuevos, cambiados = [], []
+    for rel in COPIAR:
+        base = os.path.join(origen, rel.replace("/", os.sep))
+        if not os.path.isdir(base):
+            continue
+        for raiz, dirs, files in os.walk(base):
+            dirs[:] = [d for d in dirs if d not in ("__pycache__", ".pytest_cache")]
+            for nombre in files:
+                if nombre.endswith((".pyc", ".pyo")):
+                    continue
+                src = os.path.join(raiz, nombre)
+                rel_f = os.path.relpath(src, origen)
+                dst = os.path.join(MONITOR_TASAS_DIR, rel_f)
+                if not os.path.exists(dst):
+                    nuevos.append(rel_f)
+                elif not filecmp.cmp(src, dst, shallow=False):
+                    cambiados.append(rel_f)
+                else:
+                    continue
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copy2(src, dst)
+
+    for nombre in SUELTOS:
+        src = os.path.join(origen, nombre)
+        dst = os.path.join(MONITOR_TASAS_DIR, nombre)
+        if os.path.exists(src) and (not os.path.exists(dst)
+                                    or not filecmp.cmp(src, dst, shallow=False)):
+            (nuevos if not os.path.exists(dst) else cambiados).append(nombre)
+            shutil.copy2(src, dst)
+
+    if nuevos or cambiados:
+        status.ok("Monitor de tasas - sincronizar",
+                  f"{len(cambiados)} archivos actualizados, {len(nuevos)} nuevos "
+                  f"desde la carpeta de trabajo")
+        for f in sorted(nuevos)[:6]:
+            print(f"    nuevo: {f}")
+        if len(nuevos) > 6:
+            print(f"    ... y {len(nuevos) - 6} mas")
+    else:
+        status.ok("Monitor de tasas - sincronizar", "el repo ya estaba al dia")
+
+
 @_nunca_rompe("Monitor de tasas - corrida")
 def run_monitor_tasas(status):
     """
@@ -2295,6 +2364,8 @@ def run_monitor_tasas(status):
     if not os.path.isdir(MONITOR_TASAS_DIR):
         status.warn("Monitor de tasas - corrida", "no encontre la carpeta del proyecto")
         return False
+
+    sincronizar_monitor_tasas(status)
 
     def _correr(fecha=None):
         cmd = [sys.executable, "-m", "src.monitor"] + (["--date", fecha] if fecha else [])

@@ -91,8 +91,14 @@
       "reason": "No es un nodo TAMAR vigente: la especie TAMAR ofrecida fue declarada desierta; no mezclar con BONCAP homonima."
     },
     {
-      "symbols": ["TXMJ8", "TXMD8", "TXMJ9", "TXMD9", "TXMJ0"],
-      "reason": "Instrumentos duales CER/TAMAR: requieren valuacion de opcion y no pertenecen a la curva pura TAMAR."
+      "symbols": [
+        "TXMJ8",
+        "TXMD8",
+        "TXMJ9",
+        "TXMD9",
+        "TXMJ0"
+      ],
+      "reason": "Duales CER/TAMAR: registrados en config/market_instruments.json y publicados en curves.dual; no pertenecen a la curva pura TAMAR."
     }
   ]
 }

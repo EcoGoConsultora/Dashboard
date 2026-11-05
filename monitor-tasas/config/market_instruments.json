@@ -1,5 +1,5 @@
 {
-  "registry_version": "2026-10-08",
+  "registry_version": "2026-11-05",
   "fixed": [
     {
       "symbol": "T15D5",
@@ -128,6 +128,14 @@
       "maturity_date": "2026-10-16",
       "tem_decimal": 0.0205,
       "terms_source": "https://www.argentina.gob.ar/noticias/resultado-de-la-licitacion-por-efectivo-de-instrumentos-del-tesoro-nacional-denominados-8"
+    },
+    {
+      "symbol": "S26F7",
+      "family": "LECAP",
+      "issue_date": "2026-10-30",
+      "maturity_date": "2027-02-26",
+      "tem_decimal": 0.021,
+      "terms_source": "https://www.argentina.gob.ar/noticias/resultado-de-la-licitacion-por-efectivo-de-instrumentos-del-tesoro-nacional-denominados-16"
     }
   ],
   "cer": [
@@ -381,6 +389,141 @@
       "maturity_date": "2028-12-15",
       "zero_coupon": true,
       "terms_source": "https://www.argentina.gob.ar/noticias/resultado-de-la-licitacion-para-la-conversion-de-la-lelink-d31l6-con-vencimiento-31-de"
+    }
+  ],
+  "dual": [
+    {
+      "symbol": "TTD26",
+      "family": "DUAL_FIXED_TAMAR",
+      "issue_date": "2025-01-29",
+      "maturity_date": "2026-12-15",
+      "fixed_tem_decimal": 0.0214,
+      "margin_tna_pct": 0.0,
+      "nominal_currency": "ARS",
+      "terms_sources": [
+        "https://www.boletinoficial.gob.ar/detalleAviso/primera/320147/20250127"
+      ]
+    },
+    {
+      "symbol": "TXMJ8",
+      "family": "DUAL_CER_TAMAR",
+      "issue_date": "2026-05-15",
+      "maturity_date": "2028-06-30",
+      "margin_tna_pct": 3.0,
+      "nominal_currency": "ARS",
+      "cer_base_date": "2026-04-30",
+      "cer_base_index": 758.1179539187,
+      "cer_base_source": "https://api.bcra.gob.ar/estadisticas/v4.0/monetarias/30",
+      "terms_sources": [
+        "https://www.boletinoficial.gob.ar/detalleAviso/primera/342001/20260515"
+      ]
+    },
+    {
+      "symbol": "TXMD8",
+      "family": "DUAL_CER_TAMAR",
+      "issue_date": "2026-06-12",
+      "maturity_date": "2028-12-15",
+      "margin_tna_pct": 3.0,
+      "nominal_currency": "ARS",
+      "cer_base_date": "2026-05-29",
+      "cer_base_index": 779.8863931262,
+      "cer_base_source": "https://api.bcra.gob.ar/estadisticas/v4.0/monetarias/30",
+      "terms_sources": [
+        "https://www.boletinoficial.gob.ar/detalleAviso/primera/343013/20260611"
+      ]
+    },
+    {
+      "symbol": "TXMJ9",
+      "family": "DUAL_CER_TAMAR",
+      "issue_date": "2026-04-30",
+      "maturity_date": "2029-06-29",
+      "margin_tna_pct": 3.0,
+      "nominal_currency": "ARS",
+      "cer_base_date": "2026-04-16",
+      "cer_base_index": 746.3809226524,
+      "cer_base_source": "https://api.bcra.gob.ar/estadisticas/v4.0/monetarias/30",
+      "terms_sources": [
+        "https://www.boletinoficial.gob.ar/detalleAviso/primera/341303/20260429"
+      ]
+    },
+    {
+      "symbol": "TXMD9",
+      "family": "DUAL_CER_TAMAR",
+      "issue_date": "2026-06-12",
+      "maturity_date": "2029-12-14",
+      "margin_tna_pct": 3.0,
+      "nominal_currency": "ARS",
+      "cer_base_date": "2026-05-29",
+      "cer_base_index": 779.8863931262,
+      "cer_base_source": "https://api.bcra.gob.ar/estadisticas/v4.0/monetarias/30",
+      "terms_sources": [
+        "https://www.boletinoficial.gob.ar/detalleAviso/primera/343013/20260611"
+      ]
+    },
+    {
+      "symbol": "TXMJ0",
+      "family": "DUAL_CER_TAMAR",
+      "issue_date": "2026-06-12",
+      "maturity_date": "2030-06-28",
+      "margin_tna_pct": 3.0,
+      "nominal_currency": "ARS",
+      "cer_base_date": "2026-05-29",
+      "cer_base_index": 779.8863931262,
+      "cer_base_source": "https://api.bcra.gob.ar/estadisticas/v4.0/monetarias/30",
+      "terms_sources": [
+        "https://www.boletinoficial.gob.ar/detalleAviso/primera/343013/20260611"
+      ]
+    },
+    {
+      "symbol": "TMVE8",
+      "family": "DUAL_TAMAR_DOLLAR_LINKED",
+      "issue_date": "2026-07-31",
+      "maturity_date": "2028-01-31",
+      "margin_tna_pct": 0.0,
+      "nominal_currency": "USD",
+      "initial_fx_date": "2026-07-28",
+      "initial_fx_ars_per_usd": 1499.8387,
+      "initial_fx_source": "https://api.bcra.gob.ar/estadisticas/v4.0/monetarias/5",
+      "terms_sources": [
+        "https://www.boletinoficial.gob.ar/detalleAviso/primera/345289/20260731",
+        "https://www.argentina.gob.ar/noticias/llamado-licitacion-de-instrumentos-del-tesoro-nacional-denominados-en-pesos-y-en-dolares-14"
+      ]
+    },
+    {
+      "symbol": "TTM26",
+      "family": "DUAL_FIXED_TAMAR",
+      "issue_date": "2025-01-29",
+      "maturity_date": "2026-03-16",
+      "fixed_tem_decimal": 0.0225,
+      "margin_tna_pct": 0.0,
+      "nominal_currency": "ARS",
+      "terms_sources": [
+        "https://www.boletinoficial.gob.ar/detalleAviso/primera/320147/20250127"
+      ]
+    },
+    {
+      "symbol": "TTJ26",
+      "family": "DUAL_FIXED_TAMAR",
+      "issue_date": "2025-01-29",
+      "maturity_date": "2026-06-30",
+      "fixed_tem_decimal": 0.0219,
+      "margin_tna_pct": 0.0,
+      "nominal_currency": "ARS",
+      "terms_sources": [
+        "https://www.boletinoficial.gob.ar/detalleAviso/primera/320147/20250127"
+      ]
+    },
+    {
+      "symbol": "TTS26",
+      "family": "DUAL_FIXED_TAMAR",
+      "issue_date": "2025-01-29",
+      "maturity_date": "2026-09-15",
+      "fixed_tem_decimal": 0.0217,
+      "margin_tna_pct": 0.0,
+      "nominal_currency": "ARS",
+      "terms_sources": [
+        "https://www.boletinoficial.gob.ar/detalleAviso/primera/320147/20250127"
+      ]
     }
   ]
 }

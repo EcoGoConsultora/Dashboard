@@ -43,3 +43,18 @@ date,label,official_type,trading_closed,settlement_closed,source_url,notes
 2026-12-24,Nochebuena,bursatil,false,true,https://www.byma.com.ar/mercado/calendario-bursatil,Sin liquidacion; con negociacion segun BYMA.
 2026-12-25,Navidad,inamovible,true,true,https://www.argentina.gob.ar/jefatura/feriados-nacionales-2026,
 2026-12-31,Fin de ano,bursatil,true,true,https://www.byma.com.ar/mercado/calendario-bursatil,Sin negociacion ni liquidacion segun BYMA.
+2027-01-01,Ano Nuevo,inamovible,true,true,https://www.argentina.gob.ar/normativa/nacional/ley-27399-281835,Ley 27.399.
+2027-02-08,Carnaval,inamovible,true,true,https://www.argentina.gob.ar/normativa/nacional/ley-27399-281835,Ley 27.399.
+2027-02-09,Carnaval,inamovible,true,true,https://www.argentina.gob.ar/normativa/nacional/ley-27399-281835,Ley 27.399.
+2027-03-24,Dia Nacional de la Memoria por la Verdad y la Justicia,inamovible,true,true,https://www.argentina.gob.ar/normativa/nacional/ley-27399-281835,Ley 27.399.
+2027-03-25,Jueves Santo Festividad Cristiana,no_laborable_christian,true,true,https://www.argentina.gob.ar/normativa/nacional/ley-27399-281835,Mismo tratamiento que Jueves Santo 2025.
+2027-03-26,Viernes Santo,inamovible,true,true,https://www.argentina.gob.ar/normativa/nacional/ley-27399-281835,Ley 27.399.
+2027-04-02,Dia del Veterano y de los Caidos en la Guerra de Malvinas,inamovible,true,true,https://www.argentina.gob.ar/normativa/nacional/ley-27399-281835,Ley 27.399.
+2027-05-25,Dia de la Revolucion de Mayo,inamovible,true,true,https://www.argentina.gob.ar/normativa/nacional/ley-27399-281835,Ley 27.399.
+2027-06-21,Paso a la Inmortalidad del Gral. Martin Miguel de Guemes (17/6),trasladable,true,true,https://www.argentina.gob.ar/normativa/nacional/ley-27399-281835,Traslado por art. 6 Ley 27.399 (jueves al lunes siguiente).
+2027-07-09,Dia de la Independencia,inamovible,true,true,https://www.argentina.gob.ar/normativa/nacional/ley-27399-281835,Ley 27.399.
+2027-08-16,Paso a la Inmortalidad del Gral. Jose de San Martin (17/8),trasladable,true,true,https://www.argentina.gob.ar/normativa/nacional/ley-27399-281835,Traslado por art. 6 Ley 27.399 (martes al lunes anterior).
+2027-10-11,Dia del Respeto a la Diversidad Cultural (12/10),trasladable,true,true,https://www.argentina.gob.ar/normativa/nacional/ley-27399-281835,Traslado por art. 6 Ley 27.399 (martes al lunes anterior).
+2027-12-08,Inmaculada Concepcion de Maria,inamovible,true,true,https://www.argentina.gob.ar/normativa/nacional/ley-27399-281835,Ley 27.399.
+2027-12-24,Nochebuena,bursatil,false,true,https://www.byma.com.ar/mercado/calendario-bursatil,ESTIMADO: criterio BYMA 2026; confirmar con comunicado BYMA 2027.
+2027-12-31,Fin de ano,bursatil,true,true,https://www.byma.com.ar/mercado/calendario-bursatil,ESTIMADO: criterio BYMA 2026; confirmar con comunicado BYMA 2027.

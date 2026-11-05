@@ -42,7 +42,7 @@ UNVERIFIED_TERMS = {"S17A6", "S15Y6", "S29Y6", "T30J6"}
 def _registry_symbols() -> set[str]:
     registry = json.loads((monitor.ROOT / "config/market_instruments.json").read_text(encoding="utf-8"))
     tamar = json.loads((monitor.ROOT / "config/tamar_instruments.json").read_text(encoding="utf-8"))
-    symbols = {entry["symbol"] for family in ("fixed", "cer", "dollar_linked") for entry in registry[family]}
+    symbols = {entry["symbol"] for family in ("fixed", "cer", "dollar_linked", "dual") for entry in registry.get(family, [])}
     symbols |= {entry["symbol"] for entry in tamar["instruments"] if entry.get("include_in_curve")}
     return {symbol.upper() for symbol in symbols}
 
@@ -189,7 +189,13 @@ def _merge_missing_closes(original: dict, rebuilt: dict) -> tuple[dict, list[str
     if quality["missing_hard_dollar"]:
         warnings.append("Hard dollar sin precio de fecha: " + ", ".join(quality["missing_hard_dollar"]))
     quality["warnings"] = warnings
-    if not quality.get("missing_money_market") and not quality["rava_errors"] and not quality["missing_hard_dollar"]:
+    if "volumes" in rebuilt:
+        expected = {row["symbol"] for rows in original["curves"].values() for row in rows}
+        expected |= set(quality["rava_errors"]) | set(quality["missing_hard_dollar"])
+        original["volumes"] = monitor.add_volume_data(original["curves"], original["meta"]["market_date"], expected)
+        original["schema_version"] = rebuilt["schema_version"]
+    if (not quality.get("missing_money_market") and not quality["rava_errors"] and not quality["missing_hard_dollar"]
+            and not original.get("volumes", {}).get("missing_volume_symbols")):
         original["meta"]["status"] = "complete"
     original["meta"]["historical_prices_recovered_at"] = datetime.now(ZoneInfo("America/Argentina/Buenos_Aires")).isoformat()
     original["meta"]["historical_prices_recovered_with_registry"] = rebuilt["meta"]["registry_version"]
