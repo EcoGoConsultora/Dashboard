@@ -2,7 +2,7 @@
   "schema_version": "1.1",
   "meta": {
     "market_date": "2026-11-06",
-    "generated_at": "2026-11-06T21:50:25.075808-03:00",
+    "generated_at": "2026-11-07T21:21:15.540624-03:00",
     "status": "partial",
     "registry_version": "2026-11-05",
     "rate_units": "pct; annual rates TEA unless field says TNA or TEM"
@@ -2476,8 +2476,8 @@
       "Rava sin precio de fecha: D10Y7, TMF28"
     ],
     "rava_errors": {
-      "TMF28": "Cotización de 2026-11-05, se esperaba 2026-11-06",
-      "D10Y7": "Cotización de 2026-10-30, se esperaba 2026-11-06"
+      "D10Y7": "Cotización de 2026-10-30, se esperaba 2026-11-06",
+      "TMF28": "Cotización de 2026-11-05, se esperaba 2026-11-06"
     },
     "hard_dollar_fetch_errors": {},
     "missing_money_market": [
