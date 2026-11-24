@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Deuda · Eco Go</title>
-  <link rel="stylesheet" href="../assets/css/theme.css?v=202611240519"/>
+  <link rel="stylesheet" href="../assets/css/theme.css?v=202611241159"/>
   <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -25,7 +25,19 @@
     .dt-table th.dt-total{background:#e3f0ee}
     .dt-table .dt-group-end{border-right:2px solid var(--color-border)}
     .dt-table .dt-grouprow th{text-align:center;background:#e3f0ee;font-size:.65rem;padding:5px 3px;border-bottom:1px solid var(--color-border)}
+    /* en la 2da fila de encabezado la primera celda no es la columna fija: esa viene con rowspan desde la 1ra */
+    .dt-table .dt-subrow th:first-child{left:auto!important;box-shadow:none;text-align:right;width:auto;min-width:0;z-index:2!important}
+    .dt-table .dt-subrow th.dt-total:first-child{background:#e3f0ee!important}
     .dt-chart-box{position:relative;height:420px}
+    /* calendario de pagos: como en el Excel, la licitacion es una franja y el capital va sombreado */
+    .cal-pagos{table-layout:auto}
+    .cal-pagos th:first-child,.cal-pagos td:first-child{width:44px;min-width:44px;text-align:center}
+    .cal-pagos .txt,.cal-pagos th.txt{text-align:left;padding-left:10px}
+    .cal-pagos td.cap{background:#f1f3f4}
+    .cal-pagos tr.licit td,.cal-pagos tr.licit:hover td{background:var(--eg-teal)!important;color:#fff;font-weight:700;border-bottom-color:var(--eg-teal)}
+    .cal-pagos tr.licit td.licit-label{text-align:center;letter-spacing:.04em}
+    .cal-pagos tr.cal-total td{font-weight:700;background:#eef6f5;border-top:2px solid var(--color-border)}
+    .cal-pagos tr.cal-total td:first-child{background:#eef6f5!important}
   </style>
 </head>
 <body data-depth="1" data-active-section="deuda">
@@ -36,7 +48,7 @@
       <section class="eg-page-header">
         <div>
           <h1 class="eg-page-header__title">Deuda</h1>
-          <p class="eg-page-header__subtitle">Deuda pública histórica, vencimientos en pesos y perfil de refinanciamiento con privados</p>
+          <p class="eg-page-header__subtitle">Deuda pública histórica, calendario de pagos del mes, vencimientos en pesos y perfil de refinanciamiento con privados</p>
         </div>
       </section>
 
@@ -50,14 +62,24 @@
         <p class="dt-note">Fuente: Eco Go en base a Ministerio de Economía, BCRA, INDEC</p>
       </div>
 
+      <!-- Calendario de pagos del ultimo mes cargado en el Excel -->
+      <div class="dt-card" id="calPagosCard" hidden>
+        <p class="dt-title" id="calPagosTitulo">Calendario de pagos</p>
+        <p class="dt-sub">Vencimientos del Tesoro en pesos y licitaciones del mes · En billones de $ · Total y con acreedores privados</p>
+        <div class="dt-wrap">
+          <table class="dt-table cal-pagos" id="calPagosTable"></table>
+        </div>
+        <p class="dt-note" id="calPagosFuente">Fuente: Eco Go en base a Secretaría de Finanzas y estimaciones propias</p>
+      </div>
+
       <!-- Cuadro vencimientos mensuales -->
       <div class="dt-card">
-        <p class="dt-title">Deuda en pesos — vencimientos mensuales</p>
+        <p class="dt-title">Deuda en pesos neta de ATs — perfil de vencimientos</p>
         <p class="dt-sub">En billones de $, amortización + intereses · Total y con privados</p>
         <div class="dt-wrap">
           <table class="dt-table" id="vencimientosTable"></table>
         </div>
-        <p class="dt-note">Fuente: Eco Go / BCRA</p>
+        <p class="dt-note">Fuente: Eco Go en base a Secretaría de Finanzas. Los vencimientos están calculados con el CER y el tipo de cambio proyectados al vencimiento.</p>
       </div>
 
       <!-- Grafico perfil de vencimientos con privados -->
@@ -75,8 +97,8 @@
     </main>
   </div>
 
-  <script src="../assets/js/layout.js?v=202611240519"></script>
-  <script src="../assets/data/deuda.js?v=202611240519"></script>
+  <script src="../assets/js/layout.js?v=202611241159"></script>
+  <script src="../assets/data/deuda.js?v=202611241159"></script>
   <script>
   (function(){
     var D = window.DEUDA_DATA || {};
@@ -173,7 +195,7 @@
       html += '</tr></thead><tbody>';
 
       tbl.rows.forEach(function(row){
-        html += '<tr><td>' + row[0] + '</td>';
+        html += '<tr><td>' + fmtPeriodo(row[0]) + '</td>';
         for (var i = 1; i < row.length; i++) {
           var c = cols[i - 1];
           var cls = [];
@@ -192,8 +214,12 @@
         if (cell) cell.classList.add('dt-group-end');
       });
 
-      // la 2da fila de encabezado debe "pegarse" justo debajo de la 1ra
-      // (se mide en vivo porque la altura de la 1ra fila varia con el ancho)
+      pegarSubencabezado(el);
+    }
+
+    // la 2da fila de encabezado debe "pegarse" justo debajo de la 1ra
+    // (se mide en vivo porque la altura de la 1ra fila varia con el ancho)
+    function pegarSubencabezado(el) {
       function alignSubrow() {
         var groupRow = el.querySelector('.dt-grouprow');
         var subRow = el.querySelector('.dt-subrow');
@@ -205,7 +231,54 @@
       window.addEventListener('resize', alignSubrow);
     }
 
+    /* El Excel guarda los meses como fecha y el refresh los pasa a 'AAAA-MM';
+       la tabla los muestra como en la planilla (nov-26). Los anuales quedan igual. */
+    var MES_CORTO = ['ene','feb','mar','abr','may','jun','jul','ago','sept','oct','nov','dic'];
+    function fmtPeriodo(v) {
+      var m = /^(\d{4})-(\d{2})$/.exec(v);
+      return m ? MES_CORTO[+m[2] - 1] + '-' + m[1].slice(2) : v;
+    }
+
+    /* Calendario de pagos: el ultimo mes que tenga cargado el Excel. Las
+       licitaciones van como franja, igual que en la planilla. */
+    var CAL_COLS = ['total', 'capital', 'intereses', 'priv_total', 'priv_capital', 'priv_intereses'];
+    function buildCalendario(cal) {
+      var el = document.getElementById('calPagosTable');
+      if (!el || !cal || !cal.filas) return;
+      document.getElementById('calPagosTitulo').textContent = 'Calendario de pagos — ' + cal.mes_nombre + ' ' + cal.anio;
+      if (cal.fuente) document.getElementById('calPagosFuente').textContent = cal.fuente;
+
+      function montos(m) {
+        return CAL_COLS.map(function(k, i){
+          var cls = [];
+          if (k.indexOf('capital') !== -1) cls.push('cap');
+          if (i === 2) cls.push('dt-group-end');
+          return '<td' + (cls.length ? ' class="' + cls.join(' ') + '"' : '') + '>' + fmtCell('', m[k]) + '</td>';
+        }).join('');
+      }
+
+      var html = '<thead><tr class="dt-grouprow">' +
+        '<th rowspan="2">Día</th><th rowspan="2" class="txt">Ticker</th><th rowspan="2" class="txt dt-group-end">Tipo</th>' +
+        '<th colspan="3" class="dt-group-end">Total</th><th colspan="3">Con acreedores privados</th></tr>' +
+        '<tr class="dt-subrow"><th>Total</th><th>Capital</th><th class="dt-group-end">Intereses</th>' +
+        '<th>Total</th><th>Capital</th><th>Intereses</th></tr></thead><tbody>';
+      cal.filas.forEach(function(f){
+        if (f.licitacion) {
+          html += '<tr class="licit"><td>' + f.dia + '</td><td class="licit-label" colspan="8">Licitación</td></tr>';
+        } else {
+          html += '<tr><td>' + f.dia + '</td><td class="txt">' + f.ticker + '</td><td class="txt dt-group-end">' + f.tipo + '</td>' + montos(f) + '</tr>';
+        }
+      });
+      if (cal.total) {
+        html += '<tr class="cal-total"><td></td><td class="txt dt-group-end" colspan="2">Total</td>' + montos(cal.total) + '</tr>';
+      }
+      el.innerHTML = html + '</tbody>';
+      document.getElementById('calPagosCard').hidden = false;
+      pegarSubencabezado(el);
+    }
+
     buildTable('lopezMurphyTable', D.lopez_murphy);
+    buildCalendario(D.calendario_pagos);
     buildVencimientosTable('vencimientosTable', D.vencimientos_mensual);
 
     /* Grafico refinanciamiento — barras apiladas */
@@ -262,6 +335,17 @@
     if (window.EcoGo) {
       EcoGo.dlBtn('#lopezMurphyTable', 'deuda_publica_historica.csv', function(){
         return { headers: D.lopez_murphy.headers, rows: D.lopez_murphy.rows.map(function(r){ return r.map(function(v){ return v !== null ? v : ''; }); }) };
+      });
+      if (D.calendario_pagos) EcoGo.dlBtn('#calPagosTable', 'calendario_pagos_deuda_pesos.csv', function(){
+        var C = D.calendario_pagos;
+        var fila = function(dia, ticker, tipo, m){ return [dia, ticker, tipo].concat(CAL_COLS.map(function(k){ return m && m[k] !== null && m[k] !== undefined ? m[k] : ''; })); };
+        var rows = C.filas.map(function(f){ return f.licitacion ? fila(f.dia, 'Licitación', '', null) : fila(f.dia, f.ticker, f.tipo, f); });
+        if (C.total) rows.push(fila('', 'Total', '', C.total));
+        return {
+          headers: ['Día', 'Ticker', 'Tipo', 'Total', 'Capital', 'Intereses',
+                    'Privados · Total', 'Privados · Capital', 'Privados · Intereses'],
+          rows: rows
+        };
       });
       EcoGo.dlBtn('#vencimientosTable', 'deuda_pesos_vencimientos_mensuales.csv', function(){
         return { headers: D.vencimientos_mensual.headers, rows: D.vencimientos_mensual.rows.map(function(r){ return r.map(function(v){ return v !== null ? v : ''; }); }) };

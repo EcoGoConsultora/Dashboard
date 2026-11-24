@@ -1892,6 +1892,51 @@ def extract_monetarias(status):
 # =====================================================================
 #  DEUDA (dashboard clientes)
 # =====================================================================
+def _calendario_pagos(ws):
+    """El cuadro del ultimo mes de la hoja 'Calendario de pagos (nuevo)'.
+
+    La hoja apila un bloque por mes desde julio de 2022 y el analista agrega
+    el siguiente al final: se publica siempre el ultimo, asi que cuando aparece
+    enero el tablero pasa solo a enero. Cada bloque abre con el numero de mes
+    en C y el nombre en D; el anio esta en B solo en el primer bloque y en cada
+    enero, y se arrastra. Despues vienen dos filas de encabezado, una fila por
+    vencimiento (dia, ticker, tipo y Total/Capital/Intereses, total y con
+    acreedores privados), las licitaciones sin montos y la fila 'Total'."""
+    MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
+             "septiembre", "octubre", "noviembre", "diciembre"]
+    anio, ultimo = None, None
+    for r in range(1, (ws.max_row or 0) + 1):
+        b, c, d = ws.cell(r, 2).value, ws.cell(r, 3).value, ws.cell(r, 4).value
+        if isinstance(b, (int, float)) and 2000 < b < 2100:
+            anio = int(b)
+        if isinstance(c, (int, float)) and isinstance(d, str) and d.strip().lower() in MESES:
+            ultimo = (r, anio, int(c), d.strip())
+    if not ultimo:
+        return None
+
+    r0, anio, mes, nombre = ultimo
+    cols = ("total", "capital", "intereses", "priv_total", "priv_capital", "priv_intereses")
+    filas, total, fuente = [], None, None
+    for r in range(r0 + 1, (ws.max_row or 0) + 1):
+        d, e, f = (ws.cell(r, c).value for c in (4, 5, 6))
+        montos = dict(zip(cols, (fmt_n(ws.cell(r, c).value) for c in range(7, 13))))
+        if isinstance(d, str) and d.strip().lower() == "total":
+            total = montos
+            # la fuente va en la fila siguiente al total
+            sig = ws.cell(r + 1, 4).value
+            if isinstance(sig, str) and sig.strip().lower().startswith("fuente"):
+                fuente = sig.strip()
+            break
+        if not isinstance(d, (int, float)):
+            continue                    # las dos filas de encabezado
+        if isinstance(e, str) and e.strip().lower().startswith("licitaci"):
+            filas.append({"dia": int(d), "licitacion": True})
+        else:
+            filas.append({"dia": int(d), "ticker": str(e or "").strip(),
+                          "tipo": str(f or "").strip(), **montos})
+    return {"anio": anio, "mes": mes, "mes_nombre": nombre.capitalize(),
+            "filas": filas, "total": total, "fuente": fuente}
+
 def extract_deuda(status):
     """
     Cuadro Lopez Murphy (deuda publica bruta/neta, historico anual), cuadro
@@ -1939,6 +1984,21 @@ def extract_deuda(status):
             status.ok("Deuda - Vencimientos mensual", f"{len(tbl['rows'])} períodos · {len(tbl['headers'])} columnas")
         except Exception as e:
             status.fail("Deuda - Vencimientos mensual", str(e))
+            traceback.print_exc()
+
+        # ---- Calendario de pagos: el cuadro del ultimo mes cargado ----
+        try:
+            cal = _calendario_pagos(wb2["Calendario de pagos (nuevo)"])
+            if cal and cal["total"]:
+                data['calendario_pagos'] = cal
+                status.ok("Deuda - Calendario de pagos",
+                          f"{cal['mes_nombre']} {cal['anio']} · "
+                          f"{sum(1 for x in cal['filas'] if not x.get('licitacion'))} vencimientos · "
+                          f"{sum(1 for x in cal['filas'] if x.get('licitacion'))} licitaciones")
+            else:
+                status.warn("Deuda - Calendario de pagos", "no encontre un mes completo en la hoja")
+        except Exception as e:
+            status.fail("Deuda - Calendario de pagos", str(e))
             traceback.print_exc()
 
     # ---- Ejercicio refinanciamiento: perfil de vencimientos con privados ----
