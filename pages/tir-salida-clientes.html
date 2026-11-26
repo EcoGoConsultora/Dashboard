@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>TIR de salida · Eco Go</title>
+  <link rel="stylesheet" href="../assets/css/theme.css?v=202611261608"/>
+  <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .ts-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:20px 24px 24px;margin-bottom:22px}
+    .ts-title{font-size:1rem;font-weight:700;color:var(--eg-teal-dark);margin:0 0 4px}
+    .ts-sub{font-size:.76rem;color:var(--color-text-muted);margin:0 0 14px}
+    .ts-note{font-size:.72rem;color:var(--color-text-muted);margin-top:12px;line-height:1.5}
+    .ts-head{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+
+    /* aviso de antigüedad de los precios */
+    .ts-aviso{display:flex;gap:10px;align-items:flex-start;background:#FDF6E3;border-left:3px solid #C99A2E;
+      border-radius:6px;padding:10px 14px;margin-bottom:20px;font-size:.78rem;color:#6B5418;line-height:1.5}
+    .ts-aviso b{color:#4A3A10}
+
+    /* fila de datos del ejercicio */
+    .ts-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:22px}
+    .ts-kpi{background:var(--color-surface);border:1px solid var(--color-border);border-radius:10px;padding:13px 16px}
+    .ts-kpi__label{font-size:.64rem;color:var(--color-text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:0 0 5px}
+    .ts-kpi__value{font-size:1.25rem;font-weight:800;color:var(--eg-teal-dark);line-height:1;margin:0 0 3px}
+    .ts-kpi__sub{font-size:.7rem;color:var(--color-text-muted);margin:0}
+
+    /* matriz */
+    .ts-wrap{overflow-x:auto}
+    .ts-tabla{width:100%;border-collapse:separate;border-spacing:0;font-size:.8rem}
+    .ts-tabla th,.ts-tabla td{padding:6px 9px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+    .ts-tabla th:first-child,.ts-tabla td:first-child{text-align:left;font-weight:700;color:var(--eg-teal-dark);
+      position:sticky;left:0;background:var(--color-surface);z-index:1}
+    .ts-tabla thead th{font-size:.66rem;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted);
+      font-weight:700;border-bottom:2px solid var(--eg-teal);padding-bottom:7px}
+    .ts-tabla thead th.grupo{text-align:center;color:var(--eg-teal);padding-bottom:2px;border-bottom:0;font-size:.62rem}
+    .ts-tabla tbody tr:hover td{outline:1px solid rgba(60,151,148,.35);outline-offset:-1px}
+    .ts-tabla td.sep{border-left:2px solid var(--color-border)}
+    .ts-tabla td.ctx{color:var(--color-text);font-weight:600;background:var(--color-bg)}
+
+    .ts-leyenda{display:flex;align-items:center;gap:8px;font-size:.7rem;color:var(--color-text-muted);margin-top:12px;flex-wrap:wrap}
+    .ts-escala{display:flex;height:11px;width:170px;border-radius:3px;overflow:hidden}
+    .ts-escala span{flex:1}
+  </style>
+</head>
+<body data-depth="1" data-active-section="tir-salida">
+  <div class="eg-app">
+    <aside class="eg-sidebar" id="egSidebar"></aside>
+    <header class="eg-header" id="egHeader"></header>
+    <main class="eg-main">
+      <section class="eg-page-header">
+        <div>
+          <h1 class="eg-page-header__title">TIR de salida</h1>
+          <p class="eg-page-header__subtitle" id="tsSubtitulo">Retorno total de los soberanos en USD según la TIR a la que se salga</p>
+        </div>
+      </section>
+
+      <div class="ts-aviso" id="tsAviso" hidden></div>
+
+      <div class="ts-kpis" id="tsKpis"></div>
+
+      <div class="ts-card">
+        <div class="ts-head">
+          <div>
+            <p class="ts-title">Matriz de retorno total</p>
+            <p class="ts-sub" style="margin:0" id="tsMatrizSub">&nbsp;</p>
+          </div>
+        </div>
+        <div class="ts-wrap">
+          <table class="ts-tabla">
+            <thead id="tsHead"></thead>
+            <tbody id="tsBody"></tbody>
+          </table>
+        </div>
+        <div class="ts-leyenda">
+          <span>Retorno total:</span>
+          <span class="ts-escala" id="tsEscala"></span>
+          <span id="tsEscalaRango"></span>
+        </div>
+        <p class="ts-note" id="tsNotas"></p>
+      </div>
+
+      <div class="ts-card">
+        <div class="ts-head">
+          <div>
+            <p class="ts-title">Curva de retorno</p>
+            <p class="ts-sub" style="margin:0">Cada línea es un bono · el cruce con el cero es su break-even</p>
+          </div>
+        </div>
+        <div style="position:relative;height:400px"><canvas id="chartCurva"></canvas></div>
+        <p class="ts-note">Fuente: Eco Go en base a Rava Bursátil (especies D) y las condiciones contractuales de cada bono.</p>
+      </div>
+
+      <footer class="eg-footer">
+        <span>TIR de salida · Eco Go</span>
+        <a href="../index-clientes.html">← Volver al inicio</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="../assets/js/layout.js?v=202611261608"></script>
+  <script src="../assets/data/tir_salida.js?v=202611261608"></script>
+  <script>
+  (function(){
+    var D = window.TIR_SALIDA_DATA || {};
+    Chart.defaults.font.family = "'HK Grotesk', system-ui, sans-serif";
+    Chart.defaults.color = '#333333';
+
+    var M = D.meta || {}, ESC = D.escenarios || [], FILAS = D.filas || [];
+    if (!FILAS.length) return;
+
+    function pct(v, dec){
+      if (v === null || v === undefined) return '—';
+      return (v * 100).toLocaleString('es-AR', {minimumFractionDigits:dec, maximumFractionDigits:dec}) + '%';
+    }
+    function pctFirmado(v, dec){
+      if (v === null || v === undefined) return '—';
+      return (v > 0 ? '+' : '') + pct(v, dec);
+    }
+    function fechaLarga(iso){
+      var M2=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+      var p=String(iso).split('-');
+      return parseInt(p[2],10)+' de '+M2[(parseInt(p[1],10)||1)-1]+' de '+p[0];
+    }
+    function mesCorto(iso){
+      var M2=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      var p=String(iso).split('-');
+      return p[2]+'-'+M2[(parseInt(p[1],10)||1)-1]+'-'+p[0].slice(2);
+    }
+
+    /* Verde para ganancia, rojo para pérdida, con la intensidad proporcional
+       al tamaño: lo que importa de la matriz es dónde está la frontera. */
+    var todos = [];
+    FILAS.forEach(function(f){ f.retornos.forEach(function(v){ if (v !== null) todos.push(v); }); });
+    var maxAbs = Math.max.apply(null, todos.map(Math.abs)) || 1;
+    function fondo(v){
+      if (v === null || v === undefined) return 'transparent';
+      var t = Math.min(1, Math.abs(v) / maxAbs);
+      var a = 0.08 + 0.42 * t;
+      return v >= 0 ? 'rgba(112,161,52,' + a.toFixed(3) + ')'
+                    : 'rgba(218,69,49,' + a.toFixed(3) + ')';
+    }
+
+    /* ---------- encabezado de la matriz ---------- */
+    (function(){
+      var h1 = '<tr><th rowspan="2">Bono</th><th rowspan="2">TIR hoy</th>' +
+               '<th colspan="' + ESC.length + '" class="grupo">Retorno total si sale con esta TIR</th>' +
+               '<th rowspan="2">Break-even</th></tr><tr>' +
+               ESC.map(function(e){ return '<th>' + pct(e, 1) + '</th>'; }).join('') + '</tr>';
+      document.getElementById('tsHead').innerHTML = h1;
+
+      document.getElementById('tsBody').innerHTML = FILAS.map(function(f){
+        var celdas = f.retornos.map(function(v, i){
+          return '<td class="' + (i ? '' : 'sep') + '" style="background:' + fondo(v) + '">' +
+                 pctFirmado(v, 1) + '</td>';
+        }).join('');
+        return '<tr><td>' + f.bono + '</td>' +
+               '<td class="ctx">' + pct(f.tir_hoy, 2) + '</td>' +
+               celdas +
+               '<td class="ctx sep">' + pct(f.break_even, 1) + '</td></tr>';
+      }).join('');
+
+      document.getElementById('tsMatrizSub').textContent =
+        FILAS.length + ' bonos × ' + ESC.length + ' escenarios · salida el ' +
+        (M.salida ? fechaLarga(M.salida) : '—');
+
+      // leyenda de la escala de color
+      var pasos = [];
+      for (var i = 0; i < 11; i++) {
+        var v = -maxAbs + (2 * maxAbs) * (i / 10);
+        pasos.push('<span style="background:' + fondo(v) + '"></span>');
+      }
+      document.getElementById('tsEscala').innerHTML = pasos.join('');
+      document.getElementById('tsEscalaRango').textContent =
+        pctFirmado(-maxAbs, 0) + '  a  ' + pctFirmado(maxAbs, 0);
+
+      document.getElementById('tsNotas').innerHTML = (D.notas || []).map(function(n){
+        return '<b>' + n.titulo + ':</b> ' + n.texto;
+      }).join('<br>');
+    })();
+
+    /* ---------- indicadores ---------- */
+    (function(){
+      var conDato = FILAS.filter(function(f){ return f.break_even !== null; });
+      var mejor = conDato.slice().sort(function(a,b){ return b.break_even - a.break_even; })[0];
+      var k = [];
+      if (M.salida)      k.push({ l:'Fecha de salida',  v:mesCorto(M.salida),      s:'horizonte del ejercicio' });
+      if (M.liquidacion) k.push({ l:'Precios de compra', v:mesCorto(M.liquidacion), s:'fecha de liquidación' });
+      k.push({ l:'Universo', v:FILAS.length + ' bonos', s:'soberanos en USD, especie D' });
+      if (mejor) k.push({ l:'Break-even más alto', v:pct(mejor.break_even, 1), s:mejor.bono + ' · es el que más margen tolera' });
+
+      document.getElementById('tsKpis').innerHTML = k.map(function(x){
+        return '<div class="ts-kpi"><p class="ts-kpi__label">' + x.l + '</p>' +
+               '<p class="ts-kpi__value">' + x.v + '</p>' +
+               '<p class="ts-kpi__sub">' + x.s + '</p></div>';
+      }).join('');
+
+      var sub = document.getElementById('tsSubtitulo');
+      if (sub && M.salida) sub.textContent += ' el ' + fechaLarga(M.salida);
+    })();
+
+    /* ---------- aviso si los precios quedaron viejos ----------
+       La matriz entera cuelga del precio de compra. Si ese precio es de hace
+       meses, el cuadro se ve prolijo igual y no hay forma de notarlo. */
+    (function(){
+      if (!M.liquidacion) return;
+      var dias = Math.round((Date.now() - new Date(M.liquidacion + 'T12:00:00')) / 86400000);
+      if (dias < 21) return;
+      var el = document.getElementById('tsAviso');
+      el.innerHTML = '<span>⚠</span><span>Los precios de compra son del <b>' + fechaLarga(M.liquidacion) +
+        '</b>, hace ' + dias + ' días. Todo el cuadro se calcula sobre esos precios: los retornos ' +
+        'no reflejan el mercado de hoy. Para actualizarlo hay que recargar precios en la planilla del ejercicio.</span>';
+      el.hidden = false;
+    })();
+
+    /* ---------- curva de retorno ---------- */
+    (function(){
+      var PALETA = ['#1B5F5E','#2890A4','#3C9794','#8FCCCA','#70A134','#84BF84','#C9E4C5',
+                    '#FEB15F','#FE8B5F','#DA4531','#7E5CCB','#9B7FC4','#A5896C','#6E7679','#15314B'];
+      // El cero es la frontera entre ganar y perder: se marca.
+      var lineaCero = {
+        id:'cero',
+        afterDatasetsDraw:function(ch){
+          var y = ch.scales.y.getPixelForValue(0), ctx = ch.ctx;
+          ctx.save(); ctx.strokeStyle='#333'; ctx.lineWidth=1.2; ctx.setLineDash([5,4]);
+          ctx.beginPath(); ctx.moveTo(ch.chartArea.left, y); ctx.lineTo(ch.chartArea.right, y); ctx.stroke();
+          ctx.restore();
+        }
+      };
+      new Chart(document.getElementById('chartCurva'), {
+        type:'line',
+        data:{
+          labels: ESC.map(function(e){ return pct(e, 1); }),
+          datasets: FILAS.map(function(f, i){
+            return { label:f.bono, data:f.retornos.map(function(v){ return v === null ? null : v * 100; }),
+                     borderColor:PALETA[i % PALETA.length], backgroundColor:PALETA[i % PALETA.length],
+                     borderWidth:1.8, pointRadius:0, pointHoverRadius:4, fill:false, tension:0.2, spanGaps:true };
+          })
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false, animation:{duration:150},
+          interaction:{ mode:'nearest', axis:'x', intersect:false },
+          plugins:{
+            legend:{ position:'bottom', labels:{ boxWidth:11, boxHeight:11, usePointStyle:true, pointStyle:'circle', font:{size:10}, padding:9 } },
+            tooltip:{ callbacks:{
+              title:function(it){ return 'Si sale con TIR ' + it[0].label; },
+              label:function(c){ return ' ' + c.dataset.label + ': ' + (c.raw > 0 ? '+' : '') + c.raw.toFixed(1) + '%'; }
+            } }
+          },
+          scales:{
+            x:{ grid:{display:false}, ticks:{color:'#6E7679'},
+                title:{ display:true, text:'TIR de salida', color:'#6E7679', font:{size:10} } },
+            y:{ grid:{color:'rgba(0,0,0,0.05)'},
+                ticks:{ color:'#6E7679', callback:function(v){ return (v > 0 ? '+' : '') + v + '%'; } },
+                title:{ display:true, text:'Retorno total', color:'#6E7679', font:{size:10} } }
+          }
+        },
+        plugins:[lineaCero]
+      });
+    })();
+
+    /* ---------- descargas ---------- */
+    if (window.EcoGo) {
+      EcoGo.dlBtn('.ts-tabla', 'tir_de_salida.csv', function(){
+        return {
+          headers: ['Bono', 'TIR hoy'].concat(ESC.map(function(e){ return 'Retorno si sale con ' + pct(e,1); })).concat(['Break-even']),
+          rows: FILAS.map(function(f){
+            return [f.bono, f.tir_hoy].concat(f.retornos).concat([f.break_even]);
+          })
+        };
+      });
+    }
+  })();
+  </script>
+</body>
+</html>

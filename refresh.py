@@ -75,6 +75,7 @@ EXCEL_PATHS = {
     "comex_tdi":   os.path.join(BASE_EXCEL, "Comercio", "Terminos del Intercambio.xlsx"),
     "comex_proy":  os.path.join(BASE_EXCEL, "Comercio", "01 Proyecciones", "Estimación Comercio Ext.xlsx"),
     "monitor_tasas":  os.path.join(BASE_EXCEL, "Mercados", "Monitor tasas"),
+    "tir_salida":     os.path.join(BASE_EXCEL, "Mercados", "Ejercicio TIR de salida"),
     "proyecciones":   os.path.join(BASE_EXCEL, "Proyecciones Bein",
                                    "Proyecciones Bein", "Escenario Base estudio.xlsx"),
     "potencial_exportador": os.path.join(
@@ -2816,6 +2817,124 @@ def completar_mercados(status, monitor):
 
 
 # =====================================================================
+#  TIR DE SALIDA (soberanos en USD)
+# =====================================================================
+@_nunca_rompe("TIR de salida")
+def extract_tir_salida(status):
+    """
+    Matriz de retorno total de los soberanos en USD segun la TIR a la que se
+    salga en una fecha dada.
+
+    La planilla se recalcula sola: su hoja 'Guia' dice que el analista
+    actualiza precios en Inputs, el horizonte en Inputs y la grilla de
+    escenarios en la fila 6 de Sensibilidad. Asi que aca no se recalcula nada
+    -- se lee esa hoja, que es el entregable -- y todo lo que cambie en el
+    Excel aparece en el tablero sin tocar codigo.
+
+    Por eso tampoco se fijan columnas: los escenarios son los que haya en la
+    fila de encabezado. Si manana la grilla pasa de nueve a doce, o cambia la
+    fecha de salida, el cuadro se adapta.
+
+    El proyecto deja una carpeta por corrida (outputs/tir-salida-AAAAMMDD), asi
+    que se toma la mas nueva, como con la Tenencia DLK.
+    """
+    base = EXCEL_PATHS["tir_salida"]
+    if not os.path.isdir(base):
+        status.warn("TIR de salida", f"no existe la carpeta {base}")
+        return None
+
+    salidas = os.path.join(base, "outputs")
+    corridas = [d for d in os.listdir(salidas)
+                if d.lower().startswith("tir-salida-") and os.path.isdir(os.path.join(salidas, d))] \
+        if os.path.isdir(salidas) else []
+    if not corridas:
+        status.warn("TIR de salida", "no encontre ninguna carpeta outputs/tir-salida-*")
+        return None
+    corrida = sorted(corridas)[-1]          # el nombre lleva la fecha
+    carpeta = os.path.join(salidas, corrida)
+
+    xlsx = next((os.path.join(carpeta, f) for f in sorted(os.listdir(carpeta))
+                 if f.lower().endswith(".xlsx") and not f.startswith("~$")), None)
+    if not xlsx:
+        status.warn("TIR de salida", f"no hay xlsx en {corrida}")
+        return None
+
+    ws = _open_wb(xlsx, read_only=False)["Sensibilidad"]
+
+    # ---- Fechas del horizonte: estan rotuladas, no en una celda fija ----
+    fechas = {}
+    for r in range(1, 12):
+        for c in range(1, 12):
+            et = str(ws.cell(r, c).value or "").strip().lower()
+            v = ws.cell(r, c + 1).value
+            if isinstance(v, datetime):
+                if et.startswith("fecha de liquidacion") or et.startswith("fecha de liquidación"):
+                    fechas["liquidacion"] = v.strftime("%Y-%m-%d")
+                elif et.startswith("fecha de salida"):
+                    fechas["salida"] = v.strftime("%Y-%m-%d")
+
+    # ---- Fila de encabezado: la que dice 'Bono' en la primera columna ----
+    fila_enc = next((r for r in range(1, 15)
+                     if str(ws.cell(r, 1).value or "").strip().lower() == "bono"), None)
+    if fila_enc is None:
+        status.warn("TIR de salida", "no encontre la fila de encabezado en 'Sensibilidad'")
+        return None
+
+    escenarios, cols_esc, c_hoy, c_be = [], [], None, None
+    for c in range(2, (ws.max_column or 20) + 1):
+        v = ws.cell(fila_enc, c).value
+        if isinstance(v, (int, float)):
+            escenarios.append(fmt_n(v))
+            cols_esc.append(c)
+        else:
+            et = _sin_tildes(str(v or "")).strip().lower()
+            if et.startswith("tir hoy"):
+                c_hoy = c
+            elif et.startswith("tir break"):
+                c_be = c
+
+    filas = []
+    for r in range(fila_enc + 1, (ws.max_row or 0) + 1):
+        bono = ws.cell(r, 1).value
+        if not isinstance(bono, str) or not bono.strip():
+            break                            # abajo siguen las notas de lectura
+        rets = [fmt_n(ws.cell(r, c).value) for c in cols_esc]
+        if all(v is None for v in rets):
+            continue
+        filas.append({
+            "bono": bono.strip(),
+            "tir_hoy": fmt_n(ws.cell(r, c_hoy).value) if c_hoy else None,
+            "break_even": fmt_n(ws.cell(r, c_be).value) if c_be else None,
+            "retornos": rets,
+        })
+
+    # ---- Notas al pie de la hoja (lectura / alcance) ----
+    notas = []
+    for r in range(fila_enc + 1 + len(filas), (ws.max_row or 0) + 1):
+        a, b = ws.cell(r, 1).value, ws.cell(r, 2).value
+        if isinstance(a, str) and isinstance(b, str) and a.strip() and b.strip():
+            notas.append({"titulo": a.strip(), "texto": " ".join(str(b).split())})
+
+    data = {
+        "meta": {"corrida": corrida,
+                 "actualizado": datetime.fromtimestamp(os.path.getmtime(xlsx)).strftime("%Y-%m-%d"),
+                 **fechas},
+        "escenarios": escenarios,
+        "filas": filas,
+        "notas": notas,
+    }
+    status.ok("TIR de salida",
+              f"{len(filas)} bonos × {len(escenarios)} escenarios · salida {fechas.get('salida', '?')} "
+              f"· corrida {corrida}")
+    if fechas.get("liquidacion"):
+        # El precio de compra es de una fecha concreta: si quedo viejo, toda la
+        # matriz lo esta, aunque el Excel se vea prolijo.
+        _avisar_si_viejo(status, "TIR de salida", fechas["liquidacion"], meses=2,
+                         extra="son los precios de compra de la matriz")
+    return data
+
+
+# =====================================================================
 #  PROYECCIONES (Escenario Base estudio - Bein)
 # =====================================================================
 def _sin_tildes(txt):
@@ -3933,7 +4052,7 @@ def main():
     status = Status()
 
     # ---- Precios ----
-    print("[1/18] Procesando Precios...")
+    print("[1/19] Procesando Precios...")
     try:
         d = extract_precios(status)
         if d:
@@ -3944,7 +4063,7 @@ def main():
         traceback.print_exc()
 
     # ---- EMAE Series ----
-    print("\n[2/18] Procesando EMAE Series (actividad)...")
+    print("\n[2/19] Procesando EMAE Series (actividad)...")
     try:
         d = extract_emae_series(status)
         if d:
@@ -3955,7 +4074,7 @@ def main():
         traceback.print_exc()
 
     # ---- Empleo ----
-    print("\n[3/18] Procesando Empleo...")
+    print("\n[3/19] Procesando Empleo...")
     try:
         d = extract_empleo(status)
         if d:
@@ -3966,7 +4085,7 @@ def main():
         traceback.print_exc()
 
     # ---- Salarios ----
-    print("\n[4/18] Procesando Salarios...")
+    print("\n[4/19] Procesando Salarios...")
     try:
         d = extract_salarios(status)
         if d:
@@ -3977,7 +4096,7 @@ def main():
         traceback.print_exc()
 
     # ---- Tipo de Cambio ----
-    print("\n[5/18] Procesando Tipo de Cambio...")
+    print("\n[5/19] Procesando Tipo de Cambio...")
     try:
         d = extract_tipo_cambio(status)
         if d:
@@ -3988,7 +4107,7 @@ def main():
         traceback.print_exc()
 
     # ---- Reservas ----
-    print("\n[6/18] Procesando Reservas...")
+    print("\n[6/19] Procesando Reservas...")
     try:
         d = extract_reservas(status)
         if d:
@@ -3999,7 +4118,7 @@ def main():
         traceback.print_exc()
 
     # ---- Internacional ----
-    print("\n[7/18] Procesando Internacional (Monitor mundial)...")
+    print("\n[7/19] Procesando Internacional (Monitor mundial)...")
     try:
         run_monitor_mundial(status)
         extract_internacional(status)
@@ -4009,14 +4128,14 @@ def main():
         traceback.print_exc()
 
     # ---- Mercados (API) ----
-    print("\n[8/18] Actualizando Mercados (EcoGo Markets API)...")
+    print("\n[8/19] Actualizando Mercados (EcoGo Markets API)...")
     try:
         extract_mercados(status)
     except Exception as e:
         status.warn("Mercados", f"no se pudo actualizar desde la API: {e}")
 
     # ---- Actividad IPI (Indicadores de actividad) ----
-    print("\n[9/18] Actualizando Indicadores de Actividad (IPI - Todos.xlsx)...")
+    print("\n[9/19] Actualizando Indicadores de Actividad (IPI - Todos.xlsx)...")
     try:
         from extract_actividad_ipi import run_extraction as run_ipi
         ipi_path = os.path.join(BASE_EXCEL, "Actividad", "IPI - Todos.xlsx")
@@ -4030,7 +4149,7 @@ def main():
         traceback.print_exc()
 
     # ---- Series Largas (Anexo histórico) ----
-    print("\n[10/18] Actualizando Series Largas (Anexo.xlsx)...")
+    print("\n[10/19] Actualizando Series Largas (Anexo.xlsx)...")
     try:
         from extract_series_largas import run_extraction
         anexo_path = os.path.join(BASE_EXCEL, "03 Informes y Anexos", "Cuadros y Anexos", "Anexos nuevos", "Anexo.xlsx")
@@ -4044,7 +4163,7 @@ def main():
         traceback.print_exc()
 
     # ---- Monetarias ----
-    print("\n[11/18] Procesando Monetarias...")
+    print("\n[11/19] Procesando Monetarias...")
     try:
         d = extract_monetarias(status)
         if d:
@@ -4055,7 +4174,7 @@ def main():
         traceback.print_exc()
 
     # ---- Deuda ----
-    print("\n[12/18] Procesando Deuda...")
+    print("\n[12/19] Procesando Deuda...")
     try:
         d = extract_deuda(status)
         if d:
@@ -4066,7 +4185,7 @@ def main():
         traceback.print_exc()
 
     # ---- Monitor de Actividad ----
-    print("\n[13/18] Procesando Monitor de Actividad...")
+    print("\n[13/19] Procesando Monitor de Actividad...")
     try:
         d = extract_monitor_actividad(status)
         if d:
@@ -4076,7 +4195,7 @@ def main():
         traceback.print_exc()
 
     # ---- Comercio exterior ----
-    print("\n[14/18] Procesando Comercio exterior...")
+    print("\n[14/19] Procesando Comercio exterior...")
     try:
         d = extract_comercio(status)
         if d:
@@ -4087,7 +4206,7 @@ def main():
         traceback.print_exc()
 
     # ---- Potencial exportador 2026-2036 ----
-    print("\n[15/18] Procesando Potencial exportador...")
+    print("\n[15/19] Procesando Potencial exportador...")
     try:
         d = extract_potencial_exportador(status)
         if d:
@@ -4098,7 +4217,7 @@ def main():
         traceback.print_exc()
 
     # ---- Tenencia DLK BCRA ----
-    print("\n[16/18] Procesando Tenencia DLK BCRA...")
+    print("\n[16/19] Procesando Tenencia DLK BCRA...")
     try:
         d = extract_tenencia_dlk(status)
         if d:
@@ -4109,7 +4228,7 @@ def main():
         traceback.print_exc()
 
     # ---- Monitor de tasas (completa Mercados) ----
-    print("\n[17/18] Procesando Monitor de tasas...")
+    print("\n[17/19] Procesando Monitor de tasas...")
     try:
         run_monitor_tasas(status)
         d = extract_monitor_tasas(status)
@@ -4122,7 +4241,7 @@ def main():
         traceback.print_exc()
 
     # ---- Proyecciones (Escenario Base estudio) ----
-    print("\n[18/18] Procesando Proyecciones...")
+    print("\n[18/19] Procesando Proyecciones...")
     try:
         d = extract_proyecciones(status)
         if d:
@@ -4130,6 +4249,17 @@ def main():
             status.ok("Proyecciones", f"{sz:,} bytes")
     except Exception as e:
         status.fail("Proyecciones", str(e))
+        traceback.print_exc()
+
+    # ---- TIR de salida ----
+    print("\n[19/19] Procesando TIR de salida...")
+    try:
+        d = extract_tir_salida(status)
+        if d:
+            sz = save_data("tir_salida", d)
+            status.ok("TIR de salida", f"{sz:,} bytes")
+    except Exception as e:
+        status.fail("TIR de salida", str(e))
         traceback.print_exc()
 
     # ---- Sellar la version de los datos en las paginas ----
