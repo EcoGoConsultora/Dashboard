@@ -84,12 +84,13 @@ después.
 
 | | Se actualiza solo | Cómo |
 |---|---|---|
-| Internacional, Mercados | sí, todos los días a las 17:00 | GitHub Actions, sin PC |
-| Las otras 16 secciones | no | hay que correr `refresh.py` |
+| Internacional, Mercados, TIR de salida | sí, todos los días a las 18:00 | GitHub Actions, sin PC |
+| Las otras 15 secciones | no | hay que correr `refresh.py` |
 
 El workflow de GitHub (`.github/workflows/actualizar-online.yml`) corre en una máquina
-en la nube, que no tiene los Excel de OneDrive. Por eso sólo puede actualizar las dos
-secciones que bajan de fuentes públicas.
+en la nube, que no tiene los Excel de OneDrive. Por eso sólo puede actualizar las
+secciones que bajan de fuentes públicas: el Monitor mundial, el pipeline de Mercados,
+el Monitor de tasas y los precios de los soberanos que usa TIR de salida.
 
 ---
 

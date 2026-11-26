@@ -3,45 +3,216 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>TIR de salida · Eco Go</title>
-  <link rel="stylesheet" href="../assets/css/theme.css?v=202611261608"/>
+  <meta name="description" content="Simulador de retornos de bonos argentinos en dolares segun la TIR o la paridad de salida."/>
+  <title>TIR de salida &middot; Eco Go</title>
+  <link rel="stylesheet" href="../assets/css/theme.css?v=202611261644"/>
   <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    .ts-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:20px 24px 24px;margin-bottom:22px}
-    .ts-title{font-size:1rem;font-weight:700;color:var(--eg-teal-dark);margin:0 0 4px}
-    .ts-sub{font-size:.76rem;color:var(--color-text-muted);margin:0 0 14px}
-    .ts-note{font-size:.72rem;color:var(--color-text-muted);margin-top:12px;line-height:1.5}
-    .ts-head{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px}
 
-    /* aviso de antigüedad de los precios */
-    .ts-aviso{display:flex;gap:10px;align-items:flex-start;background:#FDF6E3;border-left:3px solid #C99A2E;
-      border-radius:6px;padding:10px 14px;margin-bottom:20px;font-size:.78rem;color:#6B5418;line-height:1.5}
-    .ts-aviso b{color:#4A3A10}
+.tir {color-scheme: light;
+      --ink: #172c29; --muted: #4e6662; --teal: #006b62; --dark: #123a35;
+      --paper: #f6f8f5; --white: #fff; --line: #d6dfd9; --soft: #eaf3ee;
+      --loss: #8c3f34; --gain: #126355;
+      font-family: "Aptos", "Segoe UI", sans-serif;
+      font-size: 16px;}
+.tir *, .tir *::before, .tir *::after {box-sizing: border-box;}
+.tir {margin: 0; background: var(--paper); color: var(--ink); line-height: 1.5;}
+.tir button, .tir select, .tir input {font: inherit; color: inherit;}
+.tir button, .tir select, .tir input[type="range"], .tir summary {cursor: pointer;}
+.tir button:focus-visible, .tir select:focus-visible, .tir input:focus-visible, .tir summary:focus-visible, .tir [tabindex]:focus-visible {outline: 2px solid var(--teal); outline-offset: 3px;}
+.tir [hidden] {display: none !important;}
+.tir h1, .tir h2, .tir h3, .tir p, .tir figure {margin: 0;}
+.tir .shell {width: min(100% - 64px, 1280px); margin-inline: auto;}
+.tir .masthead {background: var(--dark); color: #fff;}
+.tir .masthead .shell {min-height: 61px; display: flex; align-items: center; justify-content: space-between; gap: 16px;}
+.tir .brand {font-size: 1.65rem; font-weight: 750; letter-spacing: -.09em; line-height: 1;}
+.tir .brand span {color: #a8dcc0;}
+.tir .mast-label {font-size: .82rem; letter-spacing: .11em; text-transform: uppercase; color: #d7e9df;}
+.tir .intro {display: flex; align-items: end; justify-content: space-between; gap: 24px;
+      padding-block: 32px 28px;}
+.tir .eyebrow {font-size: .78rem; font-weight: 750; letter-spacing: .11em; text-transform: uppercase; color: var(--teal);}
+.tir h1 {font-family: Georgia, serif; font-size: clamp(2.6rem, 5.4vw, 4.75rem); line-height: 1.02; letter-spacing: -.065em; font-weight: 400; margin-block: 5px 10px;}
+.tir .intro p {max-width: 58ch; color: var(--muted);}
+.tir .horizon {flex: none; padding-left: 18px; border-left: 2px solid #8cc4ab;}
+.tir .horizon span, .tir .field > label:first-child, .tir .stat dt, .tir .price-label {color: var(--muted); font-size: .875rem; font-weight: 650;}
+.tir .horizon time {display: block; font-weight: 740; font-size: 1.15rem;}
+.tir .mode-picker {display: inline-flex; max-width: 100%; gap: 3px; padding: 3px; margin: 0 0 10px;
+      border: 1px solid var(--line); border-radius: 7px; background: #eaf1ec;}
+.tir .mode-picker label {position: relative; cursor: pointer;}
+.tir .mode-picker span {display: block; padding: 8px 13px; border-radius: 4px; font-size: .9rem; font-weight: 720;}
+.tir .mode-picker input:checked + span {background: var(--teal); color: #fff;}
+.tir .mode-picker input:focus-visible + span {outline: 2px solid var(--teal); outline-offset: 3px;}
+.tir .controls {display: grid; grid-template-columns: minmax(225px, 1fr) minmax(132px, .6fr) minmax(225px, 1.65fr);
+      align-items: center; gap: 22px; padding: 15px 20px 17px; background: var(--white);
+      border: 1px solid var(--line); border-bottom: 0; border-radius: 9px 9px 0 0;}
+.tir .field {min-width: 0; display: grid; gap: 4px;}
+.tir select, .tir .entry, .tir .scenario-input {border: 1px solid #aebfb6; border-radius: 5px; background-color: var(--white); min-height: 42px;}
+.tir select {width: 100%; appearance: none; padding: 6px 34px 6px 10px;}
+.tir .select-wrap {position: relative;}
+.tir .select-wrap::after {content: ""; position: absolute; right: 14px; top: calc(50% - 5px); width: 8px; height: 8px;
+      border: solid var(--muted); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); pointer-events: none;}
+.tir .range-field {border-left: 1px solid var(--line); padding-left: 20px;}
+.tir .range-line {display: flex; align-items: center; gap: 14px; height: 42px;}
+.tir input[type="range"] {flex: 1; width: 100%; min-width: 0; accent-color: var(--teal);}
+.tir .rate-box {flex: none; display: flex; align-items: center; gap: 2px; width: 83px; padding-inline: 7px; border: 1px solid #aebfb6; border-radius: 5px; height: 42px; color: var(--teal); font-weight: 750;}
+.tir .rate-box input {min-width: 0; width: 100%; border: 0; background: transparent; text-align: right;}
+.tir .workspace {display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); border: 1px solid var(--line); border-radius: 0 0 9px 9px; overflow: hidden; background: var(--white);}
+.tir .curve {padding: 19px 20px 14px; min-width: 0;}
+.tir .section-title {font-size: 1.2rem; font-weight: 740; letter-spacing: -.025em;}
+.tir .chart-head {display: flex; align-items: start; justify-content: space-between; gap: 12px; margin-bottom: 7px;}
+.tir .chart-sub, .tir .chart-legend, .tir .source-note {font-size: .85rem; color: var(--muted);}
+.tir .compare {display: grid; gap: 2px; width: min(100%, 165px); flex: none;}
+.tir .compare label {font-size: .85rem; color: var(--muted); font-weight: 650;}
+.tir canvas {display: block; width: 100%; height: 224px;}
+.tir .chart-legend {display: flex; flex-wrap: wrap; align-items: center; gap: 5px 17px; min-height: 22px;}
+.tir .chart-legend span {display: inline-flex; align-items: center; gap: 6px;}
+.tir .line-key {border-top: 2px solid var(--teal); width: 15px;}
+.tir .line-key.compare-key {border-top: 2px dashed #866124;}
+.tir .point-key {width: 8px; height: 8px; border: 1.5px solid var(--teal); border-radius: 50%;}
+.tir .readout {padding: 16px 20px 14px; background: var(--soft); border-left: 1px solid var(--line); min-width: 0;}
+.tir .result-label {font-weight: 650; color: var(--muted); font-size: .875rem;}
+.tir .return {line-height: 1.03; margin-block: 2px 4px; font-family: Georgia, serif; font-size: clamp(2.9rem, 5vw, 4.05rem); letter-spacing: -.07em; font-variant-numeric: lining-nums tabular-nums;}
+.tir .return.long {font-size: clamp(2.1rem, 4.2vw, 3rem);}
+.tir .positive {color: var(--gain);}
+.tir .negative {color: var(--loss);}
+.tir .metrics {display: grid; grid-template-columns: 1fr 1fr; gap: 9px 12px; margin: 10px 0 12px; padding-block: 9px; border-block: 1px solid #c6d8ce;}
+.tir .stat {margin: 0;}
+.tir .stat dt {line-height: 1.25;}
+.tir .stat dd {margin: 2px 0 0; font-size: 1.02rem; font-weight: 740; font-variant-numeric: tabular-nums;}
+.tir .price-form {display: grid; gap: 5px;}
+.tir .price-row {display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px;}
+.tir .price-input {min-width: 0; padding-inline: 10px; font-variant-numeric: tabular-nums;}
+.tir .button {min-height: 42px; border: 1px solid var(--teal); background: var(--teal); color: #fff; border-radius: 5px; font-weight: 720; padding-inline: 13px;}
+.tir .button:hover {background: var(--dark);}
+.tir .text-button {min-height: 30px; border: 0; background: none; color: var(--teal); font-weight: 650; text-decoration: underline; text-underline-offset: .2em; padding: 0;}
+.tir .text-button:disabled {display: none;}
+.tir .price-status {display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;}
+.tir .error {color: var(--loss); font-size: .875rem; font-weight: 650;}
+.tir [aria-invalid="true"] {border-color: var(--loss);}
+.tir .matrix {margin-block: 26px 20px;}
+.tir .matrix-top {display: flex; align-items: end; justify-content: space-between; gap: 14px 24px; flex-wrap: wrap; margin-bottom: 9px;}
+.tir .matrix h2 {font-size: 1.65rem; line-height: 1.22; letter-spacing: -.035em;}
+.tir .matrix p {color: var(--muted); margin-top: 3px;}
+.tir .sort {display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: .875rem; font-weight: 650;}
+.tir .sort select {min-width: 190px;}
+.tir .scenarios {margin-block: 9px;}
+.tir summary {color: var(--teal); font-weight: 710; width: fit-content; padding-block: 4px;}
+.tir .scenario-form {padding: 12px 0 5px;}
+.tir .scenario-fields {display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 8px;}
+.tir .scenario-fields.compact {grid-template-columns: repeat(3, minmax(0, 104px));}
+.tir .scenario-fields label {display: grid; font-size: .875rem; color: var(--muted); gap: 3px;}
+.tir .scenario-input {width: 100%; padding: 5px 8px; font-variant-numeric: tabular-nums;}
+.tir .scenario-actions {display: flex; align-items: center; gap: 13px; margin-top: 8px; flex-wrap: wrap;}
+.tir .table-scroll {overflow: auto; border: 1px solid var(--line); border-radius: 7px; background: var(--white);}
+.tir table {width: 100%; min-width: 1030px; border-collapse: separate; border-spacing: 0; text-align: right; font-variant-numeric: tabular-nums;}
+.tir table.parity {min-width: 860px;}
+.tir th, .tir td {padding: 0; border-bottom: 1px solid var(--line); white-space: nowrap;}
+.tir thead th {background: #edf3ef; font-size: .82rem; color: #29483f; font-weight: 720; padding: 9px 10px;}
+.tir thead .group {text-align: center; border-left: 1px solid var(--line); border-right: 1px solid var(--line);}
+.tir thead .first-rate, .tir tbody .first-rate {border-left: 1px solid var(--line);}
+.tir tbody tr:last-child > * {border-bottom: 0;}
+.tir thead tr:first-child > :first-child, .tir tbody tr > th:first-child {position: sticky; left: 0; text-align: left; z-index: 1;}
+.tir tbody th {background: var(--white); padding-inline: 10px;}
+.tir tbody tr.selected th {background: #dceee4; box-shadow: inset 3px 0 var(--teal);}
+.tir tbody td {font-size: .875rem; padding-inline: 10px;}
+.tir tbody .rate-cell {padding: 0;}
+.tir tbody .rate-cell button, .tir .row-button, .tir .price-button {background: transparent; border: 0; color: inherit; font: inherit; font-weight: 650; white-space: nowrap;}
+.tir tbody .rate-cell button {width: 100%; min-height: 40px; padding: 7px 9px; text-align: right;}
+.tir tbody button:hover {text-decoration: underline; text-underline-offset: .2em;}
+.tir tbody button:focus-visible {outline-offset: -3px;}
+.tir tbody .rate-cell button[aria-pressed="true"] {box-shadow: inset 0 0 0 2px var(--teal);}
+.tir thead th.active-rate {color: var(--teal); background: #dceee4;}
+.tir .row-button, .tir .price-button {min-height: 40px; padding: 4px 2px;}
+.tir .row-button {color: var(--teal);}
+.tir .price-button {text-decoration: underline dotted; text-underline-offset: .2em;}
+.tir .price-button.custom {color: var(--teal); text-decoration-style: solid;}
+.tir .heat-key {display: flex; flex-wrap: wrap; align-items: center; gap: 5px 15px; font-size: .85rem; color: var(--muted); margin-top: 8px;}
+.tir .scroll-hint {display: none;}
+.tir .heat-key span {display: inline-flex; align-items: center; gap: 6px;}
+.tir .swatch {display: inline-block; width: 12px; height: 12px; border-radius: 2px;}
+.tir .method {border-block: 1px solid var(--line); padding-block: 8px 11px; margin-bottom: 27px;}
+.tir .method p {max-width: 92ch; margin-top: 6px; color: var(--muted);}
+.tir .method a {color: var(--teal); text-underline-offset: .15em;}
+.tir .sr-only {position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap;}
+@media (max-width: 1096px) {
+.tir .matrix .scroll-hint {display: block; font-size: .85rem; margin: 0 0 6px;}}
 
-    /* fila de datos del ejercicio */
-    .ts-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:22px}
-    .ts-kpi{background:var(--color-surface);border:1px solid var(--color-border);border-radius:10px;padding:13px 16px}
-    .ts-kpi__label{font-size:.64rem;color:var(--color-text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:0 0 5px}
-    .ts-kpi__value{font-size:1.25rem;font-weight:800;color:var(--eg-teal-dark);line-height:1;margin:0 0 3px}
-    .ts-kpi__sub{font-size:.7rem;color:var(--color-text-muted);margin:0}
+@media (max-width: 830px) {
+.tir .shell {width: calc(100% - 36px);}
+.tir .controls {gap: 12px; padding-inline: 14px; grid-template-columns: minmax(185px, 1fr) minmax(90px, .5fr) minmax(170px, 1fr);}
+.tir .range-field {padding-left: 13px;}
+.tir .curve, .tir .readout {padding-inline: 14px;}
+.tir .chart-head {flex-wrap: wrap; gap: 1px;}
+.tir .scenario-fields {grid-template-columns: repeat(5, minmax(0, 1fr));}}
 
-    /* matriz */
-    .ts-wrap{overflow-x:auto}
-    .ts-tabla{width:100%;border-collapse:separate;border-spacing:0;font-size:.8rem}
-    .ts-tabla th,.ts-tabla td{padding:6px 9px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
-    .ts-tabla th:first-child,.ts-tabla td:first-child{text-align:left;font-weight:700;color:var(--eg-teal-dark);
-      position:sticky;left:0;background:var(--color-surface);z-index:1}
-    .ts-tabla thead th{font-size:.66rem;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted);
-      font-weight:700;border-bottom:2px solid var(--eg-teal);padding-bottom:7px}
-    .ts-tabla thead th.grupo{text-align:center;color:var(--eg-teal);padding-bottom:2px;border-bottom:0;font-size:.62rem}
-    .ts-tabla tbody tr:hover td{outline:1px solid rgba(60,151,148,.35);outline-offset:-1px}
-    .ts-tabla td.sep{border-left:2px solid var(--color-border)}
-    .ts-tabla td.ctx{color:var(--color-text);font-weight:600;background:var(--color-bg)}
+@media (max-width: 640px) {
+.tir .shell {width: calc(100% - 28px);}
+.tir .masthead .shell {min-height: 52px;}
+.tir .mast-label {font-size: .74rem;}
+.tir .intro {display: grid; gap: 14px; padding-block: 22px 17px;}
+.tir .horizon {display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; padding-left: 8px;}
+.tir .horizon time {font-size: .98rem;}
+.tir .controls {grid-template-columns: minmax(0, 1fr) clamp(74px, 24vw, 145px); gap: 10px;}
+.tir .controls select {padding-inline: 8px 22px;}
+.tir .controls .select-wrap::after {right: 8px;}
+.tir .range-field {grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); padding: 7px 0 0;}
+.tir .workspace {grid-template-columns: minmax(0, 1fr);}
+.tir .readout {border-left: 0; border-top: 1px solid var(--line);}
+.tir .chart-head {justify-content: space-between;}
+.tir canvas {height: 198px;}
+.tir .matrix-top {align-items: start;}
+.tir .scenario-fields {grid-template-columns: repeat(3, minmax(0, 1fr));}
+.tir .table-scroll {margin-right: -4px;}
+.tir tbody .rate-cell button, .tir .row-button, .tir .price-button {min-height: 44px;}}
 
-    .ts-leyenda{display:flex;align-items:center;gap:8px;font-size:.7rem;color:var(--color-text-muted);margin-top:12px;flex-wrap:wrap}
-    .ts-escala{display:flex;height:11px;width:170px;border-radius:3px;overflow:hidden}
-    .ts-escala span{flex:1}
+
+    /* ---------------------------------------------------------------
+       Re-skin: el simulador entra al tablero con la paleta y la
+       tipografia de Eco Go. Solo cambian colores, fuentes y bordes --
+       la estructura y el comportamiento son los del prototipo.
+       --------------------------------------------------------------- */
+    .tir{
+      --ink:var(--color-text); --muted:var(--color-text-muted);
+      --teal:var(--eg-teal-dark); --dark:var(--eg-teal-dark);
+      --paper:transparent; --white:var(--color-surface);
+      --line:var(--color-border); --soft:rgba(60,151,148,.07);
+      --loss:var(--eg-red); --gain:var(--eg-teal-dark);
+      font-family:inherit; font-size:inherit;
+    }
+    .tir .shell{width:100%;margin-inline:0}
+    .tir h1,.tir h2,.tir h3,.tir .return{font-family:inherit}
+    .tir .return{font-weight:800;letter-spacing:-.025em}
+    .tir .section-title,.tir .matrix h2{color:var(--eg-teal-dark);font-weight:800}
+    .tir .eyebrow{color:var(--eg-teal)}
+    .tir .mode-picker{background:var(--eg-gray-100);border-radius:20px;padding:3px}
+    .tir .mode-picker span{border-radius:16px}
+    .tir .mode-picker input:checked + span{background:var(--eg-teal-dark)}
+    .tir .controls{border-radius:var(--radius) var(--radius) 0 0}
+    .tir .workspace{border-radius:0 0 var(--radius) var(--radius)}
+    .tir .table-scroll{border-radius:var(--radius)}
+    .tir .button{border-radius:8px}
+    .tir select,.tir .entry,.tir .scenario-input,.tir .rate-box{border-color:var(--color-border);border-radius:8px}
+    .tir input[type="range"]{accent-color:var(--eg-teal)}
+    .tir thead th{background:rgba(60,151,148,.07);color:var(--eg-teal-dark)}
+    .tir thead th.active-rate{background:var(--color-primary-soft);color:var(--eg-teal-dark)}
+    .tir tbody tr.selected th{background:var(--color-primary-soft);box-shadow:inset 3px 0 var(--eg-teal)}
+    .tir tbody .rate-cell button[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--eg-teal)}
+    .tir .method{border-block-color:var(--color-border)}
+    .tir summary{color:var(--eg-teal-dark)}
+
+    /* el horizonte de salida viaja al encabezado del tablero */
+    .tir-horizon{flex:none;padding-left:16px;border-left:3px solid var(--eg-teal);text-align:left}
+    .tir-horizon span{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;
+      color:var(--color-text-muted);font-weight:600}
+    .tir-horizon time{display:block;font-weight:800;font-size:1.05rem;color:var(--eg-teal-dark)}
+
+    /* aviso: toda la matriz cuelga del precio de compra */
+    .tir-aviso{display:none;gap:10px;align-items:flex-start;background:rgba(254,139,95,.12);
+      border:1px solid rgba(254,139,95,.45);border-left:4px solid var(--eg-orange);
+      border-radius:var(--radius);padding:12px 16px;margin-bottom:18px;font-size:.84rem;line-height:1.45}
+    .tir-aviso.visible{display:flex}
+    .tir-aviso strong{color:#9c4a1f}
+
   </style>
 </head>
 <body data-depth="1" data-active-section="tir-salida">
@@ -51,227 +222,716 @@
     <main class="eg-main">
       <section class="eg-page-header">
         <div>
-          <h1 class="eg-page-header__title">TIR de salida</h1>
-          <p class="eg-page-header__subtitle" id="tsSubtitulo">Retorno total de los soberanos en USD según la TIR a la que se salga</p>
+          <h1 class="eg-page-header__title">TIR y paridad de salida</h1>
+          <p class="eg-page-header__subtitle">Compar&aacute; el retorno total en d&oacute;lares de los bonos argentinos seg&uacute;n el precio de compra y el escenario de venta.</p>
         </div>
+        <div class="tir-horizon"><span>Fecha de salida</span> <time datetime="2027-10-29">29 de octubre de 2027</time></div>
       </section>
 
-      <div class="ts-aviso" id="tsAviso" hidden></div>
+      <div class="tir-aviso" id="tirAviso"></div>
 
-      <div class="ts-kpis" id="tsKpis"></div>
-
-      <div class="ts-card">
-        <div class="ts-head">
-          <div>
-            <p class="ts-title">Matriz de retorno total</p>
-            <p class="ts-sub" style="margin:0" id="tsMatrizSub">&nbsp;</p>
+      <div class="tir">
+<section aria-label="Simulador de bonos">
+      <fieldset class="mode-picker">
+        <legend class="sr-only">Modo de simulación</legend>
+        <label><input class="sr-only" type="radio" name="exit-mode" id="mode-yield" value="yield" checked><span>TIR de salida</span></label>
+        <label><input class="sr-only" type="radio" name="exit-mode" id="mode-parity" value="parity"><span>Paridad de salida</span></label>
+      </fieldset>
+      <div class="controls">
+        <div class="field">
+          <label for="purchase">Fecha de compra</label>
+          <div class="select-wrap"><select id="purchase"></select></div>
+        </div>
+        <div class="field">
+          <label for="bond">Bono</label>
+          <div class="select-wrap"><select id="bond"></select></div>
+        </div>
+        <div class="field range-field">
+          <label id="exit-label" for="rate-range">TIR de salida</label>
+          <div class="range-line">
+            <input type="range" id="rate-range" min="0" max="50" step="0.1" value="12.5">
+            <div class="rate-box"><input id="rate-input" aria-label="TIR de salida exacta en porcentaje" inputmode="decimal" maxlength="5" value="12,5"><span aria-hidden="true">%</span></div>
           </div>
+          <p class="error" id="rate-error" role="alert" hidden>Ingresá una TIR entre 0% y 50% con hasta un decimal.</p>
         </div>
-        <div class="ts-wrap">
-          <table class="ts-tabla">
-            <thead id="tsHead"></thead>
-            <tbody id="tsBody"></tbody>
-          </table>
-        </div>
-        <div class="ts-leyenda">
-          <span>Retorno total:</span>
-          <span class="ts-escala" id="tsEscala"></span>
-          <span id="tsEscalaRango"></span>
-        </div>
-        <p class="ts-note" id="tsNotas"></p>
       </div>
 
-      <div class="ts-card">
-        <div class="ts-head">
-          <div>
-            <p class="ts-title">Curva de retorno</p>
-            <p class="ts-sub" style="margin:0">Cada línea es un bono · el cruce con el cero es su break-even</p>
+      <div class="workspace">
+        <figure class="curve" aria-labelledby="curve-title">
+          <div class="chart-head">
+            <figcaption>
+              <h2 class="section-title" id="curve-title">Curva de retorno</h2>
+              <p class="chart-sub">Retorno total en USD (%)</p>
+            </figcaption>
+            <div class="compare">
+              <label for="compare">Comparar con</label>
+              <div class="select-wrap"><select id="compare"></select></div>
+            </div>
           </div>
+          <canvas id="curve" role="img" aria-label="Curva de retorno en función de la TIR de salida"></canvas>
+          <div class="chart-legend">
+            <span><i class="line-key" aria-hidden="true"></i><b id="active-legend">11 sep</b></span>
+            <span id="compare-legend" hidden><i class="line-key compare-key" aria-hidden="true"></i><b id="compare-legend-text"></b></span>
+            <span id="zero-legend"><i class="point-key" aria-hidden="true"></i> Equilibrio</span>
+          </div>
+        </figure>
+
+        <div class="readout">
+          <div class="result-label" id="return-label">Retorno total · AL30</div>
+          <div class="return" id="return" aria-live="polite"></div>
+          <dl class="metrics" aria-label="Detalle del cálculo">
+            <div class="stat"><dt>Precio de venta</dt><dd id="sale"></dd></div>
+            <div class="stat"><dt>Flujos cobrados</dt><dd id="cash"></dd></div>
+            <div class="stat"><dt>TIR de compra</dt><dd id="buy-yield"></dd></div>
+            <div class="stat"><dt id="equilibrium-label">TIR de equilibrio</dt><dd id="break-even"></dd></div>
+            <div class="stat" id="technical-stat" hidden><dt>Valor técnico al salir</dt><dd id="technical-value"></dd></div>
+          </dl>
+          <form id="price-form" class="price-form" novalidate>
+            <label for="price" class="price-label" id="price-label">Precio de compra · USD por VN 100</label>
+            <div class="price-row">
+              <input class="entry price-input" id="price" inputmode="decimal" aria-describedby="price-reference price-error" maxlength="12" autocomplete="off" required>
+              <button class="button" type="submit">Aplicar</button>
+            </div>
+            <p class="error" id="price-error" role="alert" hidden>Ingresá un precio mayor a cero, con hasta dos decimales.</p>
+            <div class="price-status"><p class="source-note" id="price-reference"></p><button class="text-button" id="reset-price" type="button" disabled>Usar precio de referencia</button></div>
+          </form>
         </div>
-        <div style="position:relative;height:400px"><canvas id="chartCurva"></canvas></div>
-        <p class="ts-note">Fuente: Eco Go en base a Rava Bursátil (especies D) y las condiciones contractuales de cada bono.</p>
+      </div>
+    </section>
+
+    <section class="matrix" aria-labelledby="matrix-title">
+      <div class="matrix-top">
+        <div>
+          <h2 id="matrix-title">Matriz de retornos</h2>
+          <p>Elegí un retorno para verlo en el gráfico o un precio para editarlo.</p>
+        </div>
+        <div class="sort"><label for="sort">Orden</label><div class="select-wrap"><select id="sort">
+          <option value="original">Universo original</option>
+          <option value="return">Mayor retorno en el escenario</option>
+          <option value="price">Menor precio de compra</option>
+          <option value="even" id="sort-equilibrium">Mayor TIR de equilibrio</option>
+        </select></div></div>
+      </div>
+      <details class="scenarios" id="scenario-panel">
+        <summary id="scenario-title">Editar escenarios de TIR</summary>
+        <form class="scenario-form" id="scenario-form" novalidate>
+          <div class="scenario-fields" id="scenario-fields"></div>
+          <div class="scenario-actions">
+            <button class="button" type="submit">Aplicar grilla</button>
+            <button class="text-button" id="reset-grid" type="button">Restaurar grilla original</button>
+            <p class="error" id="scenario-error" role="alert" hidden>Ingresá nueve TIR distintas entre 0% y 50%, con hasta un decimal.</p>
+          </div>
+        </form>
+      </details>
+      <p class="scroll-hint">Deslizá la tabla para ver todos los escenarios.</p>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Matriz de retornos con desplazamiento horizontal">
+        <table id="returns-table">
+          <caption class="sr-only" id="returns-caption">Retorno total por bono y por TIR de salida, en dólares</caption>
+          <thead id="matrix-head"></thead>
+          <tbody id="matrix-body"></tbody>
+        </table>
+      </div>
+      <div class="heat-key" aria-label="Leyenda de colores">
+        <span><i class="swatch" style="background:rgba(218,69,49,.32)" aria-hidden="true"></i> Pérdida</span>
+        <span><i class="swatch" style="background:rgba(60,151,148,.38)" aria-hidden="true"></i> Ganancia</span>
+        <span>Precios en USD por VN 100</span>
+      </div>
+    </section>
+
+    <details class="method">
+      <summary>Metodología y fuentes</summary>
+      <p>En ambos modos, el retorno es el precio de venta más los cobros acumulados hasta el 29/10/2027, dividido por el precio de compra, menos uno. Los montos se expresan en USD por VN original 100. Los precios incluyen intereses corridos. El cálculo excluye reinversión, comisiones e impuestos.</p>
+      <p>En modo TIR, el precio de venta surge de descontar los flujos posteriores a la salida a la TIR elegida. La TIR de equilibrio deja el retorno en 0% y se busca entre 0% y 50%.</p>
+      <p>En modo paridad, el precio de venta es la paridad elegida multiplicada por el valor técnico al salir, que suma el capital residual y los intereses corridos sobre base 30/360. La paridad de equilibrio divide el precio de compra menos los cobros por ese valor técnico. Los escenarios editables van de 0% a 150%. <a href="https://data-widgets.byma.com.ar/wp-content/uploads/2023/05/BYMA-Educa-Calculadora-de-Bonos-Taller-1-Presentacion.pdf">Definiciones de BYMA</a></p>
+      <p>Fuente de precios históricos: Rava Bursátil, especies D. Incluye los cierres entre el 7/09/2026 y el 20/11/2026 con precios para los 15 bonos, además de la consulta del 25/09/2026 a las 15:33. Los flujos provienen de la planilla de Eco Go.</p>
+      <p>El valor técnico de salida usa las condiciones de emisión de cada bono. <a href="https://www.argentina.gob.ar/normativa/341172_res381-1_pdf/archivo">Bonos ley local</a> · <a href="https://www.argentina.gob.ar/normativa/341150_dec701_pdf/archivo">Bonos globales</a> · <a href="https://www.argentina.gob.ar/normativa/nacional/resoluci%C3%B3n-16-2026-424419/texto">AO28</a> · <a href="https://www.argentina.gob.ar/normativa/nacional/norma-427741/texto">AO29</a> · <a href="https://www.argentina.gob.ar/normativa/nacional/resoluci%C3%B3n-62-2025-421284/texto">AN29</a> · <a href="https://www.bcra.gob.ar/archivos/Pdfs/comytexord/B13014.pdf">BPB8</a></p>
+    </details>
       </div>
 
       <footer class="eg-footer">
-        <span>TIR de salida · Eco Go</span>
-        <a href="../index-clientes.html">← Volver al inicio</a>
+        <span>TIR de salida &middot; Eco Go</span>
+        <a href="../index-clientes.html">&larr; Volver al inicio</a>
       </footer>
     </main>
   </div>
 
-  <script src="../assets/js/layout.js?v=202611261608"></script>
-  <script src="../assets/data/tir_salida.js?v=202611261608"></script>
-  <script>
-  (function(){
-    var D = window.TIR_SALIDA_DATA || {};
-    Chart.defaults.font.family = "'HK Grotesk', system-ui, sans-serif";
-    Chart.defaults.color = '#333333';
-
-    var M = D.meta || {}, ESC = D.escenarios || [], FILAS = D.filas || [];
-    if (!FILAS.length) return;
-
-    function pct(v, dec){
-      if (v === null || v === undefined) return '—';
-      return (v * 100).toLocaleString('es-AR', {minimumFractionDigits:dec, maximumFractionDigits:dec}) + '%';
+  <script src="../assets/js/layout.js?v=202611261644"></script>
+  <script src="../assets/data/tir_salida_precios.js?v=202611261644"></script>
+<script id="market-data" type="application/json">
+    {
+    "snapshots": {
+      "2026-09-07": {"basis":"Cierre","prices":{"AO28":94.99,"BPB8":93.35,"AL29":54.29,"GD29":56.3,"AO29":90.8,"AN29":92.76,"AL30":56,"GD30":58.32,"AL35":77,"GD35":80,"AE38":79.07,"GD38":83.86,"GD41":74.55,"AL41":71.31,"GD46":68.74}},
+      "2026-09-08": {"basis":"Cierre","prices":{"AO28":95.07,"BPB8":93.3,"AL29":54.41,"GD29":56.09,"AO29":90.84,"AN29":92.91,"AL30":55.91,"GD30":58.3,"AL35":76.55,"GD35":80.13,"AE38":79.19,"GD38":84.13,"GD41":74.88,"AL41":71.26,"GD46":68.92}},
+      "2026-09-09": {"basis":"Cierre","prices":{"AO28":94.97,"BPB8":93.19,"AL29":54.72,"GD29":56.01,"AO29":90.83,"AN29":92.7,"AL30":56.07,"GD30":58.25,"AL35":76.56,"GD35":80,"AE38":79.04,"GD38":84.13,"GD41":74.7,"AL41":71.2,"GD46":68.52}},
+      "2026-09-10": {"basis":"Cierre","prices":{"AO28":94.9,"BPB8":92.95,"AL29":54.47,"GD29":56.36,"AO29":90.63,"AN29":92.35,"AL30":55.78,"GD30":58.09,"AL35":76,"GD35":79.55,"AE38":78.75,"GD38":83.25,"GD41":74.07,"AL41":69.92,"GD46":68.7}},
+      "2026-09-11": {"basis":"Cierre","prices":{"AO28":94.62,"BPB8":93.21,"AL29":54.57,"GD29":56.41,"AO29":90.35,"AN29":92.44,"AL30":55.69,"GD30":58.17,"AL35":76.06,"GD35":79.55,"AE38":78.3,"GD38":83.35,"GD41":73.9,"AL41":70.04,"GD46":68.1}},
+      "2026-09-14": {"basis":"Cierre","prices":{"AO28":94.68,"BPB8":92.62,"AL29":54.42,"GD29":56.38,"AO29":90.34,"AN29":92.4,"AL30":55.57,"GD30":58,"AL35":75.25,"GD35":79.16,"AE38":77.95,"GD38":82.3,"GD41":73.77,"AL41":69.42,"GD46":67.5}},
+      "2026-09-15": {"basis":"Cierre","prices":{"AO28":94.85,"BPB8":92.45,"AL29":54.37,"GD29":56.2,"AO29":90.39,"AN29":92.25,"AL30":55.63,"GD30":57.98,"AL35":74.8,"GD35":78.7,"AE38":77.6,"GD38":82.51,"GD41":73.35,"AL41":70.15,"GD46":66.95}},
+      "2026-09-16": {"basis":"Cierre","prices":{"AO28":94.78,"BPB8":92.8,"AL29":54.23,"GD29":56.02,"AO29":89.79,"AN29":92.21,"AL30":55.51,"GD30":57.67,"AL35":74.67,"GD35":78.59,"AE38":77.21,"GD38":82.86,"GD41":73.24,"AL41":69.31,"GD46":67.43}},
+      "2026-09-17": {"basis":"Cierre","prices":{"AO28":94.79,"BPB8":93,"AL29":54.3,"GD29":56.29,"AO29":90.5,"AN29":92.45,"AL30":55.58,"GD30":57.9,"AL35":74.64,"GD35":78.52,"AE38":77.5,"GD38":82.57,"GD41":73.66,"AL41":68.69,"GD46":67.22}},
+      "2026-09-18": {"basis":"Cierre","prices":{"AO28":94.67,"BPB8":92.82,"AL29":54.06,"GD29":55.71,"AO29":90.13,"AN29":92.25,"AL30":55.45,"GD30":57.61,"AL35":73.95,"GD35":78.2,"AE38":76.98,"GD38":82,"GD41":73,"AL41":68.5,"GD46":66.94}},
+      "2026-09-21": {"basis":"Cierre","prices":{"AO28":94.69,"BPB8":92.9,"AL29":53.89,"GD29":55.52,"AO29":89.88,"AN29":91.84,"AL30":55.46,"GD30":57.2,"AL35":73.65,"GD35":77.84,"AE38":76.61,"GD38":81.86,"GD41":72.45,"AL41":68.39,"GD46":66.11}},
+      "2026-09-22": {"basis":"Cierre","prices":{"AO28":94.2,"BPB8":92.36,"AL29":53.88,"GD29":56.44,"AO29":88.54,"AN29":90.36,"AL30":55.19,"GD30":57,"AL35":72.55,"GD35":77.06,"AE38":75.69,"GD38":81.01,"GD41":71.71,"AL41":67.37,"GD46":65.22}},
+      "2026-09-23": {"basis":"Cierre","prices":{"AO28":93.35,"BPB8":91.65,"AL29":53.57,"GD29":55.3,"AO29":87.5,"AN29":88.9,"AL30":54.55,"GD30":56.86,"AL35":71.05,"GD35":76.33,"AE38":74.44,"GD38":80.36,"GD41":70.87,"AL41":66.43,"GD46":65.34}},
+      "2026-09-24": {"basis":"Cierre","prices":{"AO28":92.46,"BPB8":91.95,"AL29":53.55,"GD29":56.37,"AO29":86.1,"AN29":88.79,"AL30":54.45,"GD30":56.65,"AL35":70.48,"GD35":75.3,"AE38":73.69,"GD38":79.54,"GD41":70.6,"AL41":65.8,"GD46":65.76}},
+      "2026-09-25": {"basis":"Cierre","prices":{"AO28":92,"BPB8":90.7,"AL29":53.29,"GD29":55.06,"AO29":85.28,"AN29":86.8,"AL30":54.21,"GD30":56.12,"AL35":69.82,"GD35":74.8,"AE38":72.7,"GD38":78.77,"GD41":69.45,"AL41":64.41,"GD46":64.46}},
+      "2026-09-25T15:33": {"basis":"15:33","prices":{"AO28":91.72,"BPB8":90.7,"AL29":53.33,"GD29":55.3,"AO29":84.89,"AN29":86.76,"AL30":54.13,"GD30":56.58,"AL35":69.56,"GD35":74.88,"AE38":72.7,"GD38":79.12,"GD41":69.58,"AL41":64.7,"GD46":64.02}},
+      "2026-09-28": {"basis":"Cierre","prices":{"AO28":91.2,"BPB8":91,"AL29":53.32,"GD29":55,"AO29":84.39,"AN29":85.66,"AL30":53.97,"GD30":56.15,"AL35":68.96,"GD35":74.38,"AE38":72.15,"GD38":77.45,"GD41":68.62,"AL41":64.01,"GD46":63.6}},
+      "2026-09-29": {"basis":"Cierre","prices":{"AO28":91.1,"BPB8":91.1,"AL29":53.52,"GD29":55.3,"AO29":84.69,"AN29":86.44,"AL30":54.5,"GD30":54.5,"AL35":69.5,"GD35":74.92,"AE38":72.69,"GD38":77.63,"GD41":69.66,"AL41":64.72,"GD46":64.35}},
+      "2026-09-30": {"basis":"Cierre","prices":{"AO28":91.58,"BPB8":91,"AL29":53.75,"GD29":54.95,"AO29":85.79,"AN29":86.01,"AL30":54.74,"GD30":55.11,"AL35":70.36,"GD35":74.89,"AE38":73.5,"GD38":79.37,"GD41":69.8,"AL41":65.2,"GD46":63.6}},
+      "2026-10-01": {"basis":"Cierre","prices":{"AO28":91.02,"BPB8":90.35,"AL29":53.43,"GD29":55.13,"AO29":84.54,"AN29":86.4,"AL30":54.25,"GD30":55.35,"AL35":69,"GD35":73.4,"AE38":72.3,"GD38":78.03,"GD41":68.43,"AL41":64.21,"GD46":62.63}},
+      "2026-10-02": {"basis":"Cierre","prices":{"AO28":91,"BPB8":90.3,"AL29":53.65,"GD29":55.21,"AO29":84.7,"AN29":86.56,"AL30":54.51,"GD30":56.34,"AL35":69.11,"GD35":73.41,"AE38":72.33,"GD38":78.2,"GD41":68.36,"AL41":64.33,"GD46":62.95}},
+      "2026-10-05": {"basis":"Cierre","prices":{"AO28":92.79,"BPB8":90.6,"AL29":54.5,"GD29":55.13,"AO29":86.35,"AN29":88,"AL30":55.48,"GD30":57.01,"AL35":70.9,"GD35":75.15,"AE38":74,"GD38":79.46,"GD41":69.74,"AL41":65.75,"GD46":64.21}},
+      "2026-10-06": {"basis":"Cierre","prices":{"AO28":93.09,"BPB8":91.36,"AL29":54.55,"GD29":55.01,"AO29":86.5,"AN29":88.6,"AL30":55.7,"GD30":57.36,"AL35":72.05,"GD35":76.2,"AE38":74.73,"GD38":80.3,"GD41":70.5,"AL41":66.78,"GD46":64.7}},
+      "2026-10-07": {"basis":"Cierre","prices":{"AO28":93,"BPB8":91.14,"AL29":53.9,"GD29":55.84,"AO29":86,"AN29":88.59,"AL30":55.75,"GD30":57.32,"AL35":71.62,"GD35":75.39,"AE38":74.7,"GD38":80.15,"GD41":70.05,"AL41":66.54,"GD46":64.48}},
+      "2026-10-08": {"basis":"Cierre","prices":{"AO28":93.01,"BPB8":91.29,"AL29":54.9,"GD29":56,"AO29":86.25,"AN29":89,"AL30":56.05,"GD30":57.6,"AL35":71.56,"GD35":75.6,"AE38":74.8,"GD38":80.11,"GD41":70.11,"AL41":66.44,"GD46":65.19}},
+      "2026-10-09": {"basis":"Cierre","prices":{"AO28":93.44,"BPB8":91.56,"AL29":54.85,"GD29":56.1,"AO29":86.45,"AN29":88.7,"AL30":56.26,"GD30":57.67,"AL35":71.38,"GD35":75.52,"AE38":74.82,"GD38":80.35,"GD41":70.22,"AL41":66.5,"GD46":65.04}},
+      "2026-10-13": {"basis":"Cierre","prices":{"AO28":93.68,"BPB8":91.9,"AL29":54.78,"GD29":56.27,"AO29":86.57,"AN29":88.3,"AL30":56.08,"GD30":57.65,"AL35":71.3,"GD35":75.3,"AE38":74.84,"GD38":80.4,"GD41":70.15,"AL41":66.6,"GD46":64.78}},
+      "2026-10-14": {"basis":"Cierre","prices":{"AO28":93.5,"BPB8":92.25,"AL29":54.78,"GD29":56.13,"AO29":86.5,"AN29":88.83,"AL30":56.2,"GD30":57.6,"AL35":71.68,"GD35":75.35,"AE38":74.7,"GD38":80.54,"GD41":69.97,"AL41":66.99,"GD46":64.01}},
+      "2026-10-15": {"basis":"Cierre","prices":{"AO28":93.99,"BPB8":92.14,"AL29":54.85,"GD29":56.29,"AO29":86.51,"AN29":88.84,"AL30":56.15,"GD30":57.65,"AL35":71.45,"GD35":75.3,"AE38":74.9,"GD38":80.64,"GD41":70,"AL41":66.41,"GD46":65.07}},
+      "2026-10-16": {"basis":"Cierre","prices":{"AO28":93.44,"BPB8":92.01,"AL29":54.81,"GD29":56.05,"AO29":85.6,"AN29":87.55,"AL30":55.54,"GD30":56.88,"AL35":70.58,"GD35":74.18,"AE38":73.85,"GD38":79.42,"GD41":68.98,"AL41":65.46,"GD46":63.71}},
+      "2026-10-19": {"basis":"Cierre","prices":{"AO28":92.65,"BPB8":91.91,"AL29":54.5,"GD29":55.46,"AO29":85.2,"AN29":87.4,"AL30":55.27,"GD30":56.82,"AL35":69.52,"GD35":73.9,"AE38":72.77,"GD38":78.73,"GD41":68.54,"AL41":65,"GD46":62.51}},
+      "2026-10-20": {"basis":"Cierre","prices":{"AO28":92.65,"BPB8":93,"AL29":54.7,"GD29":55.93,"AO29":85.74,"AN29":88.08,"AL30":55.38,"GD30":56.85,"AL35":69.99,"GD35":74.38,"AE38":73.2,"GD38":79.17,"GD41":69.21,"AL41":65.29,"GD46":63.02}},
+      "2026-10-21": {"basis":"Cierre","prices":{"AO28":91.95,"BPB8":92.55,"AL29":55.07,"GD29":56.2,"AO29":86.25,"AN29":88,"AL30":55.15,"GD30":56.73,"AL35":69.95,"GD35":73.76,"AE38":73,"GD38":78.9,"GD41":68.5,"AL41":64.71,"GD46":62.78}},
+      "2026-10-22": {"basis":"Cierre","prices":{"AO28":91.84,"BPB8":92.5,"AL29":55,"GD29":56,"AO29":85.8,"AN29":87.05,"AL30":55.24,"GD30":56.7,"AL35":69.95,"GD35":74.16,"AE38":72.95,"GD38":78.83,"GD41":68.87,"AL41":65.03,"GD46":62.28}},
+      "2026-10-23": {"basis":"Cierre","prices":{"AO28":93.1,"BPB8":92.3,"AL29":54.92,"GD29":55.99,"AO29":86.8,"AN29":88.7,"AL30":55.08,"GD30":56.47,"AL35":69.56,"GD35":73.88,"AE38":73,"GD38":78.9,"GD41":68.9,"AL41":64.65,"GD46":62.08}},
+      "2026-10-26": {"basis":"Cierre","prices":{"AO28":90.52,"BPB8":92.01,"AL29":54,"GD29":55.5,"AO29":83.99,"AN29":85.73,"AL30":54.3,"GD30":55.88,"AL35":68.4,"GD35":72.11,"AE38":71.21,"GD38":77,"GD41":67.3,"AL41":63.14,"GD46":61.53}},
+      "2026-10-27": {"basis":"Cierre","prices":{"AO28":91.43,"BPB8":91.65,"AL29":54.5,"GD29":55.54,"AO29":84.25,"AN29":86.1,"AL30":54.45,"GD30":56.06,"AL35":68.52,"GD35":72.86,"AE38":71.65,"GD38":77.24,"GD41":67.48,"AL41":63.35,"GD46":62.74}},
+      "2026-10-28": {"basis":"Cierre","prices":{"AO28":90.11,"BPB8":90.49,"AL29":53.92,"GD29":55.33,"AO29":83.26,"AN29":85,"AL30":54.05,"GD30":55.42,"AL35":67.53,"GD35":71.7,"AE38":70.31,"GD38":76.2,"GD41":67.23,"AL41":62.37,"GD46":62.06}},
+      "2026-10-29": {"basis":"Cierre","prices":{"AO28":89.9,"BPB8":90.45,"AL29":54.1,"GD29":55.91,"AO29":82.94,"AN29":85.24,"AL30":54.3,"GD30":55.9,"AL35":68.18,"GD35":72.7,"AE38":71.09,"GD38":77.07,"GD41":68.19,"AL41":63.6,"GD46":62.18}},
+      "2026-10-30": {"basis":"Cierre","prices":{"AO28":88.94,"BPB8":88.9,"AL29":53.85,"GD29":55.04,"AO29":81.98,"AN29":85.1,"AL30":53.45,"GD30":55.53,"AL35":67.45,"GD35":71.73,"AE38":70.85,"GD38":77.9,"GD41":67.28,"AL41":62.99,"GD46":61.07}},
+      "2026-11-02": {"basis":"Cierre","prices":{"AO28":88.45,"BPB8":89.53,"AL29":53.25,"GD29":54.72,"AO29":81,"AN29":84.13,"AL30":53.41,"GD30":54.82,"AL35":66.56,"GD35":71.19,"AE38":69.7,"GD38":75.6,"GD41":66.9,"AL41":61.94,"GD46":60.19}},
+      "2026-11-03": {"basis":"Cierre","prices":{"AO28":87,"BPB8":88.66,"AL29":53,"GD29":54.03,"AO29":80,"AN29":83.25,"AL30":52.85,"GD30":54.75,"AL35":65.55,"GD35":70.19,"AE38":68.5,"GD38":74.35,"GD41":65.85,"AL41":60.62,"GD46":60.3}},
+      "2026-11-04": {"basis":"Cierre","prices":{"AO28":87.26,"BPB8":88.5,"AL29":52.47,"GD29":53.5,"AO29":79.66,"AN29":81.74,"AL30":52.5,"GD30":54.39,"AL35":65.01,"GD35":69.56,"AE38":68.65,"GD38":74.45,"GD41":65.54,"AL41":60.8,"GD46":60.1}},
+      "2026-11-05": {"basis":"Cierre","prices":{"AO28":84.29,"BPB8":86.01,"AL29":51.53,"GD29":52.12,"AO29":76.35,"AN29":79.4,"AL30":51.47,"GD30":53.07,"AL35":63.26,"GD35":68.21,"AE38":67.3,"GD38":72.46,"GD41":63.78,"AL41":59.32,"GD46":58.47}},
+      "2026-11-06": {"basis":"Cierre","prices":{"AO28":84.6,"BPB8":84.58,"AL29":51.64,"GD29":53.96,"AO29":77,"AN29":79.8,"AL30":51.3,"GD30":53.13,"AL35":63.19,"GD35":68.09,"AE38":66.2,"GD38":71.78,"GD41":63.62,"AL41":59.33,"GD46":59.37}},
+      "2026-11-11": {"basis":"Cierre","prices":{"AO28":85.5,"BPB8":85.84,"AL29":51.61,"GD29":53.5,"AO29":77.55,"AN29":79.9,"AL30":51.52,"GD30":53.25,"AL35":64.4,"GD35":69.37,"AE38":67.72,"GD38":73.85,"GD41":64.8,"AL41":59.81,"GD46":60.03}},
+      "2026-11-12": {"basis":"Cierre","prices":{"AO28":85.3,"BPB8":87.19,"AL29":52.1,"GD29":53.01,"AO29":77.99,"AN29":80.7,"AL30":51.66,"GD30":53.33,"AL35":65.12,"GD35":70.41,"AE38":68.7,"GD38":74.95,"GD41":66.31,"AL41":61.24,"GD46":60.95}},
+      "2026-11-13": {"basis":"Cierre","prices":{"AO28":85.24,"BPB8":86.48,"AL29":52.34,"GD29":53.85,"AO29":77.49,"AN29":80.53,"AL30":51.55,"GD30":53.06,"AL35":65.3,"GD35":70.61,"AE38":69.13,"GD38":75.1,"GD41":66.51,"AL41":61.1,"GD46":61.31}},
+      "2026-11-16": {"basis":"Cierre","prices":{"AO28":84.92,"BPB8":87,"AL29":51.87,"GD29":54.07,"AO29":76.76,"AN29":80.06,"AL30":51.42,"GD30":52.9,"AL35":64.81,"GD35":70.1,"AE38":68.29,"GD38":74.85,"GD41":66,"AL41":60.9,"GD46":61.16}},
+      "2026-11-17": {"basis":"Cierre","prices":{"AO28":84.95,"BPB8":86.45,"AL29":51.7,"GD29":52.96,"AO29":76.92,"AN29":80.07,"AL30":51.44,"GD30":52.67,"AL35":65.22,"GD35":70.3,"AE38":68.66,"GD38":75.19,"GD41":65.64,"AL41":61.3,"GD46":60.58}},
+      "2026-11-18": {"basis":"Cierre","prices":{"AO28":85.06,"BPB8":86.05,"AL29":51.8,"GD29":52.9,"AO29":76.69,"AN29":79.61,"AL30":51.6,"GD30":53.1,"AL35":65,"GD35":69.83,"AE38":68.54,"GD38":74.66,"GD41":65.6,"AL41":61.5,"GD46":60.35}},
+      "2026-11-19": {"basis":"Cierre","prices":{"AO28":82.83,"BPB8":84.76,"AL29":51.14,"GD29":51.89,"AO29":75.25,"AN29":79.09,"AL30":49.77,"GD30":51.42,"AL35":62.8,"GD35":67.57,"AE38":66.1,"GD38":73.27,"GD41":63.49,"AL41":59.09,"GD46":60}},
+      "2026-11-20": {"basis":"Cierre","prices":{"AO28":77.6,"BPB8":81,"AL29":49.15,"GD29":51.09,"AO29":70.9,"AN29":75.12,"AL30":47.5,"GD30":49.27,"AL35":60,"GD35":65,"AE38":63,"GD38":68.81,"GD41":59.81,"AL41":55.81,"GD46":56.76}}
+    },
+    "bonds": [
+      {"ticker":"AO28","flows":[["2026-09-30",0.5,0],["2026-10-30",0.5,0],["2026-11-30",0.5,0],["2026-12-30",0.5,0],["2027-01-29",0.5,0],["2027-02-26",0.5,0],["2027-03-31",0.5,0],["2027-04-30",0.5,0],["2027-05-31",0.5,0],["2027-06-30",0.5,0],["2027-07-30",0.5,0],["2027-08-31",0.5,0],["2027-09-30",0.5,0],["2027-10-29",0.5,0],["2027-11-30",0.5,0],["2027-12-30",0.5,0],["2028-01-31",0.5,0],["2028-02-29",0.5,0],["2028-03-31",0.5,0],["2028-04-28",0.5,0],["2028-05-31",0.5,0],["2028-06-30",0.5,0],["2028-07-31",0.5,0],["2028-08-31",0.5,0],["2028-09-29",0.5,0],["2028-10-31",100.5,100]],"exitTerms":{"residual":100,"annualCoupon":0.06,"accruedFrom":"2027-10-29"}},
+      {"ticker":"BPB8","flows":[["2026-11-02",1.5,0],["2027-04-30",1.5,0],["2027-11-01",1.5,0],["2028-05-02",1.5,0],["2028-10-31",101.5,100]],"exitTerms":{"residual":100,"annualCoupon":0.03,"accruedFrom":"2027-04-30"}},
+      {"ticker":"AL29","flows":[["2027-01-09",10.3,10],["2027-07-09",10.25,10],["2028-01-09",10.2,10],["2028-07-09",10.15,10],["2029-01-09",10.1,10],["2029-07-09",10.05,10]],"exitTerms":{"residual":40,"annualCoupon":0.01,"accruedFrom":"2027-07-09"}},
+      {"ticker":"GD29","flows":[["2027-01-09",10.3,10],["2027-07-09",10.25,10],["2028-01-09",10.2,10],["2028-07-09",10.15,10],["2029-01-09",10.1,10],["2029-07-09",10.05,10]],"exitTerms":{"residual":40,"annualCoupon":0.01,"accruedFrom":"2027-07-09"}},
+      {"ticker":"AO29","flows":[["2026-09-30",0.5,0],["2026-10-30",0.5,0],["2026-11-30",0.5,0],["2026-12-30",0.5,0],["2027-01-29",0.5,0],["2027-02-26",0.5,0],["2027-03-31",0.5,0],["2027-04-30",0.5,0],["2027-05-31",0.5,0],["2027-06-30",0.5,0],["2027-07-30",0.5,0],["2027-08-31",0.5,0],["2027-09-30",0.5,0],["2027-10-29",0.5,0],["2027-11-30",0.5,0],["2027-12-30",0.5,0],["2028-01-31",0.5,0],["2028-02-29",0.5,0],["2028-03-31",0.5,0],["2028-04-28",0.5,0],["2028-05-31",0.5,0],["2028-06-30",0.5,0],["2028-07-31",0.5,0],["2028-08-31",0.5,0],["2028-09-29",0.5,0],["2028-10-31",0.5,0],["2028-11-30",0.5,0],["2028-12-29",0.5,0],["2029-01-31",0.5,0],["2029-02-28",0.5,0],["2029-03-28",0.5,0],["2029-04-30",0.5,0],["2029-05-31",0.5,0],["2029-06-29",0.5,0],["2029-07-31",0.5,0],["2029-08-31",0.5,0],["2029-09-28",0.5,0],["2029-10-31",100.5,100]],"exitTerms":{"residual":100,"annualCoupon":0.06,"accruedFrom":"2027-10-29"}},
+      {"ticker":"AN29","flows":[["2026-11-30",3.25,0],["2027-05-30",3.25,0],["2027-11-30",3.25,0],["2028-05-30",3.25,0],["2028-11-30",3.25,0],["2029-05-30",3.25,0],["2029-11-30",103.25,100]],"exitTerms":{"residual":100,"annualCoupon":0.065,"accruedFrom":"2027-05-30"}},
+      {"ticker":"AL30","flows":[["2027-01-09",8.24,8],["2027-07-09",8.21,8],["2028-01-09",8.42,8],["2028-07-09",8.35,8],["2029-01-09",8.28,8],["2029-07-09",8.21,8],["2030-01-09",8.14,8],["2030-07-09",8.07,8]],"exitTerms":{"residual":48,"annualCoupon":0.0175,"accruedFrom":"2027-07-09"}},
+      {"ticker":"GD30","flows":[["2027-01-09",8.24,8],["2027-07-09",8.21,8],["2028-01-09",8.42,8],["2028-07-09",8.35,8],["2029-01-09",8.28,8],["2029-07-09",8.21,8],["2030-01-09",8.14,8],["2030-07-09",8.07,8]],"exitTerms":{"residual":48,"annualCoupon":0.0175,"accruedFrom":"2027-07-09"}},
+      {"ticker":"AL35","flows":[["2027-01-09",2.0625,0],["2027-07-09",2.0625,0],["2028-01-09",2.375,0],["2028-07-09",2.375,0],["2029-01-09",2.5,0],["2029-07-09",2.5,0],["2030-01-09",2.5,0],["2030-07-09",2.5,0],["2031-01-09",12.5,10],["2031-07-09",12.25,10],["2032-01-09",12.2,10],["2032-07-09",11.75,10],["2033-01-09",11.5,10],["2033-07-09",11.25,10],["2034-01-09",11.2,10],["2034-07-09",10.75,10],["2035-01-09",10.5,10],["2035-07-09",10.25,10]],"exitTerms":{"residual":100,"annualCoupon":0.0475,"accruedFrom":"2027-07-09"}},
+      {"ticker":"GD35","flows":[["2027-01-09",2.0625,0],["2027-07-09",2.0625,0],["2028-01-09",2.375,0],["2028-07-09",2.375,0],["2029-01-09",2.5,0],["2029-07-09",2.5,0],["2030-01-09",2.5,0],["2030-07-09",2.5,0],["2031-01-09",12.5,10],["2031-07-09",12.25,10],["2032-01-09",12.2,10],["2032-07-09",11.75,10],["2033-01-09",11.5,10],["2033-07-09",11.25,10],["2034-01-09",11.2,10],["2034-07-09",10.75,10],["2035-01-09",10.5,10],["2035-07-09",10.25,10]],"exitTerms":{"residual":100,"annualCoupon":0.0475,"accruedFrom":"2027-07-09"}},
+      {"ticker":"AE38","flows":[["2027-01-09",2.5,0],["2027-07-09",7.0455,4.5455],["2028-01-09",6.9318,4.5455],["2028-07-09",6.8182,4.5455],["2029-01-09",6.7045,4.5455],["2029-07-09",6.5909,4.5455],["2030-01-09",6.4773,4.5455],["2030-07-09",6.3636,4.5455],["2031-01-09",6.25,4.5455],["2031-07-09",6.1364,4.5455],["2032-01-09",6.0227,4.5455],["2032-07-09",5.9091,4.5455],["2033-01-09",5.7955,4.5455],["2033-07-09",5.6818,4.5455],["2034-01-09",5.5682,4.5455],["2034-07-09",5.4545,4.5455],["2035-01-09",5.3409,4.5455],["2035-07-09",5.2273,4.5455],["2036-01-09",5.1136,4.5455],["2036-07-09",5.2,4.5455],["2037-01-09",4.8864,4.5455],["2037-07-09",4.7727,4.5455],["2038-01-09",4.78,4.66]],"exitTerms":{"residual":95.45454545454545,"annualCoupon":0.05,"accruedFrom":"2027-07-09"}},
+      {"ticker":"GD38","flows":[["2027-01-09",2.5,0],["2027-07-09",7.0455,4.5455],["2028-01-09",6.9318,4.5455],["2028-07-09",6.8182,4.5455],["2029-01-09",6.7045,4.5455],["2029-07-09",6.5909,4.5455],["2030-01-09",6.4773,4.5455],["2030-07-09",6.3636,4.5455],["2031-01-09",6.25,4.5455],["2031-07-09",6.1364,4.5455],["2032-01-09",6.0227,4.5455],["2032-07-09",5.9091,4.5455],["2033-01-09",5.7955,4.5455],["2033-07-09",5.6818,4.5455],["2034-01-09",5.5682,4.5455],["2034-07-09",5.4545,4.5455],["2035-01-09",5.3409,4.5455],["2035-07-09",5.2273,4.5455],["2036-01-09",5.1136,4.5455],["2036-07-09",5.2,4.5455],["2037-01-09",4.8864,4.5455],["2037-07-09",4.7727,4.5455],["2038-01-09",4.78,4.66]],"exitTerms":{"residual":95.45454545454545,"annualCoupon":0.05,"accruedFrom":"2027-07-09"}},
+      {"ticker":"GD41","flows":[["2027-01-09",1.75,0],["2027-07-09",1.75,0],["2028-01-09",5.3214,3.5714],["2028-07-09",5.2589,3.5714],["2029-01-09",5.1964,3.5714],["2029-07-09",5.1339,3.5714],["2030-01-09",5.6607,3.5714],["2030-07-09",5.5737,3.5714],["2031-01-09",5.4866,3.5714],["2031-07-09",5.3996,3.5714],["2032-01-09",5.3125,3.5714],["2032-07-09",5.2254,3.5714],["2033-01-09",5.1384,3.5714],["2033-07-09",5.0513,3.5714],["2034-01-09",4.9643,3.5714],["2034-07-09",4.8772,3.5714],["2035-01-09",4.7902,3.5714],["2035-07-09",4.7031,3.5714],["2036-01-09",4.6161,3.5714],["2036-07-09",4.529,3.5714],["2037-01-09",4.442,3.5714],["2037-07-09",4.3549,3.5714],["2038-01-09",4.2679,3.5714],["2038-07-09",4.1808,3.5714],["2039-01-09",4.0938,3.5714],["2039-07-09",4.1967,3.5714],["2040-01-09",3.9196,3.5714],["2040-07-09",3.8326,3.5714],["2041-01-09",3.7455,3.5714],["2041-07-09",3.7,3.61]],"exitTerms":{"residual":100,"annualCoupon":0.035,"accruedFrom":"2027-07-09"}},
+      {"ticker":"AL41","flows":[["2027-01-09",1.75,0],["2027-07-09",1.75,0],["2028-01-09",5.3214,3.5714],["2028-07-09",5.2589,3.5714],["2029-01-09",5.1964,3.5714],["2029-07-09",5.1339,3.5714],["2030-01-09",5.6607,3.5714],["2030-07-09",5.5737,3.5714],["2031-01-09",5.4866,3.5714],["2031-07-09",5.3996,3.5714],["2032-01-09",5.3125,3.5714],["2032-07-09",5.2254,3.5714],["2033-01-09",5.1384,3.5714],["2033-07-09",5.0513,3.5714],["2034-01-09",4.9643,3.5714],["2034-07-09",4.8772,3.5714],["2035-01-09",4.7902,3.5714],["2035-07-09",4.7031,3.5714],["2036-01-09",4.6161,3.5714],["2036-07-09",4.529,3.5714],["2037-01-09",4.442,3.5714],["2037-07-09",4.3549,3.5714],["2038-01-09",4.2679,3.5714],["2038-07-09",4.1808,3.5714],["2039-01-09",4.0938,3.5714],["2039-07-09",4.1967,3.5714],["2040-01-09",3.9196,3.5714],["2040-07-09",3.8326,3.5714],["2041-01-09",3.7455,3.5714],["2041-07-09",3.7,3.61]],"exitTerms":{"residual":100,"annualCoupon":0.035,"accruedFrom":"2027-07-09"}},
+      {"ticker":"GD46","flows":[["2027-01-09",4.17,2.272727273],["2027-07-09",4.08,2.272727273],["2028-01-09",4.17,2.272727273],["2028-07-09",4.11,2.272727273],["2029-01-09",4.3,2.272727273],["2029-07-09",4.26,2.272727273],["2030-01-09",4.2,2.272727273],["2030-07-09",4.15,2.272727273],["2031-01-09",4.09,2.272727273],["2031-07-09",4.03,2.272727273],["2032-01-09",3.98,2.272727273],["2032-07-09",3.92,2.272727273],["2033-01-09",3.87,2.272727273],["2033-07-09",3.81,2.272727273],["2034-01-09",3.73,2.272727273],["2034-07-09",3.7,2.272727273],["2035-01-09",3.63,2.272727273],["2035-07-09",3.58,2.272727273],["2036-01-09",3.52,2.272727273],["2036-07-09",3.46,2.272727273],["2037-01-09",3.41,2.272727273],["2037-07-09",3.35,2.272727273],["2038-01-09",3.31,2.272727273],["2038-07-09",3.23,2.272727273],["2039-01-09",3.19,2.272727273],["2039-07-09",3.13,2.272727273],["2040-01-09",3.06,2.272727273],["2040-07-09",3.01,2.272727273],["2041-01-09",2.95,2.272727273],["2041-07-09",2.9,2.272727273],["2042-01-09",2.84,2.272727273],["2042-07-09",2.78,2.272727273],["2043-01-09",2.73,2.272727273],["2043-07-09",2.67,2.272727273],["2044-01-09",2.62,2.272727273],["2044-07-09",2.56,2.272727273],["2045-01-09",2.5,2.272727273],["2045-07-09",2.44,2.272727273]],"exitTerms":{"residual":86.36363636363636,"annualCoupon":0.04375,"accruedFrom":"2027-07-09"}}
+    ],
+    "defaultScenarios": [5.0,7.5,10.0,12.5,15.0,17.5,20.0,22.5,25.0],
+    "exitDate": "2027-10-29"
     }
-    function pctFirmado(v, dec){
-      if (v === null || v === undefined) return '—';
-      return (v > 0 ? '+' : '') + pct(v, dec);
+  </script>
+<script>
+    "use strict";
+
+    const { snapshots, bonds, defaultScenarios, exitDate } = JSON.parse(document.getElementById("market-data").textContent);
+    /* Ruedas que sumo refresh.py desde Rava, despues del prototipo. */
+    if (window.TIR_SALIDA_PRECIOS_DATA && window.TIR_SALIDA_PRECIOS_DATA.snapshots) {
+      Object.assign(snapshots, window.TIR_SALIDA_PRECIOS_DATA.snapshots);
     }
-    function fechaLarga(iso){
-      var M2=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-      var p=String(iso).split('-');
-      return parseInt(p[2],10)+' de '+M2[(parseInt(p[1],10)||1)-1]+' de '+p[0];
+    const el = (id) => document.getElementById(id);
+    const byTicker = new Map(bonds.map((bond) => [bond.ticker, bond]));
+    const snapshotIds = Object.keys(snapshots).sort((a, b) => b.localeCompare(a));
+    const exitModes = {
+      yield: { label: "TIR de salida", grid: "TIR", equilibrium: "TIR de equilibrio", limit: 50, step: 5, defaults: defaultScenarios },
+      parity: { label: "Paridad de salida", grid: "paridad", equilibrium: "Paridad de equilibrio", limit: 150, step: 10, defaults: [35, 50, 90] },
+    };
+    const state = {
+      snapshot: "2026-09-11", comparison: "", ticker: "AL30", mode: "yield",
+      exit: {
+        yield: { level: 12.5, scenarios: [...exitModes.yield.defaults] },
+        parity: { level: 50, scenarios: [...exitModes.parity.defaults] },
+      },
+      order: "original", prices: new Map(),
+    };
+    const exitConfig = () => exitModes[state.mode];
+    const exitSelection = () => state.exit[state.mode];
+
+    const decimal = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const percentage = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const compact = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 });
+    const pct = (value) => `${percentage.format(value)}%`;
+    const signedPct = (value) => Math.abs(value) < 0.05 ? pct(0) : `${value > 0 ? "+" : "−"}${pct(Math.abs(value))}`;
+    const usd = (value) => `USD ${decimal.format(value)}`;
+
+    const marketDate = (snapshotId) => snapshotId.slice(0, 10);
+    const shortDate = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short", timeZone: "UTC" });
+    const monthYear = new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric", timeZone: "UTC" });
+
+    function snapshotLabel(id, { withBasis = false, withYear = false } = {}) {
+      const day = marketDate(id);
+      const date = new Date(`${day}T00:00:00Z`);
+      const parts = shortDate.formatToParts(date);
+      const dayOfMonth = parts.find(({ type }) => type === "day").value;
+      const month = parts.find(({ type }) => type === "month").value.replace(".", "").replace(/^sept$/, "sep");
+      const label = withYear ? `${dayOfMonth} ${month} ${day.slice(0, 4)}` : `${dayOfMonth} ${month}`;
+      const hasIntraday = snapshotIds.some((id) => id.startsWith(`${day}T`));
+      return withBasis || hasIntraday ? `${label} · ${snapshots[id].basis}` : label;
     }
-    function mesCorto(iso){
-      var M2=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-      var p=String(iso).split('-');
-      return p[2]+'-'+M2[(parseInt(p[1],10)||1)-1]+'-'+p[0].slice(2);
-    }
 
-    /* Verde para ganancia, rojo para pérdida, con la intensidad proporcional
-       al tamaño: lo que importa de la matriz es dónde está la frontera. */
-    var todos = [];
-    FILAS.forEach(function(f){ f.retornos.forEach(function(v){ if (v !== null) todos.push(v); }); });
-    var maxAbs = Math.max.apply(null, todos.map(Math.abs)) || 1;
-    function fondo(v){
-      if (v === null || v === undefined) return 'transparent';
-      var t = Math.min(1, Math.abs(v) / maxAbs);
-      var a = 0.08 + 0.42 * t;
-      return v >= 0 ? 'rgba(112,161,52,' + a.toFixed(3) + ')'
-                    : 'rgba(218,69,49,' + a.toFixed(3) + ')';
-    }
-
-    /* ---------- encabezado de la matriz ---------- */
-    (function(){
-      var h1 = '<tr><th rowspan="2">Bono</th><th rowspan="2">TIR hoy</th>' +
-               '<th colspan="' + ESC.length + '" class="grupo">Retorno total si sale con esta TIR</th>' +
-               '<th rowspan="2">Break-even</th></tr><tr>' +
-               ESC.map(function(e){ return '<th>' + pct(e, 1) + '</th>'; }).join('') + '</tr>';
-      document.getElementById('tsHead').innerHTML = h1;
-
-      document.getElementById('tsBody').innerHTML = FILAS.map(function(f){
-        var celdas = f.retornos.map(function(v, i){
-          return '<td class="' + (i ? '' : 'sep') + '" style="background:' + fondo(v) + '">' +
-                 pctFirmado(v, 1) + '</td>';
-        }).join('');
-        return '<tr><td>' + f.bono + '</td>' +
-               '<td class="ctx">' + pct(f.tir_hoy, 2) + '</td>' +
-               celdas +
-               '<td class="ctx sep">' + pct(f.break_even, 1) + '</td></tr>';
-      }).join('');
-
-      document.getElementById('tsMatrizSub').textContent =
-        FILAS.length + ' bonos × ' + ESC.length + ' escenarios · salida el ' +
-        (M.salida ? fechaLarga(M.salida) : '—');
-
-      // leyenda de la escala de color
-      var pasos = [];
-      for (var i = 0; i < 11; i++) {
-        var v = -maxAbs + (2 * maxAbs) * (i / 10);
-        pasos.push('<span style="background:' + fondo(v) + '"></span>');
-      }
-      document.getElementById('tsEscala').innerHTML = pasos.join('');
-      document.getElementById('tsEscalaRango').textContent =
-        pctFirmado(-maxAbs, 0) + '  a  ' + pctFirmado(maxAbs, 0);
-
-      document.getElementById('tsNotas').innerHTML = (D.notas || []).map(function(n){
-        return '<b>' + n.titulo + ':</b> ' + n.texto;
-      }).join('<br>');
-    })();
-
-    /* ---------- indicadores ---------- */
-    (function(){
-      var conDato = FILAS.filter(function(f){ return f.break_even !== null; });
-      var mejor = conDato.slice().sort(function(a,b){ return b.break_even - a.break_even; })[0];
-      var k = [];
-      if (M.salida)      k.push({ l:'Fecha de salida',  v:mesCorto(M.salida),      s:'horizonte del ejercicio' });
-      if (M.liquidacion) k.push({ l:'Precios de compra', v:mesCorto(M.liquidacion), s:'fecha de liquidación' });
-      k.push({ l:'Universo', v:FILAS.length + ' bonos', s:'soberanos en USD, especie D' });
-      if (mejor) k.push({ l:'Break-even más alto', v:pct(mejor.break_even, 1), s:mejor.bono + ' · es el que más margen tolera' });
-
-      document.getElementById('tsKpis').innerHTML = k.map(function(x){
-        return '<div class="ts-kpi"><p class="ts-kpi__label">' + x.l + '</p>' +
-               '<p class="ts-kpi__value">' + x.v + '</p>' +
-               '<p class="ts-kpi__sub">' + x.s + '</p></div>';
-      }).join('');
-
-      var sub = document.getElementById('tsSubtitulo');
-      if (sub && M.salida) sub.textContent += ' el ' + fechaLarga(M.salida);
-    })();
-
-    /* ---------- aviso si los precios quedaron viejos ----------
-       La matriz entera cuelga del precio de compra. Si ese precio es de hace
-       meses, el cuadro se ve prolijo igual y no hay forma de notarlo. */
-    (function(){
-      if (!M.liquidacion) return;
-      var dias = Math.round((Date.now() - new Date(M.liquidacion + 'T12:00:00')) / 86400000);
-      if (dias < 21) return;
-      var el = document.getElementById('tsAviso');
-      el.innerHTML = '<span>⚠</span><span>Los precios de compra son del <b>' + fechaLarga(M.liquidacion) +
-        '</b>, hace ' + dias + ' días. Todo el cuadro se calcula sobre esos precios: los retornos ' +
-        'no reflejan el mercado de hoy. Para actualizarlo hay que recargar precios en la planilla del ejercicio.</span>';
-      el.hidden = false;
-    })();
-
-    /* ---------- curva de retorno ---------- */
-    (function(){
-      var PALETA = ['#1B5F5E','#2890A4','#3C9794','#8FCCCA','#70A134','#84BF84','#C9E4C5',
-                    '#FEB15F','#FE8B5F','#DA4531','#7E5CCB','#9B7FC4','#A5896C','#6E7679','#15314B'];
-      // El cero es la frontera entre ganar y perder: se marca.
-      var lineaCero = {
-        id:'cero',
-        afterDatasetsDraw:function(ch){
-          var y = ch.scales.y.getPixelForValue(0), ctx = ch.ctx;
-          ctx.save(); ctx.strokeStyle='#333'; ctx.lineWidth=1.2; ctx.setLineDash([5,4]);
-          ctx.beginPath(); ctx.moveTo(ch.chartArea.left, y); ctx.lineTo(ch.chartArea.right, y); ctx.stroke();
-          ctx.restore();
+    function populateDateSelector(select, allowEmpty) {
+      if (allowEmpty) select.add(new Option("Sin comparación", ""));
+      const groups = new Map();
+      for (const id of snapshotIds) {
+        const month = id.slice(0, 7);
+        if (!groups.has(month)) {
+          const group = document.createElement("optgroup");
+          const label = monthYear.format(new Date(`${month}-01T00:00:00Z`));
+          group.label = label.charAt(0).toUpperCase() + label.slice(1);
+          select.append(group);
+          groups.set(month, group);
         }
-      };
-      new Chart(document.getElementById('chartCurva'), {
-        type:'line',
-        data:{
-          labels: ESC.map(function(e){ return pct(e, 1); }),
-          datasets: FILAS.map(function(f, i){
-            return { label:f.bono, data:f.retornos.map(function(v){ return v === null ? null : v * 100; }),
-                     borderColor:PALETA[i % PALETA.length], backgroundColor:PALETA[i % PALETA.length],
-                     borderWidth:1.8, pointRadius:0, pointHoverRadius:4, fill:false, tension:0.2, spanGaps:true };
-          })
-        },
-        options:{
-          responsive:true, maintainAspectRatio:false, animation:{duration:150},
-          interaction:{ mode:'nearest', axis:'x', intersect:false },
-          plugins:{
-            legend:{ position:'bottom', labels:{ boxWidth:11, boxHeight:11, usePointStyle:true, pointStyle:'circle', font:{size:10}, padding:9 } },
-            tooltip:{ callbacks:{
-              title:function(it){ return 'Si sale con TIR ' + it[0].label; },
-              label:function(c){ return ' ' + c.dataset.label + ': ' + (c.raw > 0 ? '+' : '') + c.raw.toFixed(1) + '%'; }
-            } }
-          },
-          scales:{
-            x:{ grid:{display:false}, ticks:{color:'#6E7679'},
-                title:{ display:true, text:'TIR de salida', color:'#6E7679', font:{size:10} } },
-            y:{ grid:{color:'rgba(0,0,0,0.05)'},
-                ticks:{ color:'#6E7679', callback:function(v){ return (v > 0 ? '+' : '') + v + '%'; } },
-                title:{ display:true, text:'Retorno total', color:'#6E7679', font:{size:10} } }
-          }
-        },
-        plugins:[lineaCero]
-      });
-    })();
+        groups.get(month).append(new Option(snapshotLabel(id, { withBasis: true, withYear: !allowEmpty }), id));
+      }
+    }
 
-    /* ---------- descargas ---------- */
-    if (window.EcoGo) {
-      EcoGo.dlBtn('.ts-tabla', 'tir_de_salida.csv', function(){
-        return {
-          headers: ['Bono', 'TIR hoy'].concat(ESC.map(function(e){ return 'Retorno si sale con ' + pct(e,1); })).concat(['Break-even']),
-          rows: FILAS.map(function(f){
-            return [f.bono, f.tir_hoy].concat(f.retornos).concat([f.break_even]);
-          })
-        };
+    function parseNumber(text, places) {
+      const normalized = text.trim().replace(",", ".");
+      const format = new RegExp(`^(?:\\d+(?:\\.\\d{0,${places}})?|\\.\\d{1,${places}})$`);
+      return format.test(normalized) ? Number(normalized) : NaN;
+    }
+
+    function yearsBetween(start, end) {
+      const [y1, m1, d1] = start.split("-").map(Number);
+      const [y2, m2, d2] = end.split("-").map(Number);
+      return ((y2 - y1) * 360 + (m2 - m1) * 30 + Math.min(30, d2) - Math.min(30, d1)) / 360;
+    }
+
+    function presentValue(flows, rate) {
+      return flows.reduce((total, [years, amount]) => total + amount / (1 + rate) ** years, 0);
+    }
+
+    function solveYield(flows, target, low, high) {
+      for (let i = 0; i < 60; i++) {
+        const middle = (low + high) / 2;
+        if (presentValue(flows, middle) > target) low = middle;
+        else high = middle;
+      }
+      return (low + high) / 2;
+    }
+
+    function purchaseYield(flows, price) {
+      const low = -0.9999;
+      let high = 1;
+      while (presentValue(flows, high) > price && high < 1e8) high *= 2;
+      if (presentValue(flows, low) < price || presentValue(flows, high) > price) return null;
+      return solveYield(flows, price, low, high) * 100;
+    }
+
+    function yieldEquilibrium(flows, target) {
+      const high = exitModes.yield.limit / 100;
+      if (presentValue(flows, 0) < target - 1e-9) return { label: "< 0%", sort: -Infinity };
+      if (presentValue(flows, high) > target + 1e-9) return { label: `> ${exitModes.yield.limit}%`, sort: Infinity };
+      const level = solveYield(flows, target, 0, high) * 100;
+      return { label: pct(level), sort: level, level };
+    }
+
+    function position(bond, date, price, mode = state.mode) {
+      const flows = bond.flows.filter(([day]) => day > date);
+      let cash = 0;
+      let amortization = 0;
+      for (const [day, total, principal] of flows) {
+        if (day > exitDate) continue;
+        cash += total;
+        amortization += principal;
+      }
+      const { residual, annualCoupon, accruedFrom } = bond.exitTerms;
+      const technicalValue = residual * (1 + annualCoupon * yearsBetween(accruedFrom, exitDate));
+      const target = price - cash;
+      let saleAt;
+      let breakEven;
+      if (mode === "parity") {
+        saleAt = (level) => technicalValue * level / 100;
+        const level = target / technicalValue * 100;
+        breakEven = { label: pct(level), sort: level, level };
+      } else {
+        const remaining = flows.filter(([day]) => day > exitDate).map(([day, amount]) => [yearsBetween(exitDate, day), amount]);
+        saleAt = (level) => presentValue(remaining, level / 100);
+        breakEven = yieldEquilibrium(remaining, target);
+      }
+      return {
+        price, cash, amortization, coupons: cash - amortization, technicalValue, saleAt, breakEven,
+        returnAt: (level) => (saleAt(level) - target) / price * 100,
+        buyYield: purchaseYield(flows.map(([day, amount]) => [yearsBetween(date, day), amount]), price),
+      };
+    }
+
+    const priceKey = (ticker) => `${state.snapshot}:${ticker}`;
+    const basePrice = (ticker, id = state.snapshot) => snapshots[id].prices[ticker];
+    const effectivePrice = (ticker) => state.prices.get(priceKey(ticker)) ?? basePrice(ticker);
+    let positions;
+
+    function recalculate() {
+      positions = new Map(bonds.map((bond) => [bond.ticker, position(bond, marketDate(state.snapshot), effectivePrice(bond.ticker))]));
+    }
+
+    function comparisonPosition() {
+      const id = state.comparison;
+      return id ? position(byTicker.get(state.ticker), marketDate(id), basePrice(state.ticker, id)) : null;
+    }
+
+    function syncComparison() {
+      const select = el("compare");
+      for (const option of select.options) option.disabled = option.value === state.snapshot;
+      select.value = state.comparison;
+    }
+
+    function resetPriceField() {
+      const { ticker } = state;
+      el("price").value = effectivePrice(ticker).toFixed(2).replace(".", ",");
+      el("price-label").textContent = `Precio de compra · ${ticker} (USD por VN 100)`;
+      el("price-reference").textContent = `Referencia ${snapshotLabel(state.snapshot)} · ${usd(basePrice(ticker))}`;
+      el("reset-price").disabled = !state.prices.has(priceKey(ticker));
+      setError("price", "price-error", false);
+    }
+
+    function setError(input, message, invalid) {
+      el(input).setAttribute("aria-invalid", String(invalid));
+      el(message).hidden = !invalid;
+    }
+
+    function updateReadout() {
+      const active = positions.get(state.ticker);
+      const { level } = exitSelection();
+      const value = active.returnAt(level);
+      el("return-label").textContent = `Retorno total · ${state.ticker}`;
+      el("return").textContent = signedPct(value);
+      el("return").className = `return ${value > 0.05 ? "positive" : value < -0.05 ? "negative" : ""}`;
+      el("return").classList.toggle("long", Math.abs(value) >= 10000);
+      el("sale").textContent = usd(active.saleAt(level));
+      el("cash").textContent = usd(active.cash);
+      el("buy-yield").textContent = active.buyYield === null ? "Sin valor en rango" : pct(active.buyYield);
+      el("break-even").textContent = active.breakEven.label;
+      el("technical-value").textContent = usd(active.technicalValue);
+      el("active-legend").textContent = snapshotLabel(state.snapshot) + (state.prices.has(priceKey(state.ticker)) ? " · Precio simulado" : "");
+      const alternative = comparisonPosition();
+      el("compare-legend").hidden = !alternative;
+      if (alternative) {
+        el("compare-legend-text").textContent = `${snapshotLabel(state.comparison)} · ${signedPct(alternative.returnAt(level))}`;
+      }
+      drawChart();
+    }
+
+    function heat(value) {
+      const strength = 0.055 + Math.min(Math.abs(value), 48) / 48 * 0.24;
+      if (Math.abs(value) < 0.05) return "transparent";
+      return value > 0 ? `rgba(60, 151, 148, ${strength})` : `rgba(218, 69, 49, ${strength})`;
+    }
+
+    function orderedBonds() {
+      const list = [...bonds];
+      const { level } = exitSelection();
+      if (state.order === "price") list.sort((a, b) => effectivePrice(a.ticker) - effectivePrice(b.ticker));
+      if (state.order === "even") {
+        const direction = state.mode === "parity" ? 1 : -1;
+        list.sort((a, b) => direction * (positions.get(a.ticker).breakEven.sort - positions.get(b.ticker).breakEven.sort));
+      }
+      if (state.order === "return") list.sort((a, b) => positions.get(b.ticker).returnAt(level) - positions.get(a.ticker).returnAt(level));
+      return list;
+    }
+
+    function renderMatrix() {
+      const { label, equilibrium } = exitConfig();
+      const { scenarios } = exitSelection();
+      const parity = state.mode === "parity";
+      el("matrix-head").innerHTML = `
+        <tr><th scope="col" rowspan="2">Bono</th><th scope="col" rowspan="2">Precio USD</th>
+          <th scope="col" rowspan="2">TIR compra</th>
+          ${parity ? '<th scope="col" rowspan="2">Valor técnico</th><th class="group" scope="colgroup" colspan="2">Cobros hasta la salida</th>' : ""}
+          <th class="group" scope="colgroup" colspan="${scenarios.length}">Retorno según ${label}</th><th scope="col" rowspan="2">${equilibrium}</th></tr>
+        <tr>${parity ? '<th scope="col">Amortización</th><th scope="col">Cupones</th>' : ""}
+          ${scenarios.map((level, index) => `<th scope="col" data-rate="${level}" class="${index === 0 ? "first-rate" : ""}">${pct(level)}</th>`).join("")}</tr>`;
+      el("matrix-body").innerHTML = orderedBonds().map(({ ticker }) => {
+        const active = positions.get(ticker);
+        const custom = state.prices.has(priceKey(ticker));
+        const cells = scenarios.map((level, index) => {
+          const value = active.returnAt(level);
+          return `<td class="rate-cell ${index === 0 ? "first-rate" : ""}" style="background:${heat(value)}">
+            <button type="button" data-ticker="${ticker}" data-rate="${level}" data-action="scenario" aria-pressed="false" aria-label="${ticker}, ${label} ${pct(level)}, retorno ${signedPct(value)}">${signedPct(value)}</button></td>`;
+        }).join("");
+        const cashDetails = parity ? `<td>${decimal.format(active.technicalValue)}</td><td>${decimal.format(active.amortization)}</td><td>${decimal.format(active.coupons)}</td>` : "";
+        return `<tr data-row="${ticker}"><th scope="row"><button class="row-button" type="button" data-ticker="${ticker}" data-action="bond" aria-pressed="false">${ticker}</button></th>
+          <td><button class="price-button ${custom ? "custom" : ""}" type="button" data-ticker="${ticker}" data-action="price" aria-label="Editar precio ${custom ? "simulado" : "de compra"} de ${ticker}: ${usd(active.price)}">${decimal.format(active.price)}</button></td>
+          <td>${active.buyYield === null ? "—" : pct(active.buyYield)}</td>${cashDetails}${cells}<td>${active.breakEven.label.replace("<", "&lt;")}</td></tr>`;
+      }).join("");
+      updateSelection();
+    }
+
+    function updateSelection() {
+      const { level } = exitSelection();
+      el("matrix-head").querySelectorAll("[data-rate]").forEach((cell) => cell.classList.toggle("active-rate", Number(cell.dataset.rate) === level));
+      el("matrix-body").querySelectorAll("tr").forEach((row) => row.classList.toggle("selected", row.dataset.row === state.ticker));
+      el("matrix-body").querySelectorAll("button[aria-pressed]").forEach((button) => {
+        const selected = button.dataset.ticker === state.ticker && (button.dataset.action === "bond" || Number(button.dataset.rate) === level);
+        button.setAttribute("aria-pressed", String(selected));
       });
     }
+
+    function setExitLevel(value, keepTableFocus = false) {
+      const level = Math.round(value * 10) / 10;
+      exitSelection().level = level;
+      el("rate-range").value = level;
+      el("rate-range").setAttribute("aria-valuetext", pct(level));
+      el("rate-input").value = compact.format(level);
+      setError("rate-input", "rate-error", false);
+      updateReadout();
+      if (state.order === "return") renderMatrix();
+      else updateSelection();
+      if (keepTableFocus && state.order === "return") {
+        el("matrix-body").querySelector(`button[data-ticker="${state.ticker}"][data-rate="${level}"]`)?.focus({ preventScroll: true });
+      }
+    }
+
+    function selectBond(ticker) {
+      state.ticker = ticker;
+      el("bond").value = ticker;
+      resetPriceField();
+      updateReadout();
+      updateSelection();
+    }
+
+    function populateScenarios() {
+      const { scenarios } = exitSelection();
+      el("scenario-fields").innerHTML = scenarios.map((level, index) => `
+        <label>Escenario ${index + 1} (%)<input class="scenario-input" inputmode="decimal" maxlength="5" value="${compact.format(level)}" required></label>`).join("");
+      el("scenario-error").hidden = true;
+    }
+
+    function renderMode() {
+      const { label, grid, equilibrium, limit } = exitConfig();
+      const parity = state.mode === "parity";
+      el("exit-label").textContent = label;
+      el("rate-range").max = limit;
+      el("rate-input").setAttribute("aria-label", `${label} exacta en porcentaje`);
+      el("rate-error").textContent = `Ingresá un porcentaje entre 0% y ${limit}% con hasta un decimal.`;
+      el("equilibrium-label").textContent = equilibrium;
+      el("technical-stat").hidden = !parity;
+      el("sort-equilibrium").textContent = `${parity ? "Menor" : "Mayor"} ${equilibrium}`;
+      el("scenario-title").textContent = `Editar escenarios de ${grid}`;
+      el("scenario-error").textContent = `Ingresá ${exitSelection().scenarios.length} porcentajes distintos entre 0% y ${limit}%, con hasta un decimal.`;
+      el("scenario-fields").classList.toggle("compact", parity);
+      el("returns-table").classList.toggle("parity", parity);
+      el("returns-caption").textContent = `Retorno total por bono según ${label}, en dólares`;
+      recalculate();
+      populateScenarios();
+      setExitLevel(exitSelection().level);
+      renderMatrix();
+    }
+
+    function drawChart() {
+      const canvas = el("curve");
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      if (!width || !height) return;
+      const scale = window.devicePixelRatio || 1;
+      canvas.width = Math.round(width * scale);
+      canvas.height = Math.round(height * scale);
+      const ctx = canvas.getContext("2d");
+      ctx.scale(scale, scale);
+      const active = positions.get(state.ticker);
+      const comparison = comparisonPosition();
+      const { level, scenarios } = exitSelection();
+      const { label, equilibrium, limit, step: gridStep, defaults } = exitConfig();
+      const breakEven = active.breakEven.level;
+      const markEquilibrium = breakEven >= 0 && breakEven <= limit;
+      const points = [defaults[0], defaults[defaults.length - 1], level, ...scenarios];
+      if (markEquilibrium) points.push(breakEven);
+      el("zero-legend").hidden = !markEquilibrium;
+      const xMin = Math.max(0, Math.floor(Math.min(...points) / gridStep) * gridStep - gridStep);
+      const xMax = Math.min(limit, Math.ceil(Math.max(...points) / gridStep) * gridStep + gridStep);
+      const bounds = [0, active.returnAt(xMin), active.returnAt(xMax)];
+      if (comparison) bounds.push(comparison.returnAt(xMin), comparison.returnAt(xMax));
+      const low = Math.min(...bounds);
+      const high = Math.max(...bounds);
+      const roughStep = Math.max(5, (high - low) / 4);
+      const exponent = 10 ** Math.floor(Math.log10(roughStep));
+      const step = ([1, 2, 2.5, 5, 10].find((unit) => unit * exponent >= roughStep)) * exponent;
+      const yMin = Math.floor((low - step * .15) / step) * step;
+      const yMax = Math.ceil((high + step * .15) / step) * step;
+      ctx.font = "12px 'HK Grotesk', system-ui, sans-serif";
+      const axisNumber = new Intl.NumberFormat("es-AR", { notation: "compact", maximumFractionDigits: 1 });
+      const axisLabel = (value) => `${axisNumber.format(value)}%`;
+      const plot = { left: Math.max(42, Math.ceil(ctx.measureText(axisLabel(yMin)).width) + 11, Math.ceil(ctx.measureText(axisLabel(yMax)).width) + 11), right: width - 21, top: 9, bottom: height - 43 };
+      const x = (value) => plot.left + (value - xMin) / (xMax - xMin) * (plot.right - plot.left);
+      const y = (value) => plot.bottom - (value - yMin) / (yMax - yMin) * (plot.bottom - plot.top);
+      const line = (x1, y1, x2, y2) => { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      for (let value = yMin; value <= yMax + step / 100; value += step) {
+        ctx.fillStyle = "#6E7679";
+        ctx.fillText(axisLabel(value), plot.left - 8, y(value));
+        ctx.strokeStyle = value === 0 ? "#B8BEC0" : "#E2E8E8";
+        line(plot.left, y(value), plot.right, y(value));
+      }
+
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillStyle = "#6E7679";
+      const tick = gridStep * Math.ceil((xMax - xMin) / gridStep / (width < 400 ? 4 : 8));
+      for (let value = xMin; value <= xMax; value += tick) ctx.fillText(`${value}%`, x(value), plot.bottom + 7);
+      const remainder = (xMax - xMin) % tick;
+      if (remainder && x(xMax) - x(xMax - remainder) >= 33) ctx.fillText(`${xMax}%`, x(xMax), plot.bottom + 7);
+      ctx.fillText(label, (plot.left + plot.right) / 2, plot.bottom + 25);
+
+      function curve(series, color, dash) {
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.25;
+        ctx.setLineDash(dash);
+        for (let i = 0; i <= 100; i++) {
+          const value = xMin + (xMax - xMin) * i / 100;
+          const point = [x(value), y(series.returnAt(value))];
+          if (i === 0) ctx.moveTo(...point);
+          else ctx.lineTo(...point);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      const marker = (exitLevel, value, fill, stroke, size) => {
+        ctx.beginPath(); ctx.arc(x(exitLevel), y(value), size, 0, Math.PI * 2);
+        ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = stroke; ctx.lineWidth = 1.75; ctx.stroke();
+      };
+      ctx.strokeStyle = "#B8BEC0";
+      ctx.setLineDash([3, 4]);
+      line(x(level), plot.top, x(level), plot.bottom);
+      ctx.setLineDash([]);
+      if (comparison) curve(comparison, "#FE8B5F", [6, 4]);
+      curve(active, "#1B5F5E", []);
+      if (markEquilibrium) marker(breakEven, 0, "#fff", "#1B5F5E", 4.3);
+      if (comparison) marker(level, comparison.returnAt(level), "#FE8B5F", "#fff", 4.3);
+      marker(level, active.returnAt(level), "#1B5F5E", "#fff", 5.3);
+
+      canvas.setAttribute("aria-label", `${state.ticker}. Con ${label} de ${pct(level)}, el retorno es ${signedPct(active.returnAt(level))}. ${equilibrium} ${active.breakEven.label}.`);
+    }
+
+    populateDateSelector(el("purchase"), false);
+    populateDateSelector(el("compare"), true);
+    el("purchase").value = state.snapshot;
+    syncComparison();
+    el("bond").replaceChildren(...bonds.map(({ ticker }) => new Option(ticker, ticker)));
+    el("bond").value = state.ticker;
+    document.querySelector(".mode-picker").addEventListener("change", (event) => {
+      state.mode = event.target.value;
+      renderMode();
+    });
+    el("purchase").addEventListener("change", (event) => {
+      const previous = state.snapshot;
+      state.snapshot = event.target.value;
+      if (state.comparison === state.snapshot) state.comparison = previous;
+      syncComparison();
+      recalculate();
+      resetPriceField();
+      updateReadout();
+      renderMatrix();
+    });
+    el("bond").addEventListener("change", (event) => selectBond(event.target.value));
+    el("rate-range").addEventListener("input", (event) => setExitLevel(Number(event.target.value)));
+    el("rate-input").addEventListener("change", (event) => {
+      const level = parseNumber(event.target.value, 1);
+      if (!Number.isFinite(level) || level < 0 || level > exitConfig().limit) setError("rate-input", "rate-error", true);
+      else setExitLevel(level);
+    });
+    el("rate-input").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") event.target.blur();
+    });
+    el("compare").addEventListener("change", (event) => { state.comparison = event.target.value; updateReadout(); });
+    el("sort").addEventListener("change", (event) => { state.order = event.target.value; renderMatrix(); });
+    el("matrix-body").addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-action]");
+      if (!button) return;
+      selectBond(button.dataset.ticker);
+      if (button.dataset.action === "scenario") setExitLevel(Number(button.dataset.rate), true);
+      if (button.dataset.action === "price") { el("price").focus(); el("price").select(); }
+    });
+
+    el("price-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const price = parseNumber(el("price").value, 2);
+      if (!Number.isFinite(price) || price <= 0) {
+        setError("price", "price-error", true);
+        el("price").focus();
+        return;
+      }
+      const key = priceKey(state.ticker);
+      if (price === basePrice(state.ticker)) state.prices.delete(key);
+      else state.prices.set(key, price);
+      recalculate();
+      resetPriceField();
+      updateReadout();
+      renderMatrix();
+    });
+    el("reset-price").addEventListener("click", () => {
+      state.prices.delete(priceKey(state.ticker));
+      recalculate();
+      resetPriceField();
+      el("price").focus();
+      updateReadout();
+      renderMatrix();
+    });
+
+    el("scenario-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const inputs = [...el("scenario-fields").querySelectorAll("input")];
+      const levels = inputs.map((input) => parseNumber(input.value, 1));
+      const { limit } = exitConfig();
+      const invalid = levels.map((level) => !Number.isFinite(level) || level < 0 || level > limit || levels.filter((other) => other === level).length > 1);
+      inputs.forEach((input, index) => input.setAttribute("aria-invalid", String(invalid[index])));
+      el("scenario-error").hidden = !invalid.includes(true);
+      if (invalid.includes(true)) { inputs[invalid.indexOf(true)].focus(); return; }
+      exitSelection().scenarios = levels.sort((a, b) => a - b);
+      populateScenarios();
+      el("scenario-panel").open = false;
+      el("scenario-panel").querySelector("summary").focus();
+      renderMatrix();
+      updateReadout();
+    });
+    el("reset-grid").addEventListener("click", () => {
+      exitSelection().scenarios = [...exitConfig().defaults];
+      populateScenarios();
+      renderMatrix();
+      updateReadout();
+    });
+
+    resetPriceField();
+    renderMode();
+    new ResizeObserver(drawChart).observe(el("curve"));
+  </script>
+  <script>
+  /* El precio de compra de referencia tiene fecha. Si quedo viejo, toda la
+     matriz lo esta -- y se ve igual de prolija. Por eso se avisa arriba. */
+  (function(){
+    try{
+      var d = JSON.parse(document.getElementById('market-data').textContent);
+      var extra = (window.TIR_SALIDA_PRECIOS_DATA || {}).snapshots || {};
+      var fechas = Object.keys(d.snapshots || {}).concat(Object.keys(extra)).sort();
+      if (!fechas.length) return;
+      var ultima = fechas[fechas.length - 1];
+      var dias = Math.round((Date.now() - new Date(ultima + 'T12:00:00')) / 86400000);
+      if (dias < 21) return;
+      var p = ultima.split('-');
+      document.getElementById('tirAviso').innerHTML =
+        '<span>&#9888;</span><span><strong>Precios al ' + p[2] + '/' + p[1] + '/' + p[0] + '</strong> (' +
+        dias + ' d&iacute;as). Los retornos se calculan contra ese precio de compra: ' +
+        'mientras no entre una rueda nueva, toda la matriz queda anclada ah&iacute;.</span>';
+      document.getElementById('tirAviso').className = 'tir-aviso visible';
+    }catch(e){}
   })();
   </script>
+
 </body>
 </html>

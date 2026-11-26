@@ -2817,121 +2817,119 @@ def completar_mercados(status, monitor):
 
 
 # =====================================================================
-#  TIR DE SALIDA (soberanos en USD)
+#  TIR DE SALIDA (precios de los soberanos en USD)
 # =====================================================================
+#  Los 15 soberanos del ejercicio. En Rava cotizan con la D al final
+#  (especie en dolares): AL30 -> AL30D.
+TIR_TICKERS = ["AO28", "BPB8", "AL29", "GD29", "AO29", "AN29", "AL30", "GD30",
+               "AL35", "GD35", "AE38", "GD38", "GD41", "AL41", "GD46"]
+
+
 @_nunca_rompe("TIR de salida")
 def extract_tir_salida(status):
+    r"""
+    Suma la rueda del dia al simulador de TIR y paridad de salida.
+
+    La pagina es el prototipo interactivo: calcula sola el precio de venta, el
+    retorno y la TIR de equilibrio a partir de dos cosas, los flujos de cada
+    bono (condiciones de emision, no cambian) y el precio de compra. Lo unico
+    que envejece es el precio, asi que es lo unico que se actualiza.
+
+    Los precios salen del mismo lector de Rava que usa el Monitor de tasas,
+    que ya vive en este repo y esta probado. Como la fuente es publica, este
+    paso tambien corre en la nube: el simulador queda al dia sin la PC.
+
+    Se guardan solo las ruedas completas -- las 15 especies con precio del
+    mismo dia. Media rueda haria que un bono se compare contra el cierre de
+    ayer y otro contra el de hoy, y la matriz entera se leeria mal.
     """
-    Matriz de retorno total de los soberanos en USD segun la TIR a la que se
-    salga en una fecha dada.
-
-    La planilla se recalcula sola: su hoja 'Guia' dice que el analista
-    actualiza precios en Inputs, el horizonte en Inputs y la grilla de
-    escenarios en la fila 6 de Sensibilidad. Asi que aca no se recalcula nada
-    -- se lee esa hoja, que es el entregable -- y todo lo que cambie en el
-    Excel aparece en el tablero sin tocar codigo.
-
-    Por eso tampoco se fijan columnas: los escenarios son los que haya en la
-    fila de encabezado. Si manana la grilla pasa de nueve a doce, o cambia la
-    fecha de salida, el cuadro se adapta.
-
-    El proyecto deja una carpeta por corrida (outputs/tir-salida-AAAAMMDD), asi
-    que se toma la mas nueva, como con la Tenencia DLK.
-    """
-    base = EXCEL_PATHS["tir_salida"]
-    if not os.path.isdir(base):
-        status.warn("TIR de salida", f"no existe la carpeta {base}")
+    if not os.path.isdir(MONITOR_TASAS_DIR):
+        status.warn("TIR de salida", "no encontre monitor-tasas (de ahi sale el lector de Rava)")
         return None
 
-    salidas = os.path.join(base, "outputs")
-    corridas = [d for d in os.listdir(salidas)
-                if d.lower().startswith("tir-salida-") and os.path.isdir(os.path.join(salidas, d))] \
-        if os.path.isdir(salidas) else []
-    if not corridas:
-        status.warn("TIR de salida", "no encontre ninguna carpeta outputs/tir-salida-*")
+    sys.path.insert(0, MONITOR_TASAS_DIR)
+    try:
+        from src.ingest.rava import fetch_rava_hard_dollar_prices
+    except Exception as e:
+        status.warn("TIR de salida", f"no pude cargar el lector de Rava: {e}")
         return None
-    corrida = sorted(corridas)[-1]          # el nombre lleva la fecha
-    carpeta = os.path.join(salidas, corrida)
+    finally:
+        if sys.path and sys.path[0] == MONITOR_TASAS_DIR:
+            sys.path.pop(0)
 
-    xlsx = next((os.path.join(carpeta, f) for f in sorted(os.listdir(carpeta))
-                 if f.lower().endswith(".xlsx") and not f.startswith("~$")), None)
-    if not xlsx:
-        status.warn("TIR de salida", f"no hay xlsx en {corrida}")
-        return None
-
-    ws = _open_wb(xlsx, read_only=False)["Sensibilidad"]
-
-    # ---- Fechas del horizonte: estan rotuladas, no en una celda fija ----
-    fechas = {}
-    for r in range(1, 12):
-        for c in range(1, 12):
-            et = str(ws.cell(r, c).value or "").strip().lower()
-            v = ws.cell(r, c + 1).value
-            if isinstance(v, datetime):
-                if et.startswith("fecha de liquidacion") or et.startswith("fecha de liquidación"):
-                    fechas["liquidacion"] = v.strftime("%Y-%m-%d")
-                elif et.startswith("fecha de salida"):
-                    fechas["salida"] = v.strftime("%Y-%m-%d")
-
-    # ---- Fila de encabezado: la que dice 'Bono' en la primera columna ----
-    fila_enc = next((r for r in range(1, 15)
-                     if str(ws.cell(r, 1).value or "").strip().lower() == "bono"), None)
-    if fila_enc is None:
-        status.warn("TIR de salida", "no encontre la fila de encabezado en 'Sensibilidad'")
+    df, fallas = fetch_rava_hard_dollar_prices([t + "D" for t in TIR_TICKERS],
+                                               timeout_seconds=30)
+    if df is None or len(df) == 0:
+        status.warn("TIR de salida", "Rava no devolvio precios")
         return None
 
-    escenarios, cols_esc, c_hoy, c_be = [], [], None, None
-    for c in range(2, (ws.max_column or 20) + 1):
-        v = ws.cell(fila_enc, c).value
-        if isinstance(v, (int, float)):
-            escenarios.append(fmt_n(v))
-            cols_esc.append(c)
-        else:
-            et = _sin_tildes(str(v or "")).strip().lower()
-            if et.startswith("tir hoy"):
-                c_hoy = c
-            elif et.startswith("tir break"):
-                c_be = c
-
-    filas = []
-    for r in range(fila_enc + 1, (ws.max_row or 0) + 1):
-        bono = ws.cell(r, 1).value
-        if not isinstance(bono, str) or not bono.strip():
-            break                            # abajo siguen las notas de lectura
-        rets = [fmt_n(ws.cell(r, c).value) for c in cols_esc]
-        if all(v is None for v in rets):
+    # ---- De la tabla larga de Rava a una rueda por fecha ----
+    por_fecha = {}
+    for fila in df.to_dict("records"):
+        simbolo = str(fila.get("symbol") or "").strip().upper()
+        if not simbolo.endswith("D"):
             continue
-        filas.append({
-            "bono": bono.strip(),
-            "tir_hoy": fmt_n(ws.cell(r, c_hoy).value) if c_hoy else None,
-            "break_even": fmt_n(ws.cell(r, c_be).value) if c_be else None,
-            "retornos": rets,
-        })
+        ticker = simbolo[:-1]
+        if ticker not in TIR_TICKERS:
+            continue
+        fecha = str(fila.get("date") or "")[:10]
+        if len(fecha) != 10:
+            continue
+        try:
+            precio = float(fila.get("price"))
+        except (TypeError, ValueError):
+            continue
+        if precio != precio or precio <= 0:       # NaN o precio sin sentido
+            continue
+        por_fecha.setdefault(fecha, {})[ticker] = round(precio, 2)
 
-    # ---- Notas al pie de la hoja (lectura / alcance) ----
-    notas = []
-    for r in range(fila_enc + 1 + len(filas), (ws.max_row or 0) + 1):
-        a, b = ws.cell(r, 1).value, ws.cell(r, 2).value
-        if isinstance(a, str) and isinstance(b, str) and a.strip() and b.strip():
-            notas.append({"titulo": a.strip(), "texto": " ".join(str(b).split())})
+    # La rueda de hoy todavia se esta formando: el ultimo no es el cierre.
+    hoy = datetime.now().strftime("%Y-%m-%d")
+    completas = {f: p for f, p in por_fecha.items()
+                 if len(p) == len(TIR_TICKERS) and f < hoy}
 
-    data = {
-        "meta": {"corrida": corrida,
-                 "actualizado": datetime.fromtimestamp(os.path.getmtime(xlsx)).strftime("%Y-%m-%d"),
-                 **fechas},
-        "escenarios": escenarios,
-        "filas": filas,
-        "notas": notas,
-    }
+    # ---- El historial se acumula: Rava solo muestra una ventana ----
+    previo = load_existing("tir_salida_precios") or {}
+    snaps = dict(previo.get("snapshots") or {})
+    nuevas = [f for f in completas if f not in snaps]
+    for f, precios in completas.items():
+        snaps[f] = {"basis": "Cierre", "prices": precios}
+
+    # Sin tope el archivo crece para siempre; un ano de ruedas alcanza y sobra.
+    for vieja in sorted(snaps)[:-250]:
+        del snaps[vieja]
+
+    if not snaps:
+        status.warn("TIR de salida", "ninguna rueda completa (las 15 especies el mismo dia)")
+        return None
+
+    ultima = sorted(snaps)[-1]
+    data = {"snapshots": snaps, "actualizado": datetime.now().strftime("%Y-%m-%d %H:%M")}
+
+    # Una rueda vieja incompleta es normal: AO29 y AN29 todavia no se habian
+    # emitido. Solo avisa si falta alguna especie en una rueda reciente, que
+    # si significa que algo se rompio.
+    corte = (datetime.now() - timedelta(days=10)).strftime("%Y-%m-%d")
+    incompletas = sorted(f for f in por_fecha
+                         if corte < f < hoy and len(por_fecha[f]) < len(TIR_TICKERS))
     status.ok("TIR de salida",
-              f"{len(filas)} bonos × {len(escenarios)} escenarios · salida {fechas.get('salida', '?')} "
-              f"· corrida {corrida}")
-    if fechas.get("liquidacion"):
-        # El precio de compra es de una fecha concreta: si quedo viejo, toda la
-        # matriz lo esta, aunque el Excel se vea prolijo.
-        _avisar_si_viejo(status, "TIR de salida", fechas["liquidacion"], meses=2,
-                         extra="son los precios de compra de la matriz")
+              f"{len(snaps)} ruedas ({len(nuevas)} nueva{'s' if len(nuevas) != 1 else ''}) "
+              f"- ultimo cierre {ultima}")
+    if fallas:
+        status.warn("TIR de salida", "Rava no respondio por " + ", ".join(sorted(fallas)))
+    elif incompletas:
+        status.warn("TIR de salida",
+                    "ruedas recientes descartadas por incompletas: " + ", ".join(incompletas))
+
+    # El simulador calcula todo contra el precio de compra: si quedo viejo,
+    # la matriz entera lo esta, y se ve igual de prolija.
+    atraso = (datetime.now() - datetime.strptime(ultima, "%Y-%m-%d")).days
+    if atraso > 7:
+        status.warn("TIR de salida",
+                    f"el ultimo cierre es del {ultima} ({atraso} dias): "
+                    f"los retornos cuelgan de ese precio de compra")
     return data
+
 
 
 # =====================================================================
@@ -3966,9 +3964,9 @@ def main_online():
     'OneDrive - ECOGO S.A\BD', una carpeta que existe solo en la maquina de
     la oficina. Un runner de GitHub es una maquina nueva en la nube: esos
     archivos no estan ahi y no hay forma de que lo esten. Lo que si puede
-    correr sin la PC son los dos pasos que bajan de fuentes publicas y viven
-    dentro de este mismo repositorio: el Monitor mundial (Internacional) y el
-    pipeline de Mercados.
+    correr sin la PC son los pasos que bajan de fuentes publicas y viven
+    dentro de este mismo repositorio: el Monitor mundial (Internacional), el
+    pipeline de Mercados, el Monitor de tasas y los precios de TIR de salida.
 
     El resto de las secciones queda con el ultimo dato que se haya subido
     desde la oficina. No se tocan ni se borran: cada pagina sigue mostrando su
@@ -3982,7 +3980,7 @@ def main_online():
 
     status = Status()
 
-    print("[1/3] Internacional (Monitor mundial)...")
+    print("[1/4] Internacional (Monitor mundial)...")
     try:
         run_monitor_mundial(status)
         extract_internacional(status)
@@ -3990,7 +3988,7 @@ def main_online():
         status.fail("Internacional", str(e))
         traceback.print_exc()
 
-    print("\n[2/3] Mercados (renta variable y precios)...")
+    print("\n[2/4] Mercados (renta variable y precios)...")
     try:
         extract_mercados(status)
     except Exception as e:
@@ -3998,7 +3996,7 @@ def main_online():
 
     # El Monitor de tasas baja de BCRA, A3, Rava e IOL: todas publicas, asi
     # que las curvas tambien pueden actualizarse sin la PC de la oficina.
-    print("\n[3/3] Monitor de tasas (curvas de Mercados)...")
+    print("\n[3/4] Monitor de tasas (curvas de Mercados)...")
     try:
         run_monitor_tasas(status)
         d = extract_monitor_tasas(status)
@@ -4007,6 +4005,17 @@ def main_online():
             completar_mercados(status, d)
     except Exception as e:
         status.warn("Monitor de tasas", f"no se pudo actualizar: {e}")
+
+    # El simulador de TIR de salida solo necesita el precio de cada bono, y
+    # tambien sale de Rava: es la unica seccion de clientes que se mantiene
+    # sola desde la nube.
+    print("\n[4/4] TIR de salida (precios de los soberanos)...")
+    try:
+        d = extract_tir_salida(status)
+        if d:
+            save_data("tir_salida_precios", d)
+    except Exception as e:
+        status.warn("TIR de salida", f"no se pudo actualizar: {e}")
 
     sellar_versiones(status)
 
@@ -4256,8 +4265,7 @@ def main():
     try:
         d = extract_tir_salida(status)
         if d:
-            sz = save_data("tir_salida", d)
-            status.ok("TIR de salida", f"{sz:,} bytes")
+            save_data("tir_salida_precios", d)
     except Exception as e:
         status.fail("TIR de salida", str(e))
         traceback.print_exc()
