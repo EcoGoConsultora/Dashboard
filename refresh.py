@@ -1893,50 +1893,64 @@ def extract_monetarias(status):
 # =====================================================================
 #  DEUDA (dashboard clientes)
 # =====================================================================
-def _calendario_pagos(ws):
-    """El cuadro del ultimo mes de la hoja 'Calendario de pagos (nuevo)'.
+def _calendario_pagos(ws, cuantos=3):
+    """Los ultimos meses de la hoja 'Calendario de pagos (nuevo)'.
 
     La hoja apila un bloque por mes desde julio de 2022 y el analista agrega
-    el siguiente al final: se publica siempre el ultimo, asi que cuando aparece
-    enero el tablero pasa solo a enero. Cada bloque abre con el numero de mes
-    en C y el nombre en D; el anio esta en B solo en el primer bloque y en cada
-    enero, y se arrastra. Despues vienen dos filas de encabezado, una fila por
-    vencimiento (dia, ticker, tipo y Total/Capital/Intereses, total y con
-    acreedores privados), las licitaciones sin montos y la fila 'Total'."""
+    el siguiente al final: se publican siempre los ultimos, asi que cuando
+    aparece enero el tablero corre la ventana solo. Cada bloque abre con el
+    numero de mes en C y el nombre en D; el anio esta en B solo en el primer
+    bloque y en cada enero, y se arrastra. Despues vienen dos filas de
+    encabezado, una fila por vencimiento (dia, ticker, tipo y
+    Total/Capital/Intereses, total y con acreedores privados), las
+    licitaciones sin montos y la fila 'Total'."""
     MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
              "septiembre", "octubre", "noviembre", "diciembre"]
-    anio, ultimo = None, None
+    anio, bloques = None, []
     for r in range(1, (ws.max_row or 0) + 1):
         b, c, d = ws.cell(r, 2).value, ws.cell(r, 3).value, ws.cell(r, 4).value
         if isinstance(b, (int, float)) and 2000 < b < 2100:
             anio = int(b)
         if isinstance(c, (int, float)) and isinstance(d, str) and d.strip().lower() in MESES:
-            ultimo = (r, anio, int(c), d.strip())
-    if not ultimo:
+            bloques.append((r, anio, int(c), d.strip()))
+    if not bloques:
         return None
 
-    r0, anio, mes, nombre = ultimo
     cols = ("total", "capital", "intereses", "priv_total", "priv_capital", "priv_intereses")
-    filas, total, fuente = [], None, None
-    for r in range(r0 + 1, (ws.max_row or 0) + 1):
-        d, e, f = (ws.cell(r, c).value for c in (4, 5, 6))
-        montos = dict(zip(cols, (fmt_n(ws.cell(r, c).value) for c in range(7, 13))))
-        if isinstance(d, str) and d.strip().lower() == "total":
-            total = montos
-            # la fuente va en la fila siguiente al total
-            sig = ws.cell(r + 1, 4).value
-            if isinstance(sig, str) and sig.strip().lower().startswith("fuente"):
-                fuente = sig.strip()
-            break
-        if not isinstance(d, (int, float)):
-            continue                    # las dos filas de encabezado
-        if isinstance(e, str) and e.strip().lower().startswith("licitaci"):
-            filas.append({"dia": int(d), "licitacion": True})
-        else:
-            filas.append({"dia": int(d), "ticker": str(e or "").strip(),
-                          "tipo": str(f or "").strip(), **montos})
-    return {"anio": anio, "mes": mes, "mes_nombre": nombre.capitalize(),
-            "filas": filas, "total": total, "fuente": fuente}
+
+    def _leer_bloque(r0):
+        """Del encabezado del mes hasta su fila 'Total', que es donde cierra."""
+        filas, total, fuente = [], None, None
+        for r in range(r0 + 1, (ws.max_row or 0) + 1):
+            d, e, f = (ws.cell(r, c).value for c in (4, 5, 6))
+            montos = dict(zip(cols, (fmt_n(ws.cell(r, c).value) for c in range(7, 13))))
+            if isinstance(d, str) and d.strip().lower() == "total":
+                total = montos
+                # la fuente va en la fila siguiente al total
+                sig = ws.cell(r + 1, 4).value
+                if isinstance(sig, str) and sig.strip().lower().startswith("fuente"):
+                    fuente = sig.strip()
+                break
+            if not isinstance(d, (int, float)):
+                continue                # las dos filas de encabezado
+            if isinstance(e, str) and e.strip().lower().startswith("licitaci"):
+                filas.append({"dia": int(d), "licitacion": True})
+            else:
+                filas.append({"dia": int(d), "ticker": str(e or "").strip(),
+                              "tipo": str(f or "").strip(), **montos})
+        return filas, total, fuente
+
+    meses, fuente = [], None
+    for r0, a, m, nombre in bloques[-cuantos:]:
+        filas, total, fte = _leer_bloque(r0)
+        if not filas:
+            continue                    # un bloque a medio cargar no se publica
+        meses.append({"anio": a, "mes": m, "mes_nombre": nombre.capitalize(),
+                      "filas": filas, "total": total})
+        fuente = fte or fuente          # suele estar solo al pie del ultimo
+    if not meses:
+        return None
+    return {"meses": meses, "fuente": fuente}
 
 def extract_deuda(status):
     """
@@ -1987,15 +2001,22 @@ def extract_deuda(status):
             status.fail("Deuda - Vencimientos mensual", str(e))
             traceback.print_exc()
 
-        # ---- Calendario de pagos: el cuadro del ultimo mes cargado ----
+        # ---- Calendario de pagos: los ultimos tres meses cargados ----
         try:
             cal = _calendario_pagos(wb2["Calendario de pagos (nuevo)"])
-            if cal and cal["total"]:
+            if cal:
                 data['calendario_pagos'] = cal
+                ms = cal["meses"]
+                venc = sum(1 for m in ms for x in m["filas"] if not x.get("licitacion"))
+                lic = sum(1 for m in ms for x in m["filas"] if x.get("licitacion"))
                 status.ok("Deuda - Calendario de pagos",
-                          f"{cal['mes_nombre']} {cal['anio']} · "
-                          f"{sum(1 for x in cal['filas'] if not x.get('licitacion'))} vencimientos · "
-                          f"{sum(1 for x in cal['filas'] if x.get('licitacion'))} licitaciones")
+                          f"{ms[0]['mes_nombre']} {ms[0]['anio']} a "
+                          f"{ms[-1]['mes_nombre']} {ms[-1]['anio']} · "
+                          f"{venc} vencimientos · {lic} licitaciones")
+                sin_total = [f"{m['mes_nombre']} {m['anio']}" for m in ms if not m.get("total")]
+                if sin_total:
+                    status.warn("Deuda - Calendario de pagos",
+                                "sin fila de total: " + ", ".join(sin_total))
             else:
                 status.warn("Deuda - Calendario de pagos", "no encontre un mes completo en la hoja")
         except Exception as e:

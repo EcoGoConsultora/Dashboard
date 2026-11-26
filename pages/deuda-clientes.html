@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Deuda · Eco Go</title>
-  <link rel="stylesheet" href="../assets/css/theme.css?v=202611261644"/>
+  <link rel="stylesheet" href="../assets/css/theme.css?v=202611261740"/>
   <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -14,6 +14,10 @@
     .dt-note{font-size:.72rem;color:var(--color-text-muted);margin-top:8px}
     /* tablas con primera columna fija y encabezado pegajoso */
     .dt-wrap{overflow-x:auto;overflow-y:auto;max-height:480px;border:1px solid var(--color-border);border-radius:8px}
+    /* El calendario pasó a tres meses apilados: con 480px quedaba el último
+       mes escondido, que es justamente el que se mira. Se le da la altura de
+       la pantalla, asi entra casi entero y el encabezado sigue pegajoso. */
+    .dt-wrap--calendario{max-height:78vh}
     .dt-table{border-collapse:separate!important;border-spacing:0;font-size:.71rem;width:100%;table-layout:fixed}
     .dt-table th{position:sticky;top:0;background:#fff;z-index:2;padding:5px 3px;border-bottom:2px solid var(--color-border);color:var(--eg-teal-dark);font-weight:700;text-align:right;font-size:.63rem;line-height:1.15;white-space:normal;word-break:break-word;vertical-align:bottom}
     .dt-table th:first-child{text-align:left;position:sticky!important;left:0!important;z-index:10!important;background:#fff!important;width:64px;min-width:64px;box-shadow:3px 0 6px rgba(0,0,0,.10)}
@@ -38,6 +42,10 @@
     .cal-pagos tr.licit td.licit-label{text-align:center;letter-spacing:.04em}
     .cal-pagos tr.cal-total td{font-weight:700;background:#eef6f5;border-top:2px solid var(--color-border)}
     .cal-pagos tr.cal-total td:first-child{background:#eef6f5!important}
+    /* franja que abre cada mes: con tres meses apilados hace falta saber en cual estas */
+    .cal-pagos tr.cal-mes td,.cal-pagos tr.cal-mes:hover td{width:auto;background:var(--eg-teal-dark)!important;
+      color:#fff;font-weight:700;text-transform:uppercase;letter-spacing:.07em;font-size:.72rem;
+      text-align:left;padding-left:10px;border-bottom-color:var(--eg-teal-dark)}
   </style>
 </head>
 <body data-depth="1" data-active-section="deuda">
@@ -62,11 +70,11 @@
         <p class="dt-note">Fuente: Eco Go en base a Ministerio de Economía, BCRA, INDEC</p>
       </div>
 
-      <!-- Calendario de pagos del ultimo mes cargado en el Excel -->
+      <!-- Calendario de pagos de los ultimos tres meses cargados en el Excel -->
       <div class="dt-card" id="calPagosCard" hidden>
         <p class="dt-title" id="calPagosTitulo">Calendario de pagos</p>
-        <p class="dt-sub">Vencimientos del Tesoro en pesos y licitaciones del mes · En billones de $ · Total y con acreedores privados</p>
-        <div class="dt-wrap">
+        <p class="dt-sub">Vencimientos del Tesoro en pesos y licitaciones, mes a mes · En billones de $ · Total y con acreedores privados</p>
+        <div class="dt-wrap dt-wrap--calendario">
           <table class="dt-table cal-pagos" id="calPagosTable"></table>
         </div>
         <p class="dt-note" id="calPagosFuente">Fuente: Eco Go en base a Secretaría de Finanzas y estimaciones propias</p>
@@ -97,8 +105,8 @@
     </main>
   </div>
 
-  <script src="../assets/js/layout.js?v=202611261644"></script>
-  <script src="../assets/data/deuda.js?v=202611261644"></script>
+  <script src="../assets/js/layout.js?v=202611261740"></script>
+  <script src="../assets/data/deuda.js?v=202611261740"></script>
   <script>
   (function(){
     var D = window.DEUDA_DATA || {};
@@ -239,13 +247,32 @@
       return m ? MES_CORTO[+m[2] - 1] + '-' + m[1].slice(2) : v;
     }
 
-    /* Calendario de pagos: el ultimo mes que tenga cargado el Excel. Las
-       licitaciones van como franja, igual que en la planilla. */
+    /* Calendario de pagos: los ultimos meses que tenga cargados el Excel, uno
+       debajo del otro. Las licitaciones van como franja, igual que en la
+       planilla, y cada mes abre con su propia franja para no perderse. */
     var CAL_COLS = ['total', 'capital', 'intereses', 'priv_total', 'priv_capital', 'priv_intereses'];
+
+    /* Hasta noviembre de 2026 el Excel daba un mes solo: si queda un dato viejo
+       publicado, se lo trata como un mes mas y la pagina no se rompe. */
+    function calMeses(cal) {
+      if (!cal) return [];
+      if (cal.meses) return cal.meses;
+      return cal.filas ? [cal] : [];
+    }
+
+    function calRotulo(meses) {
+      if (!meses.length) return 'Calendario de pagos';
+      var a = meses[0], z = meses[meses.length - 1];
+      if (meses.length === 1) return 'Calendario de pagos — ' + a.mes_nombre + ' ' + a.anio;
+      var desde = a.anio === z.anio ? a.mes_nombre : a.mes_nombre + ' ' + a.anio;
+      return 'Calendario de pagos — ' + desde + ' a ' + z.mes_nombre + ' ' + z.anio;
+    }
+
     function buildCalendario(cal) {
       var el = document.getElementById('calPagosTable');
-      if (!el || !cal || !cal.filas) return;
-      document.getElementById('calPagosTitulo').textContent = 'Calendario de pagos — ' + cal.mes_nombre + ' ' + cal.anio;
+      var meses = calMeses(cal);
+      if (!el || !meses.length) return;
+      document.getElementById('calPagosTitulo').textContent = calRotulo(meses);
       if (cal.fuente) document.getElementById('calPagosFuente').textContent = cal.fuente;
 
       function montos(m) {
@@ -262,16 +289,19 @@
         '<th colspan="3" class="dt-group-end">Total</th><th colspan="3">Con acreedores privados</th></tr>' +
         '<tr class="dt-subrow"><th>Total</th><th>Capital</th><th class="dt-group-end">Intereses</th>' +
         '<th>Total</th><th>Capital</th><th>Intereses</th></tr></thead><tbody>';
-      cal.filas.forEach(function(f){
-        if (f.licitacion) {
-          html += '<tr class="licit"><td>' + f.dia + '</td><td class="licit-label" colspan="8">Licitación</td></tr>';
-        } else {
-          html += '<tr><td>' + f.dia + '</td><td class="txt">' + f.ticker + '</td><td class="txt dt-group-end">' + f.tipo + '</td>' + montos(f) + '</tr>';
+      meses.forEach(function(m){
+        html += '<tr class="cal-mes"><td colspan="9">' + m.mes_nombre + ' ' + m.anio + '</td></tr>';
+        m.filas.forEach(function(f){
+          if (f.licitacion) {
+            html += '<tr class="licit"><td>' + f.dia + '</td><td class="licit-label" colspan="8">Licitación</td></tr>';
+          } else {
+            html += '<tr><td>' + f.dia + '</td><td class="txt">' + f.ticker + '</td><td class="txt dt-group-end">' + f.tipo + '</td>' + montos(f) + '</tr>';
+          }
+        });
+        if (m.total) {
+          html += '<tr class="cal-total"><td></td><td class="txt dt-group-end" colspan="2">Total</td>' + montos(m.total) + '</tr>';
         }
       });
-      if (cal.total) {
-        html += '<tr class="cal-total"><td></td><td class="txt dt-group-end" colspan="2">Total</td>' + montos(cal.total) + '</tr>';
-      }
       el.innerHTML = html + '</tbody>';
       document.getElementById('calPagosCard').hidden = false;
       pegarSubencabezado(el);
@@ -337,12 +367,21 @@
         return { headers: D.lopez_murphy.headers, rows: D.lopez_murphy.rows.map(function(r){ return r.map(function(v){ return v !== null ? v : ''; }); }) };
       });
       if (D.calendario_pagos) EcoGo.dlBtn('#calPagosTable', 'calendario_pagos_deuda_pesos.csv', function(){
-        var C = D.calendario_pagos;
-        var fila = function(dia, ticker, tipo, m){ return [dia, ticker, tipo].concat(CAL_COLS.map(function(k){ return m && m[k] !== null && m[k] !== undefined ? m[k] : ''; })); };
-        var rows = C.filas.map(function(f){ return f.licitacion ? fila(f.dia, 'Licitación', '', null) : fila(f.dia, f.ticker, f.tipo, f); });
-        if (C.total) rows.push(fila('', 'Total', '', C.total));
+        /* Con varios meses apilados, la columna del mes es la que deja ordenar
+           o filtrar el CSV: sin ella los dias se repiten y no se sabe de cual. */
+        var fila = function(mes, dia, ticker, tipo, m){
+          return [mes, dia, ticker, tipo].concat(CAL_COLS.map(function(k){ return m && m[k] !== null && m[k] !== undefined ? m[k] : ''; }));
+        };
+        var rows = [];
+        calMeses(D.calendario_pagos).forEach(function(M){
+          var mes = M.mes_nombre + ' ' + M.anio;
+          M.filas.forEach(function(f){
+            rows.push(f.licitacion ? fila(mes, f.dia, 'Licitación', '', null) : fila(mes, f.dia, f.ticker, f.tipo, f));
+          });
+          if (M.total) rows.push(fila(mes, '', 'Total', '', M.total));
+        });
         return {
-          headers: ['Día', 'Ticker', 'Tipo', 'Total', 'Capital', 'Intereses',
+          headers: ['Mes', 'Día', 'Ticker', 'Tipo', 'Total', 'Capital', 'Intereses',
                     'Privados · Total', 'Privados · Capital', 'Privados · Intereses'],
           rows: rows
         };
