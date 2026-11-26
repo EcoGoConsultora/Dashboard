@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Deuda · Eco Go</title>
-  <link rel="stylesheet" href="../assets/css/theme.css?v=202611261740"/>
+  <link rel="stylesheet" href="../assets/css/theme.css?v=202611261746"/>
   <link rel="icon" type="image/jpeg" href="../assets/img/logo-ecogo.jpg"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -45,7 +45,19 @@
     /* franja que abre cada mes: con tres meses apilados hace falta saber en cual estas */
     .cal-pagos tr.cal-mes td,.cal-pagos tr.cal-mes:hover td{width:auto;background:var(--eg-teal-dark)!important;
       color:#fff;font-weight:700;text-transform:uppercase;letter-spacing:.07em;font-size:.72rem;
-      text-align:left;padding-left:10px;border-bottom-color:var(--eg-teal-dark)}
+      text-align:left;padding-left:10px;border-bottom-color:var(--eg-teal-dark);
+      position:static!important;left:auto!important}
+    /* la franja es el boton que despliega el mes */
+    .cal-pagos tr.cal-mes{cursor:pointer}
+    .cal-pagos tr.cal-mes:hover td{background:#17514f!important}
+    .cal-pagos tr.cal-mes:focus-visible td{outline:2px solid #fff;outline-offset:-3px}
+    .cal-pagos .cal-mes-cab{display:inline-flex;align-items:center;gap:8px}
+    .cal-pagos .cal-flecha{width:0;height:0;border-left:5px solid currentColor;
+      border-top:4px solid transparent;border-bottom:4px solid transparent;transition:transform .15s}
+    .cal-pagos tr.cal-mes.abierto .cal-flecha{transform:rotate(90deg)}
+    /* el total viaja en la franja: se ve aunque el mes este plegado */
+    .cal-pagos .cal-mes-total{float:right;font-weight:600;letter-spacing:0;text-transform:none;opacity:.9}
+    .cal-oculto{display:none!important}
   </style>
 </head>
 <body data-depth="1" data-active-section="deuda">
@@ -73,7 +85,7 @@
       <!-- Calendario de pagos de los ultimos tres meses cargados en el Excel -->
       <div class="dt-card" id="calPagosCard" hidden>
         <p class="dt-title" id="calPagosTitulo">Calendario de pagos</p>
-        <p class="dt-sub">Vencimientos del Tesoro en pesos y licitaciones, mes a mes · En billones de $ · Total y con acreedores privados</p>
+        <p class="dt-sub">Vencimientos del Tesoro en pesos y licitaciones · Tocá un mes para desplegarlo · En billones de $ · Total y con acreedores privados</p>
         <div class="dt-wrap dt-wrap--calendario">
           <table class="dt-table cal-pagos" id="calPagosTable"></table>
         </div>
@@ -105,8 +117,8 @@
     </main>
   </div>
 
-  <script src="../assets/js/layout.js?v=202611261740"></script>
-  <script src="../assets/data/deuda.js?v=202611261740"></script>
+  <script src="../assets/js/layout.js?v=202611261746"></script>
+  <script src="../assets/data/deuda.js?v=202611261746"></script>
   <script>
   (function(){
     var D = window.DEUDA_DATA || {};
@@ -289,22 +301,60 @@
         '<th colspan="3" class="dt-group-end">Total</th><th colspan="3">Con acreedores privados</th></tr>' +
         '<tr class="dt-subrow"><th>Total</th><th>Capital</th><th class="dt-group-end">Intereses</th>' +
         '<th>Total</th><th>Capital</th><th>Intereses</th></tr></thead><tbody>';
-      meses.forEach(function(m){
-        html += '<tr class="cal-mes"><td colspan="9">' + m.mes_nombre + ' ' + m.anio + '</td></tr>';
+      meses.forEach(function(m, i){
+        /* Arranca abierto el mes mas nuevo, que es el que se viene; los de
+           atras quedan plegados y se abren tocando la franja. */
+        var abierto = (i === meses.length - 1);
+        var oculto = abierto ? '' : ' cal-oculto';
+        var rotulo = m.mes_nombre + ' ' + m.anio;
+        html += '<tr class="cal-mes' + (abierto ? ' abierto' : '') + '" data-mes="' + i + '"' +
+                ' tabindex="0" role="button" aria-expanded="' + abierto + '"' +
+                ' aria-label="' + rotulo + ', desplegar o plegar">' +
+                '<td colspan="9"><span class="cal-mes-cab">' +
+                  '<span class="cal-flecha" aria-hidden="true"></span>' + rotulo + '</span>' +
+                  (m.total ? '<span class="cal-mes-total">Total ' + fmtCell('', m.total.total) + '</span>' : '') +
+                '</td></tr>';
         m.filas.forEach(function(f){
           if (f.licitacion) {
-            html += '<tr class="licit"><td>' + f.dia + '</td><td class="licit-label" colspan="8">Licitación</td></tr>';
+            html += '<tr class="licit cal-fila' + oculto + '" data-mes="' + i + '"><td>' + f.dia + '</td><td class="licit-label" colspan="8">Licitación</td></tr>';
           } else {
-            html += '<tr><td>' + f.dia + '</td><td class="txt">' + f.ticker + '</td><td class="txt dt-group-end">' + f.tipo + '</td>' + montos(f) + '</tr>';
+            html += '<tr class="cal-fila' + oculto + '" data-mes="' + i + '"><td>' + f.dia + '</td><td class="txt">' + f.ticker + '</td><td class="txt dt-group-end">' + f.tipo + '</td>' + montos(f) + '</tr>';
           }
         });
         if (m.total) {
-          html += '<tr class="cal-total"><td></td><td class="txt dt-group-end" colspan="2">Total</td>' + montos(m.total) + '</tr>';
+          html += '<tr class="cal-total cal-fila' + oculto + '" data-mes="' + i + '"><td></td><td class="txt dt-group-end" colspan="2">Total</td>' + montos(m.total) + '</tr>';
         }
       });
       el.innerHTML = html + '</tbody>';
       document.getElementById('calPagosCard').hidden = false;
       pegarSubencabezado(el);
+
+      function alternar(banda) {
+        var i = banda.getAttribute('data-mes');
+        var abierto = banda.classList.toggle('abierto');
+        banda.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+        Array.prototype.forEach.call(el.querySelectorAll('tr.cal-fila[data-mes="' + i + '"]'), function(tr){
+          tr.classList.toggle('cal-oculto', !abierto);
+        });
+      }
+      function bandaDe(nodo) {
+        while (nodo && nodo !== el) {
+          if (nodo.classList && nodo.classList.contains('cal-mes')) return nodo;
+          nodo = nodo.parentNode;
+        }
+        return null;
+      }
+      el.addEventListener('click', function(ev){
+        var b = bandaDe(ev.target);
+        if (b) alternar(b);
+      });
+      el.addEventListener('keydown', function(ev){
+        if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
+        var b = bandaDe(ev.target);
+        if (!b) return;
+        ev.preventDefault();          // si no, la barra espaciadora scrollea
+        alternar(b);
+      });
     }
 
     buildTable('lopezMurphyTable', D.lopez_murphy);
