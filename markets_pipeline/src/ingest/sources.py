@@ -1307,7 +1307,11 @@ def _build_byma_browser_prices(
             quotes = load_quote_cache(quote_cache_path)
             notes.append(f"BYMA live refresh failed; reused quote cache at {quote_cache_path.as_posix()}: {exc}")
         else:
-            raise
+            # A fresh checkout (the nightly GitHub runner) has no quote cache.
+            # Raising here aborted the whole pipeline every night; BYMA is only
+            # an overlay on top of the IOL and chart histories, so skip it.
+            quotes = pd.DataFrame(columns=QUOTE_COLUMNS)
+            notes.append(f"BYMA live refresh failed and no quote cache exists; source skipped: {exc}")
 
     if quotes.empty:
         return pd.DataFrame(columns=PRICE_COLUMNS), notes
@@ -1417,7 +1421,9 @@ def _build_byma_direct_prices(
             quotes = load_quote_cache(quote_cache_path)
             notes.append(f"BYMA direct refresh failed; reused quote cache at {quote_cache_path.as_posix()}: {exc}")
         else:
-            raise
+            # Same as byma_browser_prices: without a cache, skip instead of aborting the run.
+            quotes = pd.DataFrame(columns=QUOTE_COLUMNS)
+            notes.append(f"BYMA direct refresh failed and no quote cache exists; source skipped: {exc}")
 
     if quotes.empty:
         return pd.DataFrame(columns=PRICE_COLUMNS), notes

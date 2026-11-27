@@ -3686,12 +3686,15 @@ def extract_mercados(status):
             status.warn("Mercados", f"no pude instalar dependencias ({', '.join(missing)}): {detail[-1][:180] if detail else 'sin detalle'}")
             return False
 
+    # En la PC de la oficina el pipeline tarda unos 16 minutos (13 de ingesta,
+    # sobre todo el scrape de IOL); con el tope anterior de 15 se cortaba justo
+    # antes de terminar y Mercados quedaba sin actualizar.
     r = subprocess.run(
         [sys.executable, MARKETS_PIPELINE_RUNNER],
         cwd=MARKETS_PIPELINE_DIR,
         capture_output=True,
         text=True,
-        timeout=900,
+        timeout=1800,
     )
     output = ((r.stdout or "") + "\n" + (r.stderr or "")).strip().splitlines()
     last_line = output[-1][:240] if output else "sin salida"
