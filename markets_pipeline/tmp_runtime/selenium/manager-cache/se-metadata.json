@@ -2,10 +2,10 @@
   "browsers": [],
   "drivers": [
     {
-      "major_browser_version": "158",
+      "major_browser_version": "157",
       "driver_name": "chromedriver",
-      "driver_version": "158.0.8127.88",
-      "driver_ttl": 1795667226
+      "driver_version": "157.0.8103.78",
+      "driver_ttl": 1795754057
     }
   ],
   "stats": [],
