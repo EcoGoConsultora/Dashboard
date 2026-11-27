@@ -28,6 +28,22 @@ try {
     # warning de pandas cortaría la corrida. El resultado se juzga por el código de salida.
     $ErrorActionPreference = 'Continue'
 
+    # Python 3.14 por ruta absoluta. En la notebook (ECON001) el alta de 3.14 para el launcher
+    # `py` quedó en el registro virtualizado de la app de Claude, que la tarea programada no ve.
+    $python = $null
+    if (Get-Command py -ErrorAction SilentlyContinue) {
+        $found = & py -3.14 -c "import sys; print(sys.executable)" 2>$null
+        if ($LASTEXITCODE -eq 0 -and $found) { $python = "$found".Trim() }
+    }
+    if (-not $python) {
+        $python = @(
+            (Join-Path $env:LOCALAPPDATA 'Programs\Python\Python314\python.exe'),
+            (Join-Path $env:ProgramFiles 'Python314\python.exe')
+        ) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    }
+    if (-not $python) { throw 'Python 3.14 no encontrado (ni py -3.14 ni rutas conocidas).' }
+    "Python: $python" | Tee-Object -FilePath $logPath -Append
+
     # Si la otra PC ya publicó esta rueda (llegó por OneDrive), no se rehace: evita conflictos
     # de sincronización. -Force la recalcula igual.
     $snapshotPath = Join-Path $repoRoot "output\history\$MarketDate.json"
@@ -43,14 +59,14 @@ try {
         # Primero se completa la historia que el HTML incrusta al publicar la rueda actual.
         $gapStart = ([datetime]$MarketDate).AddDays(-14).ToString('yyyy-MM-dd')
         $gapEnd = ([datetime]$MarketDate).AddDays(-1).ToString('yyyy-MM-dd')
-        & py -3.14 -m src.backfill --start $gapStart --end $gapEnd --only-missing 2>&1 | Tee-Object -FilePath $logPath -Append
+        & $python -m src.backfill --start $gapStart --end $gapEnd --only-missing 2>&1 | Tee-Object -FilePath $logPath -Append
 
         # Rava puede entregar a las 17:30 cierres parciales. Al día siguiente se recuperan
         # sólo las especies con cierre exacto faltante, conservando tasas A3/BCRA originales.
         $previous = Get-ChildItem -LiteralPath (Join-Path $repoRoot 'output\history') -Filter '*.json' |
             Where-Object { $_.BaseName -lt $MarketDate } | Sort-Object Name -Descending | Select-Object -First 1
         if ($previous) {
-            & py -3.14 -m src.backfill --start $previous.BaseName --end $previous.BaseName --repair-existing 2>&1 | Tee-Object -FilePath $logPath -Append
+            & $python -m src.backfill --start $previous.BaseName --end $previous.BaseName --repair-existing 2>&1 | Tee-Object -FilePath $logPath -Append
         }
     }
 
@@ -61,12 +77,12 @@ try {
     elseif ($MarketDate -eq $todayKey) {
         # Rueda de hoy ya cerrada: el cierre vigente de Rava es el del día. Si a esta hora Rava
         # todavía no consolidó el cierre de algunas especies, reintenta y republica hasta las 19:00.
-        & py -3.14 -m src.monitor --date $MarketDate --retry-until 19:00 2>&1 | Tee-Object -FilePath $logPath -Append
+        & $python -m src.monitor --date $MarketDate --retry-until 19:00 2>&1 | Tee-Object -FilePath $logPath -Append
     }
     else {
         # Recuperación de una rueda anterior: el precio vigente de Rava puede ser ya de otra
         # rueda, así que se valúa con el cierre histórico de esa fecha y se publica.
-        & py -3.14 -m src.backfill --start $MarketDate --end $MarketDate --force --publish 2>&1 | Tee-Object -FilePath $logPath -Append
+        & $python -m src.backfill --start $MarketDate --end $MarketDate --force --publish 2>&1 | Tee-Object -FilePath $logPath -Append
     }
     $exitCode = $LASTEXITCODE
     exit $exitCode

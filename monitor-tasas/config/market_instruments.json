@@ -1,5 +1,5 @@
 {
-  "registry_version": "2026-11-05",
+  "registry_version": "2026-11-19",
   "fixed": [
     {
       "symbol": "T15D5",
@@ -327,6 +327,14 @@
     }
   ],
   "dollar_linked": [
+    {
+      "symbol": "D29E7",
+      "family": "LELINK",
+      "issue_date": "2026-11-20",
+      "maturity_date": "2027-01-29",
+      "zero_coupon": true,
+      "terms_source": "https://www.argentina.gob.ar/noticias/conversion-de-la-lelink-d30n6-en-el-marco-del-articulo-2deg-del-decreto-84624"
+    },
     {
       "symbol": "D30S6",
       "family": "LELINK",

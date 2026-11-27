@@ -1,5 +1,5 @@
 {
-  "registry_version": "2026-08-06",
+  "registry_version": "2026-11-19",
   "methodology": {
     "benchmark": "TAMAR bancos privados, BCRA variable 44, TNA porcentual",
     "price_basis": "pesos por VN 100",
@@ -12,6 +12,18 @@
     "calendar_policy": "official_bcra_with_argentine_national_fallback"
   },
   "instruments": [
+    {
+      "symbol": "M30A7",
+      "instrument_type": "LETAMAR",
+      "issue_date": "2026-11-13",
+      "maturity_date": "2027-04-30",
+      "margin_tna_pct": 2.5,
+      "include_in_curve": true,
+      "terms_sources": [
+        "https://www.boletinoficial.gob.ar/detalleAviso/primera/350246/20261112",
+        "https://www.argentina.gob.ar/noticias/resultado-de-la-licitacion-por-efectivo-de-instrumentos-del-tesoro-nacional-denominados-17"
+      ]
+    },
     {
       "symbol": "M31G6",
       "instrument_type": "LETAMAR",
